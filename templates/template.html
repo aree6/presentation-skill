@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<!-- STARTER DECK TEMPLATE. Copy it with `bun cli.mjs new <topic>.html` (which resolves
+     the skill-asset path for the icon modal) and replace the ten sample slides.
+     One self-contained file: inline SVG, vendored Mermaid beside the deck, light by
+     default with a presenter switcher for dark and palettes on the cover. Type over
+     Google Fonts with system fallbacks. The samples show anatomy and treatments
+     rather than a subject: 1 cover flow, 2 contents, 3 card grid,
+     4 two by two plus badge, 5 three steps, 6 standing bars, 7 hero split, 8 rings, 9 pull close,
+     10 .shot frame. Keep the four row grid, window.show(n) with .active, relabel() for every number,
+     the .edge nav, motion, print. Copy, icons, tints, the texture class and the slide set are yours.
+     A presenter can also edit text and swap icons directly in the browser (Edit in
+     the themebar) and export HTML or PDF from there. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deck Title: Presentation</title>
+<!-- Type arrives over the same Google Fonts link the production decks use.
+     Nunito carries body copy (variable 400 to 800 in one file); Lora 500
+     italic carries only the assertion titles. Self-hosting was tried and
+     dropped: decks open from any directory, and a relative assets path only
+     resolves next to the skill tree. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400..800&family=Lora:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* ==========================================================================
+   THEME. Light is the default and stays the default: projected decks are read
+   in bright rooms and these decks get printed and forwarded, so --bg #F3F7F7 on
+   white surfaces is the canvas a deck ships on. See DESIGN.md -> "Theme".
+
+   Every colour below is a token, so a palette is a token swap and never an edit
+   to a rule. Two of them carry the weight:
+
+     --ink-rgb   the RGB triple behind the whole alpha family. Every hairline,
+                 tint and shadow is rgba(var(--ink-rgb),a), so one token flips
+                 all 101 of them at once: that is what makes dark mode a
+                 paragraph instead of a rewrite.
+     --accent    the one hue that is allowed to mean something. Changing it
+                 changes emphasis, not identity.
+
+   Palettes are [data-palette] on <html>; dark is [data-theme] on <html>. Both
+   are opt-in by a presenter, never set by the template. Only the first slide
+   carries the switcher (see .themebar), so a shipped deck shows no chrome.
+   ========================================================================== */
+:root{
+  --bg:#F3F7F7; --surface:#FFFFFF; --text:#17191C; --muted:#96999D;
+  --ink:#6B6F73; --accent:#2563EB;
+  --ink-rgb:23,25,28;
+  --p1:#D3E7E5; --p2:#F7D1E1; --p3:#FFE3A0; --p4:#DCCFEA; --p5:#D8E7E8;
+  /* Data marks. --pos/--neg carry direction, so they ship with a sign or a
+     shape alongside; never encode direction in colour alone. */
+  --pos:#2C7A6B; --neg:#B8413B; --warn:#E9A93C;
+  /* Radii, named the way DESIGN.md names them. --radius-pill is the only
+     rounding allowed on a data mark, and nothing here is a sharp rectangle. */
+  --radius-lg:24px; --radius-sm:14px; --radius-pill:999px;
+  --border:1.5px solid rgba(var(--ink-rgb),.08);
+  --chrome:var(--ink); /* the only hue a chrome element may use */
+}
+
+/* --------------------------------------------------------------- palettes --
+   Each palette is a complete set: canvas, surface, two text weights, the
+   accent, and five pastels. The pastels are for tiles and fills behind text,
+   so they stay light enough that --text on them clears 4.5:1; the accent is
+   the only one held dark enough to clear 4.5:1 as text on --surface.
+   Named by intent, not by hue, so a deck reads the same in every palette. */
+[data-palette="slate"]{ --bg:#F3F7F7; --surface:#FFFFFF; --text:#17191C; --ink:#6B6F73;
+  --muted:#96999D; --accent:#2563EB; --ink-rgb:23,25,28;
+  --p1:#D3E7E5; --p2:#F7D1E1; --p3:#FFE3A0; --p4:#DCCFEA; --p5:#D8E7E8;
+  --pos:#2C7A6B; --neg:#B8413B; --warn:#E9A93C; }
+[data-palette="ink"]{ --bg:#F4F4F5; --surface:#FFFFFF; --text:#18181B; --ink:#52525B;
+  --muted:#8B8B94; --accent:#4338CA; --ink-rgb:24,24,27;
+  --p1:#D6D9F2; --p2:#F5D9E4; --p3:#FBEBC0; --p4:#E2DCF0; --p5:#D7E4EC;
+  --pos:#2F6F63; --neg:#A93B36; --warn:#B87A16; }
+[data-palette="forest"]{ --bg:#F2F6F3; --surface:#FFFFFF; --text:#152019; --ink:#54655C;
+  --muted:#8A9A92; --accent:#16694A; --ink-rgb:21,32,25;
+  --p1:#D2E6DA; --p2:#F6DCE2; --p3:#F7E8BE; --p4:#DCE6D2; --p5:#D6E4E6;
+  --pos:#16694A; --neg:#A63D33; --warn:#9A6B12; }
+[data-palette="clay"]{ --bg:#F8F4F1; --surface:#FFFFFF; --text:#211A15; --ink:#6B5B50;
+  --muted:#9C8B80; --accent:#A34A22; --ink-rgb:33,26,21;
+  --p1:#E8DCCF; --p2:#F6D9CE; --p3:#FAE7C4; --p4:#EEDCD6; --p5:#E4E2D6;
+  --pos:#5C6B45; --neg:#A23B2A; --warn:#96631A; }
+
+/* ------------------------------------------------------------------- dark --
+   The same fifteen tokens, inverted once. Surfaces lift rather than the canvas
+   dropping, so a projected deck in a bright room is still the light default and
+   dark is something a presenter opts into for a screen. */
+[data-theme="dark"]{ --bg:#141618; --surface:#1C1F22; --text:#EDEEEF; --ink:#A8ADB2;
+  --muted:#7C8288; --ink-rgb:236,238,239;
+  --accent:#7FA9FF; --pos:#63C4AC; --neg:#E88C84; --warn:#E0B054;
+  /* Pastels become fills, not washes: they sit behind --text now, so they drop
+     in lightness to keep the same measured contrast. */
+  --p1:#223A38; --p2:#3D2A33; --p3:#3E3620; --p4:#332C42; --p5:#243539;
+  --border:1.5px solid rgba(var(--ink-rgb),.14); }
+[data-theme="dark"][data-palette="ink"]{ --accent:#A5A0F5; --ink-rgb:236,238,239;
+  --pos:#5FBFA6; --neg:#E89089; --warn:#DCB05E;
+  --p1:#262A44; --p2:#3F2B38; --p3:#403824; --p4:#332B47; --p5:#26333F; }
+[data-theme="dark"][data-palette="forest"]{ --accent:#63C79C; --ink-rgb:236,238,239;
+  --pos:#63C79C; --neg:#E89089; --warn:#DCB05E;
+  --p1:#1E3730; --p2:#3B2A2E; --p3:#3B3622; --p4:#2C3A29; --p5:#22383A; }
+[data-theme="dark"][data-palette="clay"]{ --accent:#E08A5C; --ink-rgb:236,238,239;
+  --pos:#8FB07A; --neg:#E89089; --warn:#DCB05E;
+  --p1:#3A322A; --p2:#432E26; --p3:#403724; --p4:#3B2E29; --p5:#383629; }
+/* ------------------------------------------------------------- typography --
+   Two families, one job each. Nunito carries everything that is read as
+   information: body copy, labels, numbers, captions. Lora 500 italic carries
+   only the assertion (the slide's title), because it is the one line the
+   audience is meant to remember, and a serif italic reads as a considered
+   claim rather than a label.
+
+   The tracking is positive here, not negative. A geometric sans wants to be
+   pulled tight at 56px; a serif italic has no geometric skeleton to tighten
+   against and goes loose and gappy if you try, so it is set slightly open with
+   more leading instead. Full rules and the measured sizes: DESIGN.md ->
+   "Typography". */
+.head,.title-xl{font-family:Lora,Georgia,serif;font-style:italic;font-weight:500;
+  letter-spacing:.005em;line-height:1.18}
+.title-xl{line-height:1.12}
+
+body{font-family:Nunito,Inter,Arial,sans-serif;
+     background:var(--bg);color:var(--text);overflow:hidden}
+html,body{height:100%;margin:0}
+body{display:flex;align-items:center;justify-content:center}
+/* Present to a screen reader, never to the eye. The live region that announces
+   each slide is one of these, so it has to be in the DOM and off the page. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+         overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* --------------------------------------------------------------------------
+   SLIDE ANATOMY: four bands, fixed order, never re-improvised.
+     row 1  (empty, collapses: position lives in the rail)
+     row 2  s-head   the assertion + subtext, always pinned to the TOP
+     row 3  s-body   content, always the MIDDLE, always vertically centred
+     row 4  s-foot   takeaway (bottom) + persistent footer chrome
+   Padding is constant, so it never gets re-derived per slide.
+   -------------------------------------------------------------------------- */
+.slide{display:none;width:1920px;height:1080px;flex:none;position:relative;
+       overflow:hidden;background:var(--bg);padding:38px 120px 34px 48px}
+.slide.active{display:grid;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+              animation:fade .2s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.s-head{grid-row:2;padding-top:4px}
+.s-body{grid-row:3;display:flex;flex-direction:column;justify-content:center;
+        min-height:0;padding:24px 0}
+.s-foot{grid-row:4;padding-top:20px}
+.s-head,.s-foot{grid-column:2}.s-body{grid-column:2}
+
+/* ---- background texture: pick ONE per deck on <body> and never change it -- */
+.slide::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none}
+.slide>*{position:relative;z-index:1}
+body.tex-dots .slide::before{
+  background-image:radial-gradient(rgba(var(--ink-rgb),.11) 1.5px,transparent 1.6px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+          mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+}
+body.tex-grid .slide::before{
+  background-image:linear-gradient(rgba(var(--ink-rgb),.06) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(var(--ink-rgb),.06) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+          mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+}
+.slide.hero-slide::before{
+  -webkit-mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+          mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+}
+
+/* ---- motion: staged entrance plus a tile cascade --------------------------
+   Every selector in this block is on ONE line, and that is not a formatting
+   preference. A list broken across lines is a descendant combinator, so keep
+   the :is() list on one line when you add a container to it. */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.slide.active>.s-head,.slide.active>.s-body,.slide.active>.s-foot{animation:rise .45s cubic-bezier(.22,.8,.24,1) both}
+.slide.active>.s-head{animation-delay:.04s}
+.slide.active>.s-body{animation-delay:.10s}
+.slide.active>.s-foot{animation-delay:.20s}
+/* Bands are direct children of .slide; tiles are children of a container, which
+   sits inside .s-body, so the cascade cannot be a `.slide.active > *` rule. Only
+   tile containers are listed. A bare .s-body > * would hand an animation to every
+   inline child of every text block, and one emphasised word would drop in on its
+   own. Tiles inside every container stagger, including .hero-split,
+   so their contents never travel twice. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*{animation:rise .5s cubic-bezier(.22,.8,.24,1) both;animation-delay:var(--d,0s)}
+/* The stagger lives in a custom property, so the five rules below are the only
+   place a number appears. A tile's delay has to be set on the tile: a rule keyed
+   on .s-body's own children staggers the containers, not the tiles inside them,
+   which is the difference between a cascade and three cards arriving together. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(1){--d:.18s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(2){--d:.26s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(3){--d:.34s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(4){--d:.42s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(n+5){--d:.50s}
+/* Two guards, identical, so a PDF looks exactly like the reduced motion deck.
+   Both need the universal `*`, because `> *` reaches only direct children and a
+   capture can still land on a tile mid flight. The slide is named on its own
+   because `*` never matches its own element. The nav sits outside every slide,
+   so it is named too: both the button and the position rail transition. */
+@media (prefers-reduced-motion:reduce){.slide.active,.slide.active *,.edge,.edge *{animation:none !important;transition:none !important}}
+body.no-anim .slide.active,body.no-anim .slide.active *,body.no-anim .edge,body.no-anim .edge *{animation:none !important;transition:none !important}
+/* One synchronous measurement, with the entrance suppressed so the rect is the
+   place the element is about to land in. show() adds and removes this inside a
+   single task, so it is never painted. */
+.slide.measuring,.slide.measuring *{animation:none !important}
+
+/* ---- chrome: constant across every slide --------------------------------- */
+
+/* .badge docks top-right and is `position:absolute`. It is for a status or a
+   date, never a restatement of the slide title. */
+.badge{position:absolute;top:32px;right:120px;background:var(--surface);
+       border:var(--border);border-radius:var(--radius-sm);padding:9px 18px;
+       font-size:19px;font-weight:700;color:var(--ink)}
+
+/* ---- type ---------------------------------------------------------------- */
+.head{font-size:56px;font-weight:500;letter-spacing:.005em;line-height:1.12;max-width:1600px;text-align:center;margin-left:auto;margin-right:auto}
+.head em{font-style:normal;color:var(--accent)}
+.head.sm{font-size:44px}
+.sub{font-size:27px;color:var(--ink);font-weight:500;margin-top:12px;margin-left:auto;margin-right:auto;text-align:center;line-height:1.4;max-width:1400px}
+.title-xl{font-size:88px;font-weight:500;letter-spacing:.005em;line-height:1.04;text-align:center}
+.title-xl span{color:var(--accent)}
+.subc{text-align:center;color:var(--ink);font-size:29px;font-weight:500}
+.subc b{color:var(--accent);font-weight:800}
+
+/* ---- icons --------------------------------------------------------------- */
+.ph{width:40px;height:40px;flex-shrink:0}
+.ph.xl{width:78px;height:78px}
+.ph.xs{width:24px;height:24px}
+.qicon{width:78px;height:78px;min-width:78px;border-radius:18px;background:var(--p1);
+       display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qicon.sm{width:62px;height:62px;min-width:62px;border-radius:16px}
+.tagline{display:flex;align-items:center;gap:8px;font-size:18px;color:var(--accent);
+         font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
+.tagline .ph{width:22px;height:22px}
+
+/* ---- takeaway: always the bottom band, one sentence --------------------- */
+/* data-morph="take" on every takeaway: it is the one element that persists in
+   the same band on every content slide, so it is the one that glides when the
+   band changes height. See the FLIP block in the script. */
+.takeaway{margin:26px auto 0;width:fit-content;max-width:100%;background:var(--surface);border-radius:var(--radius-sm);
+          padding:18px 24px;font-size:23px;font-weight:600;display:flex;
+          align-items:center;justify-content:center;text-align:center;gap:14px;line-height:1.35}
+.takeaway .ph{color:var(--accent)}
+.takeaway b{color:var(--accent);font-weight:800}
+
+/* ---- gapnote: a caveat you make TO the audience ---------------------------
+   content_philosophy.md rule 6a allows exactly one kind of note on a shipped
+   slide: an honest caveat about the claim ("we have not charged anyone yet").
+   It is never a note to the author. This is the only element in the template
+   with a dashed edge, so it reads as an aside at a glance and cannot be mistaken
+   for chrome or for a card.
+
+   Place it inside .s-body, after the content it qualifies, never inside a
+   .card (a dashed border inside a rounded card is noise) and never instead of a
+   .takeaway. It sets no background, so it does not compete with the mark it
+   sits under. */
+.gapnote{margin-top:22px;padding:13px 18px;border:1.5px dashed rgba(var(--ink-rgb),.28);
+         border-radius:var(--radius-sm);font-size:20px;line-height:1.4;
+         color:var(--ink)}
+.gapnote b{color:var(--text);font-weight:700}
+.gapnote .tagline{margin-bottom:2px}
+
+/* ---- emphasis: hand circle + marker wash -----------------------------------
+   Two inline devices for the words inside a line, when color alone is not
+   enough. Both inherit the surrounding type, so they work in a 70px pull, an
+   88px bridge, or a 23px takeaway. Same block here and in the gallery: keep
+   the two in step. Gallery 7 washes its pull line, gallery 2 circles its
+   bridge word.
+   .sketch draws the hand circle in accent around one word. z-index:0 holds the arcs
+   inside the span's own stacking context, so the circle survives any surface
+   behind it. .mark washes the marker (--p3 at two alphas) behind two to four
+   words; box-decoration-break keeps it whole across a line break. One device
+   per line: a circled wash competes with itself. */
+.sketch{position:relative;z-index:0;white-space:nowrap}
+/* .title-xl colors every descendant span accent; the circled word stays ink. */
+.title-xl .sketch{color:var(--text)}
+.sketch:before{content:"";position:absolute;z-index:-1;left:-.5em;top:-.06em;
+  width:100%;height:.94em;padding:.12em .3em;opacity:.7;
+  border:2.5px solid var(--accent);border-right-color:transparent;border-radius:50%;
+  transform:rotate(2deg)}
+.sketch:after{content:"";position:absolute;z-index:-1;left:-.5em;top:.12em;
+  width:100%;height:.94em;padding:.12em .3em;opacity:.7;
+  border:2.5px solid var(--accent);border-left-color:transparent;border-top-color:transparent;
+  border-radius:50%;transform:rotate(-1deg)}
+.mark{border-radius:.5em;padding:0 .1em;-webkit-box-decoration-break:clone;box-decoration-break:clone;
+  background-image:linear-gradient(-100deg,rgba(255,227,160,.25),rgba(255,227,160,.75) 95%,rgba(255,227,160,.15))}
+
+/* ---- treatments ---------------------------------------------------------- */
+.gridQ{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.card{background:var(--surface);border-radius:var(--radius-lg);padding:24px 26px;
+      display:flex;flex-direction:column}
+/* The auto margin pins the last child to the bottom of an equal-height card.
+   It REPLACES that child's own margin-top, so a short card gets the key-point
+   line flush against the paragraph above it with no breathing room at all,
+   which reads as a typesetting mistake rather than as a pinned line. The
+   padding restores a guaranteed gap while the auto margin keeps its job. */
+.card>*:last-child{margin-top:auto;padding-top:14px}
+.card h3{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.22}
+/* The icon tile and the heading beside it share one centreline. `flex-start` is
+   the trap: the tile is 78px and the heading stack is one or two lines, so
+   top-aligning leaves the tile hanging below a one-line title and the text
+   hanging below a two-line one, and the card looks assembled rather than
+   drawn. `center` is what makes the pair read as one object. qa-matrix.mjs
+   asserts the two centrelines agree within 2px, so an edit here cannot quietly
+   undo it. */
+.qhead{display:flex;gap:16px;align-items:center}
+.desc{font-size:21px;color:var(--ink);line-height:1.46;margin-top:14px;
+      background:var(--bg);border-radius:var(--radius-sm);padding:13px 15px}
+.desc b{color:var(--text);font-weight:700}
+.meta{margin-top:14px;font-size:19px;color:var(--ink);line-height:1.5}
+.meta b{color:var(--accent);font-weight:700}
+.steps3{display:flex;align-items:stretch}
+.step{flex:1;background:var(--surface);border-radius:var(--radius-lg);padding:24px;
+      display:flex;flex-direction:column}
+.step>*:last-child{margin-top:auto;padding-top:14px}
+.step h4{font-size:25px;font-weight:700;margin-bottom:10px}
+.step p{font-size:20px;color:var(--ink);line-height:1.44}
+.glue{align-self:center;padding:0 12px;color:var(--muted);font-size:34px;font-weight:600}
+.hero-split{display:flex;gap:56px;align-items:center}
+.hero-split .lead{flex:none;width:560px}
+.bigstat{display:flex;flex-direction:column;align-items:center;text-align:center}
+.bigstat .n{font-size:172px;line-height:.92;font-weight:800;letter-spacing:-.05em;color:var(--accent)}
+.bigstat .cap{font-size:25px;color:var(--ink);font-weight:600;margin-top:12px;line-height:1.4}
+.stat-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat-rail .st{background:var(--surface);border-radius:var(--radius-sm);padding:20px 22px;
+              display:flex;flex-direction:column;gap:10px}
+.stat-rail .st .hd{display:flex;align-items:center;gap:10px;font-size:17px;
+                   color:var(--muted);font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.stat-rail .st .hd .ph{width:24px;height:24px;color:var(--accent)}
+.stat-rail .st .n{font-size:38px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.stat-rail .st .t{font-size:19px;color:var(--ink);line-height:1.4}
+.pull{display:flex;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;padding:0 140px}
+.pull .q{font-size:70px;font-weight:700;line-height:1.16;letter-spacing:-.03em}
+.pull .q em{font-style:normal;color:var(--accent)}
+.pull .by{font-size:24px;color:var(--muted);margin-top:26px;font-weight:600}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+/* A contents entry is a .ti element, not an anchor. An href="#" is focusable,
+   announced as a link, and goes nowhere: three costs for nothing. Use an
+   <a class="ti"> only in a deck where the entry really navigates. */
+.toc .ti{display:flex;gap:14px;align-items:center;background:var(--surface);
+         border-radius:16px;padding:17px 20px;font-size:23px;font-weight:600;
+         color:var(--text);text-decoration:none}
+.toc .ti .n{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--accent);
+            color:#fff;font-weight:800;font-size:22px;display:grid;place-items:center}
+.toc .ti .ap{color:var(--muted);font-weight:500;font-size:19px;margin-left:auto}
+.cover-flow{display:flex;justify-content:center;align-items:center;gap:26px}
+.cnode{text-align:center}
+.cnode .circ{width:166px;height:166px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;margin:0 auto}
+.cnode .lbl{margin-top:14px;font-weight:700;border-radius:var(--radius-sm);padding:9px 20px;
+            font-size:20px;display:inline-block;background:var(--surface)}
+.cnode .sub{font-size:17px;color:var(--ink);margin-top:8px}
+
+/* ---- data marks: rounded geometry, no sharp rectangles -------------------- */
+.pillbar{display:flex;gap:7px;height:26px}
+.pillbar i{flex:1;border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.10)}
+.pillbar i.on{background:var(--accent)}
+.pillbar i.hot{background:var(--p3)}
+.vbars{display:flex;align-items:flex-end;gap:22px;height:340px}
+.vbars .vb{flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;height:100%}
+.vbars .vb .col{width:100%;max-width:60px;flex:1;display:flex;align-items:flex-end;
+                border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.07);overflow:hidden}
+.vbars .vb .col i{display:block;width:100%;border-radius:var(--radius-pill);background:var(--accent)}
+.vbars .vb .col i.hot{background:var(--warn)}
+.vbars .vb .vv{font-size:20px;font-weight:800;color:var(--accent)}
+.vbars .vb .lb{font-size:18px;font-weight:700;color:var(--ink)}
+.chiprow{display:flex;gap:10px;flex-wrap:wrap}
+.chip{border-radius:var(--radius-pill);padding:8px 16px;font-size:18px;font-weight:700;
+      background:var(--p1);color:var(--text)}
+/* One share against a whole. --p is a bare number, because the gradient does the
+   multiplying, and nothing but a ring may set it. The default applies when a deck
+   sets nothing. This is why show() writes the position rail to --pp instead: a
+   custom property inherits, and a rail value of "40%" would make calc() invalid
+   and void this gradient on every slide. */
+.ring{position:relative;width:158px;height:158px;border-radius:50%;
+      background:conic-gradient(var(--accent) calc(var(--p,50) * 1%),rgba(var(--ink-rgb),.08) 0);
+      display:grid;place-items:center}
+.ring::after{content:"";position:absolute;inset:24px;border-radius:50%;background:var(--surface)}
+.ring span{position:relative;z-index:1;font-size:36px;font-weight:800;color:var(--accent)}
+
+/* ---- screenshot frame: macOS-style window chrome for any image ------------
+   The frame needs a visible edge, and that is not decoration. --surface is
+   #FFFFFF on a --bg of #F3F7F7: white on near-white is a contrast ratio of
+   1.04:1, so with no border the frame has no silhouette at all and the shot
+   reads as a white rectangle floating on the canvas, not as a window. A 1.5px
+   ink-at-8% hairline is what gives it an edge, and it is the deck's own rule
+   rather than a new colour. --shadow does not exist in this system: depth comes
+   from the texture and the pastel surfaces, and a drop shadow is exactly the
+   "heavy" look this palette refuses. */
+.shot{background:var(--surface);border:var(--border);border-radius:var(--radius-lg);overflow:hidden;
+      /* The frame needs a background, not just a border, or it reads as a white
+         rectangle with a picture on it. Three tints inside the token palette do
+         the work: a tinted strip under the chrome bar, a slightly cooler bar,
+         and a lighter "lit display" for the image area. The eye reads the
+         difference between the three as a window. No shadow is involved: there
+         is no --shadow token in this system on purpose. */
+      display:flex;flex-direction:column;flex:1 1 auto;min-height:0;max-height:100%}
+.shotbar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:13px 18px;
+        border-bottom:1px solid rgba(var(--ink-rgb),.10);
+        background:#EEF4F4}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(var(--ink-rgb),.14)}
+.dot:nth-child(1){background:#FF5F57}.dot:nth-child(2){background:#FEBC2E}.dot:nth-child(3){background:#28C840}
+.shotbar .addr{flex:1;margin-left:8px;background:var(--surface);border-radius:var(--radius-pill);
+        padding:5px 14px;font-size:15px;color:var(--muted);font-weight:600;
+        text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The "display": a touch lighter and cooler than the bar above it, so the bar
+   and the screen separate even before you read the caption. */
+.shotimg{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+         background:#FAFCFC}
+.shotimg img{width:100%;height:100%;object-fit:contain;display:block}
+/* The caption band is the OTHER end of the window, so it wears the chrome bar's
+   colour rather than the white surface. Left white it reads as a window with a
+   white chin, which is the same defect as a frameless frame. */
+.shotcap{flex:0 0 auto;padding:13px 18px;font-size:17px;color:var(--muted);
+        font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+        border-top:1px solid rgba(var(--ink-rgb),.10);
+        background:#EEF4F4}
+
+/* ---- nav: edge-hover buttons, optically centred SVG chevrons --------------
+   A text glyph like ‹ or › never sits centred in a circle, because its ink is
+   offset from the advance width, so it reads low and to one side. Inline SVG on
+   the 256x256 grid, centred by place-items, then nudged 1px along travel. */
+.edge{pointer-events:none;position:fixed;top:0;bottom:0;width:130px;display:flex;align-items:center;
+      z-index:60;cursor:pointer;border:0;background:none;padding:0}
+.edge.left{left:0;justify-content:flex-start;padding-left:22px}
+.edge.right{right:0;justify-content:flex-end;padding-right:22px}
+.edgebtn{pointer-events:auto;width:56px;height:56px;border-radius:50%;background:rgba(var(--ink-rgb),.42);
+         display:grid;place-items:center;opacity:0;transform:scale(.9);
+         transition:opacity .25s,transform .25s,background .25s}
+.edge:hover .edgebtn,.edge:focus-visible .edgebtn{opacity:1;transform:scale(1);
+         background:rgba(var(--ink-rgb),.62)}
+.edge:focus-visible{outline:none}
+.chev{width:24px;height:24px;color:#fff;display:block}
+.chev.l{transform:translateX(1px)}
+.chev.r{transform:translateX(-1px)}
+.edge.off{visibility:hidden}
+/* Sidebar table of contents: part of the slide, first grid column. Never an
+   overlay, never scrollable: compact density keeps long decks visible. */
+nav.rail{grid-row:1/-1;grid-column:1;display:flex;flex-direction:column;justify-content:center;padding:28px 14px 20px 0;overflow:hidden}
+.rail-item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;
+         padding:6px 10px;border-radius:12px;cursor:pointer;color:var(--ink)}
+.rail-item:hover{background:rgba(var(--ink-rgb),.05)}
+.rail-item .rail-t{font-size:16px;font-weight:600;line-height:1.25}
+.rail-item.on{background:var(--accent)}
+.rail-item.on .rail-t{color:#fff}
+.s-foot .foot{width:fit-content;margin-left:auto;margin-right:auto;gap:56px}
+nav.rail.compact{padding:20px 8px 14px}
+nav.rail.micro{padding:14px 6px 10px}
+nav.rail.micro .rail-item{padding:1px 5px;gap:5px;border-radius:8px}
+nav.rail.micro .rail-t{font-size:11px;line-height:1.15}
+nav.rail.micro .rail-ic{width:16px;height:16px;border-radius:6px}
+nav.rail.micro .rail-ic svg{width:11px;height:11px}
+nav.rail.compact .rail-item{padding:2px 6px;gap:6px}
+nav.rail.compact .rail-t{font-size:12px}
+.rail-item .rail-ic{flex:none;width:30px;height:30px;border-radius:9px;background:rgba(var(--ink-rgb),.06);display:grid;place-items:center;color:var(--ink)}
+.rail-item .rail-ic svg{width:18px;height:18px}
+.rail-item.on .rail-ic{background:rgba(255,255,255,.25);color:#fff}
+nav.rail.compact .rail-ic{width:20px;height:20px;border-radius:7px}
+nav.rail.compact .rail-ic svg{width:13px;height:13px}
+
+/* ---- print: Ctrl-P is a real path, so it gets a real answer ---------------
+   Printing needs three things the screen does not: the hidden slides turned back
+   on, one per page, and no motion to catch mid flight. The nav arrows are fixed
+   to the viewport, which on paper means they land on every page. */
+@media print{
+  @page{size:landscape;margin:0}
+  html,body{height:auto;overflow:visible;display:block}
+  /* Presenter chrome never prints: nav arrows, the theme switcher and hit
+     strip, and the icon modal. Editing outlines are class-gated to a live
+     browser, so there is nothing to hide for them. */
+  .edge,.themebar,.themehit,.editmodal{display:none !important}
+  .slide{display:grid !important;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+         break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide,.slide *{animation:none !important;transition:none !important}
+}
+/* ==========================================================================
+   THEMEBAR: a presenter's switcher, not deck content.
+
+   Light on light is the default and the default stays. This bar exists so a
+   presenter can move a deck to a dark room or a house palette without editing
+   CSS, and it is hidden until asked for twice over: it renders only on the
+   first slide (`body[data-themebar]`), and it is only visible while the pointer
+   is over the top edge of that slide. A shipped deck therefore shows no chrome
+   at all, and a PDF never captures it.
+
+   Position is fixed to the stage, not to the viewport, so it scales with the
+   deck exactly like everything else. A DevTools affordance that moved
+   independently of the thing it is inspecting would be worse than none.
+
+   Prefers-reduced-motion: the reveal is instant, because the motion is the
+   affordance and dropping it makes the bar feel absent.
+   ========================================================================== */
+.themebar{position:fixed;left:0;right:0;top:0;z-index:60;
+  display:flex;align-items:center;gap:10px;padding:9px 14px;
+  background:var(--surface);color:var(--ink);
+  border-bottom:1.5px solid rgba(var(--ink-rgb),.10);
+  box-shadow:0 6px 18px rgba(var(--ink-rgb),.10);
+  font:500 13px/1 Nunito,Inter,sans-serif;
+  opacity:0;transform:translateY(-100%);pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease}
+/* The hit target is the top strip of the first slide only. It exists while the
+   cover is showing and nowhere else, so the switcher can never appear over the
+   argument. The bar reveals on hover of that strip, not of the bar, so the
+   pointer can arrive from below. */
+.themehit{position:fixed;left:0;right:0;top:0;height:34px;z-index:59;
+  display:none}
+body.on-cover .themehit{display:block}
+body.on-cover .themehit:hover ~ .themebar,body.on-cover .themebar:hover{opacity:1;transform:none;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){
+  .themebar{transition:none}
+}
+/* Captures (export-pdf, shot) inject their own display:none for the bar, so a
+   PNG never carries it. That injection, not a body attribute, is the guard,
+   because the attribute is how a presenter asks for the switcher and a capture
+   must never inherit the request. */
+
+.themebar .tlabel{letter-spacing:.06em;text-transform:uppercase;font-size:10px;
+  color:var(--muted);margin-right:2px}
+.themebar .sep{width:1px;height:18px;background:rgba(var(--ink-rgb),.12)}
+
+/* Mode: two states, one control. A segmented pair rather than a toggle,
+   because "which am I in" is the question a presenter actually has. */
+.tmode{display:flex;gap:2px;padding:2px;border-radius:var(--radius-pill);
+  background:rgba(var(--ink-rgb),.06)}
+.tmode button{appearance:none;border:0;background:transparent;cursor:pointer;
+  font:600 11px/1 inherit;color:var(--ink);padding:5px 11px;border-radius:var(--radius-pill);
+  display:flex;align-items:center;gap:5px}
+.tmode button[aria-pressed="true"]{background:var(--surface);color:var(--text);
+  box-shadow:0 1px 3px rgba(var(--ink-rgb),.14)}
+.tmode button:hover{color:var(--text)}
+
+/* Palettes: real swatches of the palette they set, because the only honest
+   preview of a colour scheme is the colour scheme. */
+.tpals{display:flex;gap:5px;align-items:center}
+.tpal{appearance:none;cursor:pointer;border:1.5px solid rgba(var(--ink-rgb),.16);
+  width:30px;height:22px;border-radius:7px;padding:0;overflow:hidden;
+  display:flex;position:relative}
+.tpal i{flex:1}
+.tpal[aria-pressed="true"]{border-color:var(--text);
+  box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--text)}
+.tpal:hover{border-color:var(--ink)}
+.tpal .pname{position:absolute;inset:auto 0 0 0;font:600 8px/1.4 inherit;
+  text-align:center;letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(var(--ink-rgb),.72);color:var(--surface)}
+
+.themebar .tspread{margin-left:auto;display:flex;align-items:center;gap:8px;
+  color:var(--muted);font-size:11px}
+.themebar .tspread b{color:var(--ink);font-weight:600}
+
+/* ---- edit mode: visibility, outlines, modal --------------------------------
+   Editing is a body class, never inline styles, so leaving edit mode restores
+   the deck exactly: nothing written while editing survives except the text and
+   the replaced icons, which is the point. Outlines are 2px accent at 60% so
+   they read as handles, not as deck content, and they never print or capture:
+   .editing exists only in a live browser, and print/CSS-injection hide the rest. */
+.tedit,.texport{appearance:none;cursor:pointer;border:1.5px solid rgba(var(--ink-rgb),.16);
+  background:transparent;color:var(--ink);font:600 11px/1 Nunito,Inter,sans-serif;
+  padding:6px 12px;border-radius:var(--radius-pill)}
+.tedit:hover,.texport:hover{color:var(--text);border-color:var(--ink)}
+.tedit[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--surface)}
+body.editing [data-editable]{outline:2px dashed rgba(var(--ink-rgb),.35);outline-offset:3px;cursor:text}
+body.editing [data-editable]:focus{outline:2px solid var(--accent);outline-offset:3px}
+body.editing svg[data-icon]{cursor:pointer}
+body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset:3px}
+.editmodal{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-start;justify-content:center;
+  padding:12vh 20px 20px;background:rgba(var(--ink-rgb),.4)}
+.editmodal[hidden]{display:none}
+.editmodal-panel{width:640px;max-width:100%;max-height:70vh;display:flex;flex-direction:column;
+  background:var(--surface);color:var(--text);border-radius:var(--radius-lg);
+  box-shadow:0 18px 60px rgba(var(--ink-rgb),.3);overflow:hidden}
+.editmodal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;
+  border-bottom:1.5px solid rgba(var(--ink-rgb),.1)}
+.editmodal-current{font:500 12px/1 ui-monospace,Menlo,monospace;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.editmodal-close{appearance:none;border:0;background:transparent;cursor:pointer;
+  font-size:22px;line-height:1;color:var(--ink);padding:2px 8px}
+.editmodal-close:hover{color:var(--text)}
+.editmodal-search{margin:14px 18px 4px;padding:10px 14px;font:500 15px/1.4 Nunito,Inter,sans-serif;
+  color:var(--text);background:var(--bg);border:1.5px solid rgba(var(--ink-rgb),.16);
+  border-radius:var(--radius-sm);outline:none}
+.editmodal-search:focus{border-color:var(--accent)}
+.editmodal-hint{padding:2px 18px 6px;font-size:12px;color:var(--muted);min-height:20px}
+.editmodal-results{overflow-y:auto;padding:4px 10px 14px;display:flex;flex-direction:column;gap:2px}
+.editmodal-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:0;background:transparent;
+  cursor:pointer;border-radius:var(--radius-sm);font:500 14px/1.3 Nunito,Inter,sans-serif;
+  color:var(--text);text-align:left;width:100%}
+.editmodal-row:hover{background:rgba(var(--ink-rgb),.06)}
+.editmodal-row svg{width:30px;height:30px;flex:none}
+.editmodal-row .nm{font-weight:700}
+.editmodal-row .ti{color:var(--ink);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+</style>
+</head>
+<!-- Background texture: ONE per deck, chosen here on <body> and never changed.
+     tex-dots below is a soft field, right for rounded marks and circles.
+     tex-grid is a ruled sheet, right for tables, matrices and timelines. -->
+<body class="tex-dots">
+<!--
+  Ten sample slides, each a DIFFERENT treatment, so the variety rule is visible
+  in the scaffold: cover flow, contents, three up card grid, two by two grid,
+  three steps, standing pill bars, hero split, share rings, pull close, and the
+  screenshot frame. Chrome carries icons on every slide except slide 4, which
+  shows the badge for a review date. Light only.
+
+  No slide states its own position in this file. relabel() writes the aria-label,
+  the aria-label from the real slide count, so
+  adding or deleting a slide cannot leave a stale "of 9" behind. Each section
+  carries only a data-name, which is the short description a screen reader reads
+  out after the position.
+-->
+
+<!-- 1. Cover. No top-right chrome on the cover: the title owns the slide. -->
+<section class="slide hero-slide" data-toc="Cover" data-name="cover" data-rail="phosphor/database">
+<header class="s-head" style="text-align:center"><h1 class="title-xl">Talk Title<br><span>Subtitle Theme</span></h1></header>
+<div class="s-body">
+<p class="subc">One-line promise of what the audience will take away</p>
+<div class="cover-flow" style="margin-top:52px">
+<div class="cnode"><div class="circ" style="background:var(--p1)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div class="lbl">Pillar One</div><div class="sub">Short gloss</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p4)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg></div><div class="lbl">Pillar Two</div><div class="sub">Short gloss</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p3)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg></div><div class="lbl">Pillar Three</div><div class="sub">Short gloss</div></div>
+</div>
+</div>
+<footer class="s-foot"></footer>
+
+</section>
+
+<!-- 2. Contents. The entries are .ti elements, not links: a contents slide in a
+     projected deck is read aloud and is never clicked, so an anchor here would
+     be a control that goes nowhere. -->
+<section class="slide" data-toc="Contents" data-name="contents" data-rail="phosphor/file-code">
+<header class="s-head"><h2 class="head">Six claims, in the order the argument makes them<em>.</em></h2><p class="sub">What this talk covers, in the order it covers it.</p></header>
+<div class="s-body">
+<div class="toc">
+<div class="ti"><span class="n">3</span>An assertion, not a label<span class="ap">three cards</span></div>
+<div class="ti"><span class="n">4</span>Two questions, two moves<span class="ap">the question grid</span></div>
+<div class="ti"><span class="n">5</span>Three steps, three exit tests<span class="ap">the process</span></div>
+<div class="ti"><span class="n">6</span>Four categories, four bars<span class="ap">the comparison</span></div>
+<div class="ti"><span class="n">7</span>One number, then the context<span class="ap">the evidence</span></div>
+<div class="ti"><span class="n">8</span>Four shares of the quarter<span class="ap">the summary</span></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg>Every slide makes one claim and proves it with its body.</div>
+</footer>
+
+</section>
+
+<!-- 3. Card grid -->
+<section class="slide" data-toc="Cards" data-name="three card grid" data-rail="phosphor/database">
+<header class="s-head"><h2 class="head">An assertion, not a label</h2><p class="sub">Twelve to eighteen words stating the conclusion the audience must accept.</p></header>
+<div class="s-body">
+<div class="grid3">
+<div class="card"><div class="qhead"><div class="qicon"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Source</div><h3>Where it comes from</h3></div></div><p class="desc">Twelve to eighteen words of substance. If it needs more, the slide is wrong.</p><div class="meta"><b>Key point:</b> the detail worth remembering</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Outcome</div><h3>What the audience gets</h3></div></div><p class="desc">Rotate the pastel tile per card so no two neighbours share a tint.</p><div class="meta"><b>Key point:</b> rotate pastel tiles per card</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Proof</div><h3>The evidence</h3></div></div><p class="desc">The body exists only as evidence for the title above it.</p><div class="meta"><b>Key point:</b> one idea per slide</div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/bell"><path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/></svg>The one sentence you would say out loud while pointing at this body.</div>
+</footer>
+
+</section>
+
+<!-- 4. Two by two, and the badge. It dates the grid, which is why this slide
+     carries one: the numbers are only true as of that date. -->
+<section class="slide" data-toc="Grid" data-name="two by two question grid, with a badge" data-rail="phosphor/magnifying-glass">
+<div class="badge">Reviewed 4 Nov</div>
+<header class="s-head"><h2 class="head">Two risks, two moves, one grid</h2><p class="sub">Four equal cards, pairable by rows.</p></header>
+<div class="s-body">
+<div class="gridQ">
+<div class="card"><div class="qhead"><div class="qicon"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Risk one</div><h3>The scan outruns the traffic</h3></div></div><p class="desc">Flat cost needs flat volume, and volume is a promise.</p><div class="meta"><b>Key point:</b> two quarters of headroom left</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Risk two</div><h3>One tenant can stall the tier</h3></div></div><p class="desc">One oversized query moves p95 for everyone else.</p><div class="meta"><b>Key point:</b> no per account ceiling yet</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Move one</div><h3>Push the filter below the join</h3></div></div><p class="desc">Same tier, same workers, same queries, and a quarter of the bytes read.</p><div class="meta"><b>Key point:</b> 94 percent fewer bytes scanned</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p5)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/paper-plane-tilt"><path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Move two</div><h3>Cap the bytes one account can ask for</h3></div></div><p class="desc">A ceiling per query, raised on request and never lowered quietly.</p><div class="meta"><b>Key point:</b> the fix is a limit, not a queue</div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/check-circle"><path d="M176.49 95.51a12 12 0 0 1 0 17l-56 56a12 12 0 0 1-17 0l-24-24a12 12 0 1 1 17-17L112 143l47.51-47.52A12 12 0 0 1 176.49 95.51ZM236 128A108 108 0 1 1 128 20,108.12 108.12 0 0 1 236 128Zm-24 0a84 84 0 1 0-84 84A84.09 84.09 0 0 0 212 128Z"/></svg>The badge dates this grid, which is why it has one.</div>
+</footer>
+
+</section>
+
+<!-- 5. Three steps. The takeaway here runs to two lines on purpose: it is the
+     one element that persists in the same band on neighbouring slides, so it is
+     what the FLIP morph has to carry, and a one line takeaway can never move. -->
+<section class="slide" data-toc="Steps" data-name="three steps" data-rail="phosphor/chart-bar">
+<header class="s-head"><h2 class="head">Three steps, and each one can fail on its own</h2><p class="sub">Every step carries the test that ends it.</p></header>
+<div class="s-body">
+<div class="steps3">
+<div class="step"><div class="qicon sm"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><h4>Write to both</h4><p>Every event lands in both stores. Nothing reads the new one yet.</p><div class="meta"><b>Exit test:</b> zero rows differ, one full day</div></div>
+<div class="glue">›</div>
+<div class="step"><div class="qicon sm" style="background:var(--p5)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg></div><h4>Read the shadow</h4><p>The new path answers copied traffic, diffed every hour.</p><div class="meta"><b>Exit test:</b> fourteen clean diffs at peak</div></div>
+<div class="glue">›</div>
+<div class="step"><div class="qicon sm" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/paper-plane-tilt"><path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/></svg></div><h4>Move one region</h4><p>Traffic goes behind a flag, old path held warm ten minutes.</p><div class="meta"><b>Exit test:</b> p95 under 60 ms for a week</div></div>
+</div>
+<div class="chiprow" style="margin-top:34px"><span class="chip">three steps, never four</span><span class="chip">one exit test each</span><span class="chip">each step reversible alone</span></div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128 20A108 108 0 1 0 236 128,108.12 108.12 0 0 0 128 20Zm0 192a84 84 0 1 1 84-84A84.09 84.09 0 0 1 128 212Zm68-84a12 12 0 0 1-12 12H128a12 12 0 0 1-12-12V72a12 12 0 0 1 24 0v44h44A12 12 0 0 1 196 128Z"/></svg>Each step names the test that ends it, so the plan cannot quietly turn into a status meeting halfway through, and nobody has to ask what happens next.</div>
+</footer>
+
+</section>
+
+<!-- 6. Standing pill bars: the default mark for comparing a few categories -->
+<section class="slide" data-toc="Bars" data-name="four category bars" data-rail="phosphor/chart-bar">
+<header class="s-head"><h2 class="head">Four categories compare faster than a table</h2><p class="sub">Rounded at both ends, labelled directly, no axis and no gridlines.</p></header>
+<div class="s-body">
+<div class="vbars">
+<div class="vb"><span class="vv">100%</span><div class="col"><i style="height:100%"></i></div><span class="lb">Alpha</span></div>
+<div class="vb"><span class="vv">72%</span><div class="col"><i style="height:72%"></i></div><span class="lb">Bravo</span></div>
+<div class="vb"><span class="vv">48%</span><div class="col"><i class="hot" style="height:48%"></i></div><span class="lb">Charlie</span></div>
+<div class="vb"><span class="vv">21%</span><div class="col"><i style="height:21%"></i></div><span class="lb">Delta</span></div>
+</div>
+<div class="chiprow" style="margin-top:34px"><span class="chip">4 categories max</span><span class="chip">label every bar</span><span class="chip">no axis</span><span class="chip">no gridlines</span></div>
+<!-- The one note this skill allows on a shipped slide: a caveat made to the
+     audience about the claim above it, never a note to the author. Here it says
+     the four bars are not shares of a total, which is the first thing a reader
+     assumes and the one thing the shape cannot show. Rule 6a in
+     content_philosophy.md; the CSS is above, in the .gapnote block. -->
+<div class="gapnote"><span class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/info"><path d="M108,84a16,16,0,1,1,16,16A16,16,0,0,1,108,84Zm128,44A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Zm-72,36.68V132a20,20,0,0,0-20-20,12,12,0,0,0-4,23.32V168a20,20,0,0,0,20,20,12,12,0,0,0,4-23.32Z"/></svg>Caveat</span>The four bars are not shares of one total, so they do not sum to 100. Each is an index against that category's own best month, which is why the shape is comparable and the numbers are not.</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/check-circle"><path d="M176.49 95.51a12 12 0 0 1 0 17l-56 56a12 12 0 0 1-17 0l-24-24a12 12 0 1 1 17-17L112 143l47.51-47.52A12 12 0 0 1 176.49 95.51ZM236 128A108 108 0 1 1 128 20,108.12 108.12 0 0 1 236 128Zm-24 0a84 84 0 1 0-84 84A84.09 84.09 0 0 0 212 128Z"/></svg>Name the decision this shape of data forces, not just the numbers.</div>
+</footer>
+
+</section>
+
+<!-- 7. Hero split with a stat rail -->
+<section class="slide" data-toc="Number" data-name="one number with a stat rail" data-rail="phosphor/crosshair">
+<header class="s-head"><h2 class="head">One number does more work than a chart</h2><p class="sub">When a single figure carries the claim, give it the slide.</p></header>
+<div class="s-body">
+<div class="hero-split">
+<div class="lead bigstat"><div class="n">921</div><div class="cap">the number the audience will repeat</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:22px">
+<div class="stat-rail" style="grid-template-columns:1fr 1fr">
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/device-mobile"><path d="M176,12H80A28,28,0,0,0,52,40V216a28,28,0,0,0,28,28h96a28,28,0,0,0,28-28V40A28,28,0,0,0,176,12ZM76,76H180V180H76Zm4-40h96a4,4,0,0,1,4,4V52H76V40A4,4,0,0,1,80,36Zm96,184H80a4,4,0,0,1-4-4V204H180v12A4,4,0,0,1,176,220Z"/></svg>Metric</div><div class="n">4.2M</div><div class="t">at most eight words here</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg>Metric</div><div class="n">12</div><div class="t">and at most eight words here</div></div>
+</div>
+<div style="background:var(--surface);border-radius:var(--radius-sm);padding:20px 24px">
+<div style="font-size:18px;color:var(--muted);font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:14px">Segmented pill meter</div>
+<div class="pillbar"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on hot"></i><i class="on hot"></i><i></i><i></i><i></i></div>
+</div>
+</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg>State the decision the number forces, not the number on its own.</div>
+</footer>
+
+</section>
+
+<!-- 8. Share rings. Each ring sets its own --p as a bare number, and nothing
+     else on the slide touches it, which is why the position rail writes --pp. -->
+<section class="slide" data-toc="Rings" data-name="four share rings" data-rail="phosphor/database">
+<header class="s-head"><h2 class="head">Four shares, and only one of them is a surprise</h2><p class="sub">A ring answers how much, so the number goes in the middle and the name goes under it.</p></header>
+<div class="s-body">
+<div class="stat-rail">
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg>Migrated</div><div class="ring" style="--p:92;align-self:center"><span>92%</span></div><div class="t">of accounts now read from the new path</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg>Adopted</div><div class="ring" style="--p:64;align-self:center"><span>64%</span></div><div class="t">wrote a saved metric in the last month</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg>Reviewed</div><div class="ring" style="--p:41;align-self:center"><span>41%</span></div><div class="t">of active accounts opened the rollup</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/paper-plane-tilt"><path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/></svg>Retained</div><div class="ring" style="--p:88;align-self:center"><span>88%</span></div><div class="t">of the top twenty stayed through the cut</div></div>
+</div>
+<div class="chiprow" style="margin-top:30px"><span class="chip">--p is a bare number</span><span class="chip">the rail writes --pp</span><span class="chip">one share per ring, never two</span><span class="chip">the name goes under the mark</span></div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/bell"><path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/></svg>Say the share out loud, then let the ring hold the number for you.</div>
+</footer>
+
+</section>
+
+<!-- 9. Pull close, ending on substance rather than a thank-you -->
+<section class="slide hero-slide" data-toc="Close" data-name="pull close" data-rail="phosphor/paper-plane-tilt">
+<header class="s-head" style="text-align:center"><h2 class="head" style="display:none">Close</h2></header>
+<div class="s-body">
+<div class="pull">
+<p class="q">Restate <em>the one number</em> here,<br>not a thank-you.</p>
+<p class="by">Name · role · contact · the next step</p>
+</div>
+</div>
+<footer class="s-foot"></footer>
+
+</section>
+
+<!-- Carries the slide position to a screen reader. show() writes the active
+     slide's own aria-label here, so the label is written once per slide and the
+     announcement can never drift from the slide. -->
+<div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- 10. Screenshot frame: any image goes inside .shot -->
+<section class="slide" data-toc="Capture" data-name="screenshot frame" data-rail="phosphor/file-text">
+<header class="s-head"><h2 class="head">A screenshot gets a frame, not a bare image</h2><p class="sub">Rounded chrome bar, centred address, contain-fit image, uppercase caption.</p></header>
+<div class="s-body">
+<div class="shot">
+<div class="shotbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="addr">yoursite.com/dashboard</span></div>
+<div class="shotimg">
+<svg viewBox="0 0 760 300" style="width:78%" role="img" aria-label="Placeholder capture of the product dashboard">
+<rect x="0" y="0" width="760" height="300" rx="10" fill="#ffffff"/>
+<rect x="20" y="20" width="150" height="16" rx="8" fill="#E4E9E9"/>
+<rect x="20" y="50" width="110" height="16" rx="8" fill="#EDF1F1"/>
+<rect x="20" y="80" width="130" height="16" rx="8" fill="#EDF1F1"/>
+<rect x="200" y="20" width="250" height="150" rx="10" fill="#EDF3FE"/>
+<rect x="470" y="20" width="270" height="70" rx="10" fill="#D3E7E5"/>
+<rect x="470" y="100" width="270" height="70" rx="10" fill="#FFE3A0"/>
+<rect x="20" y="200" width="720" height="80" rx="10" fill="#F3F7F7"/>
+<rect x="40" y="222" width="18" height="18" rx="9" fill="#60a5fa"/>
+<rect x="40" y="250" width="18" height="18" rx="9" fill="#D3E7E5"/>
+<rect x="76" y="225" width="320" height="12" rx="6" fill="#D9DEDE"/>
+<rect x="76" y="253" width="240" height="12" rx="6" fill="#E6EAEA"/>
+</svg>
+</div>
+<div class="shotcap">Replace with a real capture</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/file-code"><path d="M180.49,143.51a12,12,0,0,1,0,17l-24,24a12,12,0,0,1-17-17L155,152l-15.52-15.51a12,12,0,1,1,17-17Zm-64-24a12,12,0,0,0-17,0l-24,24a12,12,0,0,0,0,17l24,24a12,12,0,0,0,17-17L101,152l15.52-15.51A12,12,0,0,0,116.49,119.51ZM220,88V216a20,20,0,0,1-20,20H56a20,20,0,0,1-20-20V40A20,20,0,0,1,56,20h96a12,12,0,0,1,8.49,3.52l56,56A12,12,0,0,1,220,88ZM160,57V80h23Zm36,155V104H148a12,12,0,0,1-12-12V44H60V212Z"/></svg>Give every image a frame. A bare image on the canvas reads as an unfinished slide.</div>
+</footer>
+
+</section>
+
+<div class="edge left" id="edgeL" role="button" tabindex="0" aria-label="Previous slide"><span class="edgebtn"><svg class="chev l" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"/></svg></span></div>
+<div class="edge right" id="edgeR" role="button" tabindex="0" aria-label="Next slide"><span class="edgebtn"><svg class="chev r" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M87.51,199.51a12,12,0,0,0,17,17l80-80a12,12,0,0,0,0-17l-80-80a12,12,0,0,0-17,17L159,128Z"/></svg></span></div>
+<script>
+let i=-1;const s=[...document.querySelectorAll('.slide')];
+const edgeL=document.getElementById('edgeL'),edgeR=document.getElementById('edgeR');
+const live=document.getElementById('live');
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Deferred rendering. The deck owns the work; the template owns the promise.
+   A deck that draws itself asynchronously (a diagram library, a chart, an image
+   decode) passes its promise to defer(), which bumps a counter; __deckReady
+   resolves when the counter is back to zero and the document has finished
+   loading, then waits for fonts and re-stages the scale so anything that changed
+   size is measured again.
+
+   Why a counter and not a collected array: an array has to be snapshotted at one
+   fixed line, and that line is an ordering rule every caller has to know. A
+   counter has no snapshot, so defer() works from any script in the document and
+   in any order, and there is nothing to get wrong. The promise is never
+   assigned by a deck.
+   The contract is one line: register with defer(), never assign the promise. */
+let pending=0,released=false,release=null,deferErrors=[];
+const gate=new Promise(r=>{release=r});
+const arm=()=>{if(!released&&pending===0){released=true;release(true)}};
+window.__deckReady=gate
+  .then(()=>document.fonts&&document.fonts.ready)
+  .then(()=>{stage();return document.body})
+  .then(body=>{if(deferErrors.length)throw deferErrors[0];return body});
+function defer(p){
+  if(released){
+    console.warn('defer() called after the deck had already settled; a screenshot or export may race it. Move the call into a script that runs before window load.');
+    return p;
+  }
+  pending++;
+  Promise.resolve(p).then(
+    ()=>{pending--;arm()},
+    e=>{deferErrors.push(e);pending--;arm()});
+  return p;
+}
+window.__deckDefer=defer;
+// Nothing may be outstanding by the time the document has finished loading, so
+// that is the second release trigger. A deck with no deferred work at all
+// resolves here, and a deck whose work settled earlier has already resolved.
+if(document.readyState==='complete')arm();
+else window.addEventListener('load',arm,{once:true});
+// PDF export and reduced motion both need settled slides, so kill the staged
+// entrance as well as the FLIP morph.
+if(reduceMotion)document.body.classList.add('no-anim');
+function stageScale(){return Math.min(window.innerWidth/1920,window.innerHeight/1080)}
+/* Every slide's own position label is written here, from the real slide count,
+   so the number can never drift from the deck. The name comes from the
+   section's data-name, which is the only per-slide text an author supplies:
+     <section class="slide" data-name="cover">
+   A slide with no data-name still gets "Slide N of TOTAL".
+
+   This runs once over ALL the slides, not just the active one, because @media
+   print turns every slide back on at the same time: labels written on slide
+   change would leave nine printed slides carrying one slide's numbers. */
+function labelOf(el,k){
+  const name=(el.getAttribute('data-name')||'').trim();
+  return 'Slide '+(k+1)+' of '+s.length+(name?': '+name:'');
+}
+function relabel(){
+  s.forEach((el,k)=>{
+    el.setAttribute('aria-label',labelOf(el,k));
+    /* No topbar, no page numbers: position lives in the rail. */
+  });
+}
+function show(n,instant){
+  n=Math.max(0,Math.min(s.length-1,n));
+  if(n===i){stage();return;}
+  if(window.__noMorph)document.body.classList.add('no-anim');
+  const from=i>=0?s[i]:null,to=s[n];
+  const sc=stageScale();
+  // Motion off means motion off, whatever turned it off: the OS setting, the
+  // export script's __noMorph flag, or the no-anim class set by hand. The class
+  // alone already kills every CSS animation, so it has to kill the FLIP too or a
+  // capture can still land on an element mid glide.
+  const freeze=reduceMotion||!!window.__noMorph||document.body.classList.contains('no-anim');
+  let pairs=[];
+  // FIRST, while the outgoing slide is still laid out: .slide is display:none,
+  // so the moment it loses .active every rect inside it reads zero and there is
+  // nothing left to measure. These are viewport rects, so they already carry the
+  // slide's own transform:scale; the delta is divided back out by that scale
+  // before it can be used as a translate inside the slide, or the element lands
+  // short at any viewport that is not exactly 1920x1080. The outgoing slide must
+  // also be settled: an entrance in flight is a transform on .s-foot, and
+  // measuring through it would glide the chrome from a place it was never at.
+  // playState, not presence: a rise with fill "both" stays in the timeline after
+  // it finishes, so getAnimations() alone would report every slide as busy.
+  const fromBusy=from&&from.getAnimations({subtree:true}).some(a=>a.playState==='running');
+  if(from&&!instant&&!freeze&&!fromBusy){
+    const targets=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el]));
+    for(const f of from.querySelectorAll('[data-morph]')){
+      const g=targets.get(f.dataset.morph);
+      if(g)pairs.push([g,f.getBoundingClientRect()]);
+    }
+  }
+  i=n;s.forEach((el,k)=>el.classList.toggle('active',k===i));
+  edgeL.classList.toggle('off',i===0);edgeR.classList.toggle('off',i===s.length-1);stage();
+  markToc();
+  live.textContent=labelOf(s[i],i);
+  // SECOND, after the toggle, so the incoming slide is laid out and has real
+  // rects to read, and with its own entrance suppressed while they are read: the
+  // entrance is a transform on .s-foot, so a rect taken with it running is 18px
+  // below the place the element is about to land, and the morph starts short by
+  // exactly that. The class comes off again before anything is painted, and the
+  // entrance then plays from zero as if it had never been interrupted. Nothing
+  // is touched when there is no pair to measure, which is every slide change
+  // under reduced motion.
+  let now=new Map();
+  if(pairs.length){
+    to.classList.add('measuring');
+    now=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el.getBoundingClientRect()]));
+    to.classList.remove('measuring');
+  }
+  // Two elements carrying the same data-morph name are the same object in two
+  // slides, and the one that moved is the one that glides.
+  for(const [g,r] of pairs){
+    const b=now.get(g.dataset.morph);
+    const dx=(r.left-b.left)/sc,dy=(r.top-b.top)/sc;
+    const sx=b.width?r.width/b.width:1,sy=b.height?r.height/b.height:1;
+    // A pair that did not move is not a morph. Animating it would only re-fade
+    // chrome that never left its place, and that is most of the chrome here: the
+    // four band grid pins the head to row two and the foot to row four, so
+    // their delta is zero on every slide. A deck that moves its chrome glides it.
+    //
+    // dx is measured and then deliberately not animated. This deck moves
+    // VERTICALLY: the rail is a column, the sidebar lists the talk top to bottom,
+    // and Up/Down are as real a navigation as Left/Right. A morph that glided on X
+    // read as a carousel, so every takeaway change travelled sideways while the
+    // keyboard went up and down. .takeaway is width:fit-content and centred, so a
+    // longer sentence starts further left and the horizontal delta was large: the
+    // chrome drifted on almost every slide change while the audience was pressing
+    // down. The vertical delta and the scale carry the morph now, from a centre
+    // origin so a takeaway that changes width grows out of its middle instead of
+    // sliding in from the right. So a pair whose only delta was horizontal is not a
+    // morph, and the guard below tests dy alone.
+    if(!dy&&sx===1&&sy===1)continue;
+    g.animate([
+      {transformOrigin:'50% 50%',transform:`translateY(${dy}px) scale(${sx},${sy})`,opacity:.35},
+      {transformOrigin:'50% 50%',transform:'none',opacity:1}
+    ],{duration:450,easing:'cubic-bezier(.22,.8,.24,1)'});
+  }
+}
+function stage(){s[i].style.transform=`scale(${stageScale()})`}
+window.addEventListener('resize',stage);
+edgeL.addEventListener('click',e=>{e.stopPropagation();show(i-1);});
+edgeR.addEventListener('click',e=>{e.stopPropagation();show(i+1);});
+// stopPropagation, not just preventDefault. Space and Enter are handled here AND
+// on the document handler below, and preventDefault does not stop an event
+// travelling, so without it one key press moved two slides.
+edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i-1);}});
+edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i+1);}});
+/* Edit mode guard: keystrokes that land in editable text, a form field, or the
+   icon modal belong to the edit, not to navigation. Without this, typing a
+   space in a headline advances the slide. */
+document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
+const RAIL_ICONS={
+"phosphor/chart-bar":`<path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/>`,
+"phosphor/crosshair":`<path d="M232,116h-4.72A100.21,100.21,0,0,0,140,28.72V24a12,12,0,0,0-24,0v4.72A100.21,100.21,0,0,0,28.72,116H24a12,12,0,0,0,0,24h4.72A100.21,100.21,0,0,0,116,227.28V232a12,12,0,0,0,24,0v-4.72A100.21,100.21,0,0,0,227.28,140H232a12,12,0,0,0,0-24Zm-92,87v-3a12,12,0,0,0-24,0v3a76.15,76.15,0,0,1-63-63h3a12,12,0,0,0,0-24H53a76.15,76.15,0,0,1,63-63v3a12,12,0,0,0,24,0V53a76.15,76.15,0,0,1,63,63h-3a12,12,0,0,0,0,24h3A76.15,76.15,0,0,1,140,203ZM128,84a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,84Zm0,64a20,20,0,1,1,20-20A20,20,0,0,1,128,148Z"/>`,
+"phosphor/database":`<path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/>`,
+"phosphor/file-code":`<path d="M180.49,143.51a12,12,0,0,1,0,17l-24,24a12,12,0,0,1-17-17L155,152l-15.52-15.51a12,12,0,1,1,17-17Zm-64-24a12,12,0,0,0-17,0l-24,24a12,12,0,0,0,0,17l24,24a12,12,0,0,0,17-17L101,152l15.52-15.51A12,12,0,0,0,116.49,119.51ZM220,88V216a20,20,0,0,1-20,20H56a20,20,0,0,1-20-20V40A20,20,0,0,1,56,20h96a12,12,0,0,1,8.49,3.52l56,56A12,12,0,0,1,220,88ZM160,57V80h23Zm36,155V104H148a12,12,0,0,1-12-12V44H60V212Z"/>`,
+"phosphor/file-text":`<path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/>`,
+"phosphor/magnifying-glass":`<path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/>`,
+"phosphor/paper-plane-tilt":`<path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/>`,
+};
+function shortOf(el){return el.getAttribute('data-toc')||el.getAttribute('data-name')||'';}
+function railHTML(){
+  let h='';
+  s.forEach((el,k)=>{
+    // Appendix and bridges are not the narrative: the rail is the table of
+    // contents, and a filler slide in it is noise. Bridges still show the rail
+    // (position matters there too) with nothing highlighted, like appendix.
+    const g=el.getAttribute('data-group');
+    if(g==='appendix'||g==='bridge')return;
+    const k2=el.getAttribute('data-rail')||'';
+    const ic=(k2&&RAIL_ICONS[k2])?`<span class="rail-ic"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg></span>`:'';
+    h+=`<button class="rail-item" data-i="${k}">${ic}<span class="rail-t">${shortOf(el)}</span></button>`;
+  });
+  // Every appendix slide shares one entry: position without enumeration. The
+  // icon is the first appendix slide's own rail glyph, so it verifies through
+  // the same registry as every other entry, and the click lands on the first
+  // appendix slide while arrows still walk them one by one.
+  const apx=s.filter(el=>el.getAttribute('data-group')==='appendix');
+  if(apx.length){
+    const first=s.indexOf(apx[0]);
+    const k2=apx[0].getAttribute('data-rail')||'';
+    const ic=(k2&&RAIL_ICONS[k2])?`<span class="rail-ic"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg></span>`:'';
+    h+=`<button class="rail-item" data-i="${first}" data-apx="1">${ic}<span class="rail-t">Appendix</span></button>`;
+  }
+  return h;
+}
+function mountRail(){
+  // The tier counts rows, and the Appendix row is a row: one entry for every
+  // appendix slide would defeat its own purpose, but the single entry still
+  // takes vertical room.
+  const apxN=s.filter(el=>el.getAttribute('data-group')==='appendix').length;
+  const main=s.filter(el=>{const g=el.getAttribute('data-group');return g!=='appendix'&&g!=='bridge';}).length+(apxN?1:0);
+  /* Three tiers, not two: past 28 entries even the compact rows push the last
+     one onto the footer band, and the rail has to stay complete or the overview
+     it exists to give is gone. See DESIGN.md -> 'Sidebar table of contents'. */
+  const cls=main>28?'rail micro':main>16?'rail compact':'rail';
+  s.forEach((el)=>{const n=document.createElement('nav');n.className=cls;n.setAttribute('aria-label','Deck contents');n.innerHTML=railHTML();el.prepend(n);});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();show(+b.dataset.i);}));});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();e.stopPropagation();show(+b.dataset.i);}}));});
+}
+function markToc(){/* A bridge belongs to what follows it: on a bridge slide the rail highlights the next slide that carries an entry, so the question visibly leads somewhere instead of leaving the rail dead. Past the last entry there is nothing to highlight. */let k=i;while(s[k]&&s[k].getAttribute('data-group')==='bridge')k++;const apx=s[k]&&s[k].getAttribute('data-group')==='appendix';document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',!!s[k]&&(apx?b.hasAttribute('data-apx'):+b.dataset.i===k)));}
+relabel();mountRail();show(0);
+</script>
+
+<!-- ==========================================================================
+     THEMEBAR: a presenter's switcher, not deck content.
+
+     Light on light is the default and stays the default. The bar exists so the
+     deck can be moved to a dark room or a house palette without editing CSS.
+     It lives only on the first slide: the hit strip renders while the cover is
+     showing and nowhere else, and it is visible only while the pointer is over
+     that strip. Captures (export-pdf, shot) inject their own display:none, so a
+     PNG never carries it. Choice persists in localStorage; Escape resets.
+     ========================================================================== -->
+<div class="themehit" aria-hidden="true"></div>
+<script>
+/* Skill asset root for lazy browser data (the icon modal's search index).
+   `bun cli.mjs new` rewrites this one const to the correct relative path from
+   the deck to the skill's assets/; the default serves decks that sit next to
+   the skill tree. If it points nowhere, the modal says so and names the fix. */
+window.__SKILL_ASSETS__="../assets";
+</script>
+<div class="themebar" role="toolbar" aria-label="Deck theme" hidden>
+  <span class="tlabel">Theme</span>
+  <div class="tmode" role="group" aria-label="Light or dark">
+    <button type="button" data-mode="light" aria-pressed="true">Light</button>
+    <button type="button" data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="tlabel">Palette</span>
+  <div class="tpals" role="group" aria-label="Colour palette"></div>
+  <span class="tspread"><b class="tpalname">Slate</b> &middot; <span id="themereset">reset</span></span>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" class="tedit" aria-pressed="false" title="Edit text and icons directly on the slides">Edit</button>
+  <button type="button" class="texport" data-export="html" title="Download this deck as a standalone HTML file">HTML</button>
+  <button type="button" class="texport" data-export="pdf" title="Open the print dialog; save as PDF">PDF</button>
+</div>
+
+<!-- ==========================================================================
+     EDITMODAL: the icon search for edit mode. Hidden until an icon is clicked
+     while editing. Search data is generated, never committed: `bun cli.mjs
+     icons build` writes assets/icon-index.js plus assets/icon-files/, loaded
+     lazily here so a deck that never opens the modal never pays for 9k icons.
+     ========================================================================== -->
+<div class="editmodal" role="dialog" aria-modal="true" aria-label="Replace icon" hidden>
+  <div class="editmodal-panel">
+    <div class="editmodal-head">
+      <span class="tlabel">Replace icon</span>
+      <code class="editmodal-current"></code>
+      <button type="button" class="editmodal-close" aria-label="Close">×</button>
+    </div>
+    <input type="search" class="editmodal-search" placeholder="Search 9,000 icons: try syringe, bank, calendar…" aria-label="Search icons" autocomplete="off">
+    <div class="editmodal-hint"></div>
+    <div class="editmodal-results" role="listbox" aria-label="Matching icons"></div>
+  </div>
+</div>
+
+<script>
+/* Palette swatches show the palette they set: a colour scheme's only honest
+   preview is the colour scheme itself. Names are read from the token block, so
+   adding a [data-palette] rule is all it takes to appear here. */
+(function themeBar(){
+  const KEY='deck-theme';
+  const root=document.documentElement;
+  const bar=document.querySelector('.themebar');
+  if(!bar)return;
+  const modeBtns=[...bar.querySelectorAll('.tmode button')];
+  const palWrap=bar.querySelector('.tpals');
+  const nameOut=bar.querySelector('.tpalname');
+
+  /* Read the palettes straight out of the stylesheet: every [data-palette] rule
+     that declares --accent is a palette. Nothing to keep in sync by hand. */
+  const PALETTES=[];
+  for(const sheet of document.styleSheets){
+    let rules;try{rules=sheet.cssRules}catch{continue}
+    for(const rule of rules){
+      if(rule.type!==CSSRule.STYLE_RULE)continue;
+      const sel=rule.selectorText||'';
+      if(!/^\[data-palette="[a-z]+"\]$/.test(sel))continue;
+      const name=sel.slice(15,-2); /* [data-palette="X"]: the name starts after the 15-char prefix */
+      if(PALETTES.some(p=>p.name===name))continue;
+      const g=(prop)=>(rule.style.getPropertyValue(prop)||'').trim();
+      PALETTES.push({name,bg:g('--bg'),surface:g('--surface'),accent:g('--accent'),p1:g('--p1'),text:g('--text')});
+    }
+  }
+  const ORDER=['slate','ink','forest','clay'];
+  PALETTES.sort((a,b)=>{const x=ORDER.indexOf(a.name),y=ORDER.indexOf(b.name);return(x<0?99:x)-(y<0?99:y)});
+
+  for(const p of PALETTES){
+    const b=document.createElement('button');
+    b.type='button';b.className='tpal';b.dataset.pal=p.name;
+    b.setAttribute('aria-pressed','false');
+    b.title=p.name;
+    b.innerHTML=`<i style="background:${p.bg}"></i><i style="background:${p.accent}"></i><i style="background:${p.p1}"></i>`;
+    palWrap.append(b);
+  }
+  const palBtns=[...palWrap.children];
+
+  function apply(state,persist){
+    const mode=state.mode==='dark'?'dark':'light';
+    const pal=state.pal&&PALETTES.some(p=>p.name===state.pal)?state.pal:'slate';
+    if(mode==='dark')root.setAttribute('data-theme','dark');else root.removeAttribute('data-theme');
+    root.setAttribute('data-palette',pal);
+    modeBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    palBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pal===pal)));
+    const p=PALETTES.find(x=>x.name===pal);
+    if(nameOut&&p)nameOut.textContent=p.name[0].toUpperCase()+p.name.slice(1);
+    bar.hidden=false;
+    if(persist)try{localStorage.setItem(KEY,JSON.stringify({mode,pal}))}catch{}
+  }
+
+  modeBtns.forEach(b=>b.addEventListener('click',()=>{
+    const mode=b.dataset.mode;
+    apply({mode,pal:root.getAttribute('data-palette')||'slate'},true);
+  }));
+  palBtns.forEach(b=>b.addEventListener('click',()=>{
+    apply({mode:root.getAttribute('data-theme')==='dark'?'dark':'light',pal:b.dataset.pal},true);
+  }));
+  bar.querySelector('#themereset').addEventListener('click',()=>{
+    apply({mode:'light',pal:'slate'},true);
+  });
+
+  /* Keyboard equivalent of hovering the top strip, so the switcher is reachable
+     without a pointer: focus lands on the first control when it is tabbed to. */
+  document.addEventListener('keydown',(e)=>{
+    // Edit mode owns Escape first: an open modal closes via its own capture
+    // listener (which stops propagation, so this never fires for it), and a
+    // keystroke inside editable text must not reset the theme out from under
+    // the edit.
+    if(e.key==='Escape'&&!bar.hidden
+      &&!(e.target.closest&&e.target.closest('[contenteditable],input,textarea')))
+      {root.removeAttribute('data-theme');root.setAttribute('data-palette','slate');apply({mode:'light',pal:'slate'},true)}
+  });
+
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(KEY)||'null')}catch{}
+  if(saved&&(saved.mode==='dark'||saved.pal))apply(saved,false);
+  else bar.hidden=false;
+
+  /* The switcher lives on the first slide only. Wrapping show() rather than
+     polling keeps one source of truth for which slide is showing. */
+  if(typeof window.show==='function'){
+    const _show=window.show;
+    window.show=function(n){_show(n);document.body.classList.toggle('on-cover',n===0);};
+    document.body.classList.add('on-cover');
+  }
+})();
+</script>
+
+<script>
+/* ==========================================================================
+   EDITMODE: edit text and swap icons directly on the slides, then export.
+   A human path, not an agent path: agents build decks through the skill; a
+   presenter fixes a typo or swaps a glyph without touching source. Off on load,
+   toggled from the themebar, available on every slide (unlike the theme
+   switcher, which lives on the cover only). Exported HTML keeps the theme and
+   the new bytes; it never keeps the editing state.
+   ========================================================================== */
+(function editMode(){
+  const bar=document.querySelector('.themebar');
+  if(!bar)return;
+  const editBtn=bar.querySelector('.tedit');
+  const modal=document.querySelector('.editmodal');
+  const search=modal.querySelector('.editmodal-search');
+  const results=modal.querySelector('.editmodal-results');
+  const hint=modal.querySelector('.editmodal-hint');
+  const current=modal.querySelector('.editmodal-current');
+
+  /* Text that is safe to edit in place. Structural chrome (rail, themebar,
+     modal) is never editable; scripts and styles are not elements. Table cells
+     are included because results tables are edited, not rebuilt. */
+  const EDITABLE='.head,.sub,.subc,.takeaway,.card h3,.desc,.meta,.tagline,.step h4,.step p,.bigstat .n,.bigstat .t,.cnode .lbl,.cnode .sub,.pull,.pull .t,.bigstrip .n,.bigstrip .t,.mn .n,.mn .t,.shotcap,td,th';
+  const inChrome=(el)=>!!(el.closest&&el.closest('.themebar,.editmodal,nav.rail'));
+
+  function setEditing(on){
+    document.body.classList.toggle('editing',on);
+    editBtn.setAttribute('aria-pressed',String(on));
+    document.querySelectorAll('.slide').forEach(s=>{
+      s.querySelectorAll(EDITABLE).forEach(el=>{
+        if(inChrome(el))return;
+        if(on)el.setAttribute('contenteditable','plaintext-only');
+        else el.removeAttribute('contenteditable');
+      });
+    });
+  }
+  editBtn.addEventListener('click',()=>setEditing(!document.body.classList.contains('editing')));
+
+  /* ---- icon search data: lazy, and honest about absence -------------------
+     file:// blocks fetch() but allows <script>, so the index and the svg bytes
+     arrive as generated JS (`bun cli.mjs icons build`). Nothing loads until the
+     modal opens, so a deck that is only presented never pays for 9k icons. */
+  const loadedScripts=new Set();
+  const skillAsset=(rel)=>String(window.__SKILL_ASSETS__||'../assets').replace(/\/$/,'')+'/'+rel;
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(loadedScripts.has(src))return res();
+      const s=document.createElement('script');s.src=src;
+      s.onload=()=>{loadedScripts.add(src);res();};
+      s.onerror=()=>rej(new Error(src));
+      document.head.append(s);
+    });
+  }
+  const bucketOf=(key)=>{const c=(key[0]||'').toLowerCase();return/[a-z0-9]/.test(c)?c:'misc';};
+  async function ensureIndex(){
+    if(window.__ICON_INDEX)return window.__ICON_INDEX;
+    try{await loadScript(skillAsset('icon-index.js'));}
+    catch(e){throw new Error('no icon data at '+skillAsset('icon-index.js')+'. From the deck folder, point the deck at the skill (window.__SKILL_ASSETS__), or run `bun cli.mjs icons build` in the skill.');}
+    if(!window.__ICON_INDEX)throw new Error('icon-index.js loaded but defined nothing.');
+    return window.__ICON_INDEX;
+  }
+  async function ensureBucket(key){
+    window.__ICON_FILES=window.__ICON_FILES||{};
+    if(window.__ICON_FILES[key])return;
+    await loadScript(skillAsset('icon-files/'+bucketOf(key)+'.js'));
+  }
+
+  /* Same matching the CLI uses: every word must appear in name/title/tags, and
+     exact and prefix matches outrank substring ones. Two searches for the same
+     words agree by construction, not by testing. */
+  function searchIndex(index,words){
+    const out=[];
+    for(const [key,title,tags,dataIcon] of index){
+      const hay=`${key} ${title} ${tags}`.toLowerCase();
+      const kl=key.toLowerCase(), tl=(title||'').toLowerCase();
+      if(!words.every(w=>hay.includes(w)||kl.includes(w.replace(/-/g,''))))continue;
+      let score=0;
+      for(const w of words){
+        if(kl===w)score+=4;
+        else if(kl.startsWith(w))score+=3;
+        else if(kl.includes(w))score+=2;
+        else if(tl.includes(w))score+=1;
+        else score+=0.5;
+      }
+      out.push({key,title,tags,dataIcon,score});
+    }
+    out.sort((a,b)=>b.score-a.score||(a.key<b.key?-1:1));
+    return out.slice(0,12);
+  }
+
+  let target=null, lastQuery='';
+  function openModal(svg){
+    target=svg;lastQuery='';
+    current.textContent='now: '+(svg.getAttribute('data-icon')||'(no data-icon)');
+    search.value='';results.innerHTML='';
+    hint.textContent='Type to search. Choosing replaces this glyph in place.';
+    modal.hidden=false;
+    setTimeout(()=>search.focus(),30);
+  }
+  function closeModal(){modal.hidden=true;results.innerHTML='';target=null;}
+
+  let debounce=null;
+  search.addEventListener('input',()=>{
+    clearTimeout(debounce);
+    debounce=setTimeout(runSearch,120);
+  });
+  async function runSearch(){
+    const words=search.value.toLowerCase().split(/\s+/).filter(Boolean);
+    results.innerHTML='';
+    if(!words.length){hint.textContent='Type to search. Choosing replaces this glyph in place.';return;}
+    let index;
+    try{index=await ensureIndex();}
+    catch(e){hint.textContent=String(e.message||e);return;}
+    const hits=searchIndex(index,words);
+    if(!hits.length){hint.textContent='No match. Fewer words, or different ones.';return;}
+    hint.textContent=hits.length+' match'+(hits.length===1?'':'es')+'. Choosing replaces the glyph.';
+    // Load the buckets behind the visible hits so every row gets a preview.
+    await Promise.all([...new Set(hits.map(h=>bucketOf(h.key)))].map(async b=>{
+      try{await loadScript(skillAsset('icon-files/'+b+'.js'));}catch(e){/* preview falls back to text */}
+    }));
+    for(const h of hits){
+      const row=document.createElement('button');
+      row.type='button';row.className='editmodal-row';
+      const svg=(window.__ICON_FILES||{})[h.key];
+      row.innerHTML=(svg||'<svg viewBox="0 0 256 256" width="30" height="30"><rect width="256" height="256" fill="none" stroke="currentColor" stroke-width="12"/></svg>')
+        +`<span><span class="nm"></span><br><span class="ti"></span></span>`;
+      row.querySelector('.nm').textContent=h.key;
+      row.querySelector('.ti').textContent=(h.title||'')+(h.tags?' · '+h.tags.split(',').slice(0,3).join(', '):'');
+      row.addEventListener('click',()=>choose(h));
+      results.append(row);
+    }
+  }
+
+  function choose(h){
+    if(!target){closeModal();return;}
+    const svgText=(window.__ICON_FILES||{})[h.key];
+    if(!svgText){hint.textContent='Bytes for '+h.key+' did not load. Try again.';return;}
+    const tpl=document.createElement('template');tpl.innerHTML=svgText.trim();
+    const fresh=tpl.content.firstElementChild;
+    if(!fresh||fresh.tagName.toLowerCase()!=='svg'){hint.textContent='Bytes for '+h.key+' are not an svg. Try another.';return;}
+    // The old node's sizing contract survives; everything else comes from the
+    // file, byte for byte, which is what the provenance gate checks.
+    for(const a of ['class','style','width','height'])if(target.hasAttribute(a))fresh.setAttribute(a,target.getAttribute(a));
+    fresh.setAttribute('data-icon',h.dataIcon);
+    target.replaceWith(fresh);
+    closeModal();
+  }
+
+  // In edit mode, an icon click opens the modal instead of doing whatever the
+  // icon would otherwise do. Capture phase, so rail and edge handlers (which
+  // stop propagation on their own events) keep working everywhere else.
+  document.addEventListener('click',e=>{
+    if(!document.body.classList.contains('editing'))return;
+    const svg=e.target.closest&&e.target.closest('svg[data-icon]');
+    if(!svg||svg.closest('.themebar,.editmodal'))return;
+    e.preventDefault();e.stopPropagation();
+    openModal(svg);
+  },true);
+
+  modal.querySelector('.editmodal-close').addEventListener('click',closeModal);
+  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  // Escape closes the modal before the theme reset below ever sees it.
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!modal.hidden){e.stopPropagation();closeModal();}
+  },true);
+
+  /* ---- exports --------------------------------------------------------------
+     HTML serializes the live document minus the editing state: text and icons
+     stay, outlines and attributes go, theme choice stays (it is the look).
+     PDF is the print path, which already hides chrome and lays one slide per
+     page. Both are presenter tools; neither is part of any check. */
+  function cleanForExport(){
+    const wasEditing=document.body.classList.contains('editing');
+    if(wasEditing)setEditing(false);
+    closeModal();
+    return wasEditing;
+  }
+  bar.querySelector('[data-export="html"]').addEventListener('click',()=>{
+    const resume=cleanForExport();
+    let html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    // Serialization expands self-closing SVG tags (<path/> becomes
+    // <path></path>), which breaks the byte-provenance the visuals gate
+    // checks: every inlined glyph must match its vendored file byte for byte.
+    // These elements are always empty in icon artwork, so collapsing an
+    // immediately-closed pair back restores the file bytes exactly.
+    html=html.replace(/><\/(path|circle|rect|line|polyline|polygon|ellipse|use|stop)>/g,'/>');
+    const stem=(document.title||'deck').replace(/[^\w\-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+    a.download=(stem||'deck')+'-edited.html';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    if(resume)setEditing(true);
+  });
+  bar.querySelector('[data-export="pdf"]').addEventListener('click',()=>{cleanForExport();window.print();});
+})();
+</script>
+</body>
+</html>

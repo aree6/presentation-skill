@@ -1,0 +1,7 @@
+# Licence
+
+This skill's own files are unlicensed — yours to use as you see fit.
+
+`icons/` is not. It vendors theSVG brand marks and Phosphor UI glyphs,
+redistributed unmodified under the MIT licence, which requires the notice to
+travel with the files. Keep this file with the folder if you redistribute it.

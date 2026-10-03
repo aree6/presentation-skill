@@ -1,0 +1,15 @@
+# Installed tooling, never committed. Restore with:
+#   npm install && npx playwright install chromium
+node_modules/
+package-lock.json
+
+# Generated output. `shot` writes these beside whatever deck it is given, which
+# includes the bundled templates — so the gallery screenshots under templates/
+# were captured by an earlier run and had already drifted out of date.
+presentations/
+*-shots/
+
+# Generated browser-side icon search data. Restore with:
+#   bun cli.mjs icons build
+assets/icon-index.js
+assets/icon-files/

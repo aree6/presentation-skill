@@ -1,0 +1,49 @@
+{
+  "name": "presentation-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portable skill for building premium HTML slide decks and exporting them to PDF. No framework, no build step.",
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "LICENSE",
+    "content_philosophy.md",
+    "DESIGN.md",
+    "MERMAID.md",
+    "ICONS.md",
+    "cli.mjs",
+    "icons",
+    "templates",
+    "scripts"
+  ],
+  "scripts": {
+    "cli": "bun cli.mjs",
+    "test": "bun cli.mjs check",
+    "check": "bun cli.mjs check",
+    "new": "bun cli.mjs new",
+    "qa": "bun scripts/qa-matrix.mjs",
+    "dashes": "bun scripts/check-dashes.mjs",
+    "docs": "bun scripts/check-docs.mjs",
+    "density": "bun scripts/check-density.mjs",
+    "visuals": "bun scripts/check-visuals.mjs",
+    "icons": "bun scripts/find-icon.mjs",
+    "pattern": "bun scripts/get-pattern.mjs",
+    "doc": "bun scripts/get-doc.mjs",
+    "refs": "bun scripts/check-refs.mjs",
+    "pdf": "bun scripts/export-pdf.mjs",
+    "shot": "bun scripts/shot.mjs"
+  },
+  "bin": {
+    "presentation-skill": "cli.mjs"
+  },
+  "devDependencies": {
+    "mermaid": "12.0.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.56.0"
+  },
+  "engines": {
+    "bun": ">=1.0"
+  },
+  "license": "UNLICENSED"
+}

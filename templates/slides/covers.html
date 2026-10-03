@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cover variations: pick the title treatment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400..800&family=Lora:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* ==========================================================================
+   THEME: LIGHT ONLY, not configurable. --bg #F3F7F7 on white surfaces is the
+   only permitted canvas, because projected decks are read in bright rooms and
+   these decks get printed and forwarded. There is no dark variant and none may
+   be added. Do not invert the canvas to match a dark-first product; lift its
+   semantic hues into small accents instead. See DESIGN.md -> "Theme".
+   ========================================================================== */
+:root{
+  --bg:#F3F7F7; --surface:#FFFFFF; --text:#17191C; --muted:#96999D;
+  --ink:#6B6F73; --accent:#2563EB;
+  --ink-rgb:23,25,28;   /* the lever behind every rgba(var(--ink-rgb),a) */
+  --p1:#D3E7E5; --p2:#F7D1E1; --p3:#FFE3A0; --p4:#DCCFEA; --p5:#D8E7E8;
+  --pos:#2C7A6B; --neg:#B8413B; --warn:#E9A93C;
+  /* Radii, named the way DESIGN.md names them. --radius-pill is the only
+     rounding allowed on a data mark, and nothing here is a sharp rectangle. */
+  --radius-lg:24px; --radius-sm:14px; --radius-pill:999px;
+  --border:1.5px solid rgba(var(--ink-rgb),.08);
+  --chrome:var(--ink);
+}
+
+/* Palettes and dark are declared in templates/demo.html and apply here by
+   inheritance of the same token names: a gallery slide and a deck slide are
+   themed by the same switch, because they read the same fifteen variables. */
+[data-palette="ink"]{ --bg:#F4F4F5; --surface:#FFFFFF; --text:#18181B; --ink:#52525B;
+  --muted:#8B8B94; --accent:#4338CA; --ink-rgb:24,24,27;
+  --p1:#D6D9F2; --p2:#F5D9E4; --p3:#FBEBC0; --p4:#E2DCF0; --p5:#D7E4EC;
+  --pos:#2F6F63; --neg:#A93B36; --warn:#B87A16; }
+[data-palette="forest"]{ --bg:#F2F6F3; --surface:#FFFFFF; --text:#152019; --ink:#54655C;
+  --muted:#8A9A92; --accent:#16694A; --ink-rgb:21,32,25;
+  --p1:#D2E6DA; --p2:#F6DCE2; --p3:#F7E8BE; --p4:#DCE6D2; --p5:#D6E4E6;
+  --pos:#16694A; --neg:#A63D33; --warn:#9A6B12; }
+[data-palette="clay"]{ --bg:#F8F4F1; --surface:#FFFFFF; --text:#211A15; --ink:#6B5B50;
+  --muted:#9C8B80; --accent:#A34A22; --ink-rgb:33,26,21;
+  --p1:#E8DCCF; --p2:#F6D9CE; --p3:#FAE7C4; --p4:#EEDCD6; --p5:#E4E2D6;
+  --pos:#5C6B45; --neg:#A23B2A; --warn:#96631A; }
+[data-theme="dark"]{ --bg:#141618; --surface:#1C1F22; --text:#EDEEEF; --ink:#A8ADB2;
+  --muted:#7C8288; --ink-rgb:236,238,239;
+  --accent:#7FA9FF; --pos:#63C4AC; --neg:#E88C84; --warn:#E0B054;
+  --p1:#223A38; --p2:#3D2A33; --p3:#3E3620; --p4:#332C42; --p5:#243539;
+  --border:1.5px solid rgba(var(--ink-rgb),.14); }
+[data-theme="dark"][data-palette="ink"]{ --accent:#A5A0F5; --pos:#5FBFA6; --neg:#E89089; --warn:#DCB05E;
+  --p1:#262A44; --p2:#3F2B38; --p3:#403824; --p4:#332B47; --p5:#26333F; }
+[data-theme="dark"][data-palette="forest"]{ --accent:#63C79C; --pos:#63C79C; --neg:#E89089; --warn:#DCB05E;
+  --p1:#1E3730; --p2:#3B2A2E; --p3:#3B3622; --p4:#2C3A29; --p5:#22383A; }
+[data-theme="dark"][data-palette="clay"]{ --accent:#E08A5C; --pos:#8FB07A; --neg:#E89089; --warn:#DCB05E;
+  --p1:#3A322A; --p2:#432E26; --p3:#403724; --p4:#3B2E29; --p5:#383629; }
+/* ------------------------------------------------------------- typography --
+   Two families, one job each. Nunito carries everything that is read as
+   information: body copy, labels, numbers, captions. Lora 500 italic carries
+   only the assertion — the slide's title — because it is the one line the
+   audience is meant to remember, and a serif italic reads as a considered
+   claim rather than a label.
+
+   The tracking is positive here, not negative. A geometric sans wants to be
+   pulled tight at 56px; a serif italic has no geometric skeleton to tighten
+   against and goes loose and gappy if you try, so it is set slightly open with
+   more leading instead. Full rules and the measured sizes: DESIGN.md ->
+   "Typography". */
+.head,.title-xl{font-family:Lora,Georgia,serif;font-style:italic;font-weight:500;
+  letter-spacing:.005em;line-height:1.18}
+.title-xl{line-height:1.12}
+
+body{font-family:Nunito,Inter,Arial,sans-serif;
+     background:var(--bg);color:var(--text);overflow:hidden}
+html,body{height:100%;margin:0}
+body{display:flex;align-items:center;justify-content:center}
+/* Present to a screen reader, never to the eye. The live region that announces
+   each slide is one of these, so it has to be in the DOM and off the page. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+         overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* --------------------------------------------------------------------------
+   SLIDE ANATOMY: four bands, fixed order, never re-improvised.
+     row 1  (empty, collapses: position lives in the rail)
+     row 2  s-head   the assertion + subtext, always pinned to the TOP
+     row 3  s-body   content, always the MIDDLE, always vertically centred
+     row 4  s-foot   takeaway (bottom) + persistent footer chrome
+   Padding is constant, so it never gets
+   re-derived per slide.
+   -------------------------------------------------------------------------- */
+.slide{display:none;width:1920px;height:1080px;flex:none;position:relative;
+       overflow:hidden;background:var(--bg);padding:38px 120px 34px 48px}
+.slide.active{display:grid;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+              animation:fade .2s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.s-head{grid-row:2;padding-top:4px}
+.s-body{grid-row:3;display:flex;flex-direction:column;justify-content:center;
+        min-height:0;padding:24px 0}
+.s-foot{grid-row:4;padding-top:20px}
+/* Head, body and foot share column 2. The rail owns column 1, so a head
+   spanning 1/-1 centres a full rail-width left of its own body. */
+.s-head,.s-foot{grid-column:2}.s-body{grid-column:2}
+
+/* ---- background texture: pick ONE per deck on <body> and never change it -- */
+.slide::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none}
+.slide>*{position:relative;z-index:1}
+body.tex-dots .slide::before{
+  background-image:radial-gradient(rgba(var(--ink-rgb),.11) 1.5px,transparent 1.6px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+          mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+}
+body.tex-grid .slide::before{
+  background-image:linear-gradient(rgba(var(--ink-rgb),.06) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(var(--ink-rgb),.06) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+          mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+}
+.slide.hero-slide::before{
+  -webkit-mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+          mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+}
+
+/* ---- motion: staged entrance plus a tile cascade --------------------------
+   Every selector in this block is on ONE line, and that is not a formatting
+   preference. A list broken across lines is a descendant combinator, so keep
+   the :is() list on one line when you add a container to it. */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.slide.active>.s-head,.slide.active>.s-body,.slide.active>.s-foot{animation:rise .45s cubic-bezier(.22,.8,.24,1) both}
+.slide.active>.s-head{animation-delay:.04s}
+.slide.active>.s-body{animation-delay:.10s}
+.slide.active>.s-foot{animation-delay:.20s}
+/* Bands are direct children of .slide; tiles are children of a container, which
+   sits inside .s-body, so the cascade cannot be a `.slide.active > *` rule. Only
+   tile containers are listed. A bare .s-body > * would hand an animation to every
+   inline child of every text block, and one emphasised word would drop in on its
+   own. Tiles inside every container stagger, including .hero-split,
+   so their contents never travel twice. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*{animation:rise .5s cubic-bezier(.22,.8,.24,1) both;animation-delay:var(--d,0s)}
+/* The stagger lives in a custom property, so the five rules below are the only
+   place a number appears. A tile's delay has to be set on the tile: a rule keyed
+   on .s-body's own children staggers the containers, not the tiles inside them,
+   which is the difference between a cascade and three cards arriving together. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(1){--d:.18s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(2){--d:.26s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(3){--d:.34s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(4){--d:.42s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(n+5){--d:.50s}
+/* Two guards, identical, so a PDF looks exactly like the reduced motion deck.
+   Both need the universal `*`, because `> *` reaches only direct children and a
+   capture can still land on a tile mid flight. The slide is named on its own
+   because `*` never matches its own element. The nav sits outside every slide,
+   so it is named too: both the button and the position rail transition. */
+@media (prefers-reduced-motion:reduce){.slide.active,.slide.active *,.edge,.edge *{animation:none !important;transition:none !important}}
+body.no-anim .slide.active,body.no-anim .slide.active *,body.no-anim .edge,body.no-anim .edge *{animation:none !important;transition:none !important}
+/* One synchronous measurement, with the entrance suppressed so the rect is the
+   place the element is about to land in. show() adds and removes this inside a
+   single task, so it is never painted. */
+.slide.measuring,.slide.measuring *{animation:none !important}
+
+/* ---- chrome: constant across every slide --------------------------------- */
+
+/* .badge docks top-right and is `position:absolute`. It is for a status or a
+   date, never a restatement of the slide title. */
+.badge{position:absolute;top:32px;right:120px;background:var(--surface);
+       border:var(--border);border-radius:var(--radius-sm);padding:9px 18px;
+       font-size:19px;font-weight:700;color:var(--ink)}
+
+/* ---- type ---------------------------------------------------------------- */
+.head{font-size:56px;font-weight:500;letter-spacing:.005em;line-height:1.12;max-width:1600px;text-align:center;margin-left:auto;margin-right:auto}
+.head em{font-style:normal;color:var(--accent)}
+.head.sm{font-size:44px}
+.sub{font-size:27px;color:var(--ink);font-weight:500;margin-top:12px;margin-left:auto;margin-right:auto;text-align:center;line-height:1.4;max-width:1400px}
+.title-xl{font-size:88px;font-weight:500;letter-spacing:.005em;line-height:1.04;text-align:center}
+.title-xl span{color:var(--accent)}
+.subc{text-align:center;color:var(--ink);font-size:29px;font-weight:500}
+.subc b{color:var(--accent);font-weight:800}
+
+/* ---- icons --------------------------------------------------------------- */
+.ph{width:40px;height:40px;flex-shrink:0}
+.ph.xl{width:78px;height:78px}
+.ph.xs{width:24px;height:24px}
+.qicon{width:78px;height:78px;min-width:78px;border-radius:18px;background:var(--p1);
+       display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qicon.sm{width:62px;height:62px;min-width:62px;border-radius:16px}
+.tagline{display:flex;align-items:center;gap:8px;font-size:18px;color:var(--accent);
+         font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
+.tagline .ph{width:22px;height:22px}
+
+/* ---- takeaway: always the bottom band, one sentence --------------------- */
+/* data-morph="take" on every takeaway: it is the one element that persists in
+   the same band on every content slide, so it is the one that glides when the
+   band changes height. See the FLIP block in the script. */
+.takeaway{margin:26px auto 0;width:fit-content;max-width:100%;background:var(--surface);border-radius:var(--radius-sm);
+          padding:18px 24px;font-size:23px;font-weight:600;display:flex;
+          align-items:center;justify-content:center;text-align:center;gap:14px;line-height:1.35}
+.takeaway .ph{color:var(--accent)}
+.takeaway b{color:var(--accent);font-weight:800}
+
+/* ---- gapnote: a caveat you make TO the audience ---------------------------
+   content_philosophy.md rule 6a allows exactly one kind of note on a shipped
+   slide: an honest caveat about the claim ("we have not charged anyone yet").
+   It is never a note to the author. This is the only element in the template
+   with a dashed edge, so it reads as an aside at a glance and cannot be mistaken
+   for chrome or for a card.
+
+   Place it inside .s-body, after the content it qualifies, never inside a
+   .card (a dashed border inside a rounded card is noise) and never instead of a
+   .takeaway. It sets no background, so it does not compete with the mark it
+   sits under. */
+.gapnote{margin-top:22px;padding:13px 18px;border:1.5px dashed rgba(var(--ink-rgb),.28);
+         border-radius:var(--radius-sm);font-size:20px;line-height:1.4;
+         color:var(--ink)}
+.gapnote b{color:var(--text);font-weight:700}
+.gapnote .tagline{margin-bottom:2px}
+
+/* ---- treatments ---------------------------------------------------------- */
+.gridQ{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.card{background:var(--surface);border-radius:var(--radius-lg);padding:24px 26px;
+      display:flex;flex-direction:column}
+.card>*:last-child{margin-top:auto}
+.card h3{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.22}
+.qhead{display:flex;gap:16px;align-items:flex-start}
+.desc{font-size:21px;color:var(--ink);line-height:1.46;margin-top:14px;
+      background:var(--bg);border-radius:var(--radius-sm);padding:13px 15px}
+.desc b{color:var(--text);font-weight:700}
+.meta{margin-top:14px;font-size:19px;color:var(--ink);line-height:1.5}
+.meta b{color:var(--accent);font-weight:700}
+.steps3{display:flex;align-items:stretch}
+.step{flex:1;background:var(--surface);border-radius:var(--radius-lg);padding:24px;
+      display:flex;flex-direction:column}
+.step>*:last-child{margin-top:auto}
+.step h4{font-size:25px;font-weight:700;margin-bottom:10px}
+.step p{font-size:20px;color:var(--ink);line-height:1.44}
+.glue{align-self:center;padding:0 12px;color:var(--muted);font-size:34px;font-weight:600}
+.hero-split{display:flex;gap:56px;align-items:center}
+.hero-split .lead{flex:none;width:560px}
+.bigstat{display:flex;flex-direction:column;align-items:center;text-align:center}
+.bigstat .n{font-size:172px;line-height:.92;font-weight:800;letter-spacing:-.05em;color:var(--accent)}
+.bigstat .cap{font-size:25px;color:var(--ink);font-weight:600;margin-top:12px;line-height:1.4}
+.stat-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat-rail .st{background:var(--surface);border-radius:var(--radius-sm);padding:20px 22px;
+              display:flex;flex-direction:column;gap:10px}
+.stat-rail .st .hd{display:flex;align-items:center;gap:10px;font-size:17px;
+                   color:var(--muted);font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.stat-rail .st .hd .ph{width:24px;height:24px;color:var(--accent)}
+.stat-rail .st .n{font-size:38px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.stat-rail .st .t{font-size:19px;color:var(--ink);line-height:1.4}
+.pull{display:flex;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;padding:0 140px}
+.pull .q{font-size:70px;font-weight:700;line-height:1.16;letter-spacing:-.03em}
+.pull .q em{font-style:normal;color:var(--accent)}
+.pull .by{font-size:24px;color:var(--muted);margin-top:26px;font-weight:600}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+/* A contents entry is a .ti element, not an anchor. An href="#" is focusable,
+   announced as a link, and goes nowhere: three costs for nothing. Use an
+   <a class="ti"> only in a deck where the entry really navigates. */
+.toc .ti{display:flex;gap:14px;align-items:center;background:var(--surface);
+         border-radius:16px;padding:17px 20px;font-size:23px;font-weight:600;
+         color:var(--text);text-decoration:none}
+.toc .ti .n{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--accent);
+            color:#fff;font-weight:800;font-size:22px;display:grid;place-items:center}
+.toc .ti .ap{color:var(--muted);font-weight:500;font-size:19px;margin-left:auto}
+.cover-flow{display:flex;justify-content:center;align-items:center;gap:26px}
+.cnode{text-align:center}
+.cnode .circ{width:166px;height:166px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;margin:0 auto}
+.cnode .lbl{margin-top:14px;font-weight:700;border-radius:var(--radius-sm);padding:9px 20px;
+            font-size:20px;display:inline-block;background:var(--surface)}
+.cnode .sub{font-size:17px;color:var(--ink);margin-top:8px}
+
+/* ---- data marks: rounded geometry, no sharp rectangles -------------------- */
+.pillbar{display:flex;gap:7px;height:26px}
+.pillbar i{flex:1;border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.10)}
+.pillbar i.on{background:var(--accent)}
+.pillbar i.hot{background:var(--p3)}
+.vbars{display:flex;align-items:flex-end;gap:22px;height:340px}
+.vbars .vb{flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;height:100%}
+.vbars .vb .col{width:100%;max-width:60px;flex:1;display:flex;align-items:flex-end;
+                border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.07);overflow:hidden}
+.vbars .vb .col i{display:block;width:100%;border-radius:var(--radius-pill);background:var(--accent)}
+.vbars .vb .col i.hot{background:var(--warn)}
+.vbars .vb .vv{font-size:20px;font-weight:800;color:var(--accent)}
+.vbars .vb .lb{font-size:18px;font-weight:700;color:var(--ink)}
+.chiprow{display:flex;gap:10px;flex-wrap:wrap}
+.chip{border-radius:var(--radius-pill);padding:8px 16px;font-size:18px;font-weight:700;
+      background:var(--p1);color:var(--text)}
+/* One share against a whole. --p is a bare number, because the gradient does the
+   multiplying, and nothing but a ring may set it. The default applies when a deck
+   sets nothing. This is why show() writes the position rail to --pp instead: a
+   custom property inherits, and a rail value of "40%" would make calc() invalid
+   and void this gradient on every slide. */
+.ring{position:relative;width:158px;height:158px;border-radius:50%;
+      background:conic-gradient(var(--accent) calc(var(--p,50) * 1%),rgba(var(--ink-rgb),.08) 0);
+      display:grid;place-items:center}
+.ring::after{content:"";position:absolute;inset:24px;border-radius:50%;background:var(--surface)}
+.ring span{position:relative;z-index:1;font-size:36px;font-weight:800;color:var(--accent)}
+
+/* ---- screenshot frame: macOS-style window chrome for any image ------------
+   Any slide holding a screenshot, a photo or a mock goes inside .shot. The
+   frame does the work so a bare <img> never sits on the canvas with nothing
+   around it. The image uses object-fit:contain so it is never stretched or
+   cropped to fit a box of the wrong ratio. */
+.shot{background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;
+      display:flex;flex-direction:column;flex:1 1 auto;min-height:0;max-height:100%}
+.shotbar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:13px 18px;
+        border-bottom:1px solid rgba(var(--ink-rgb),.08);background:var(--bg)}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(var(--ink-rgb),.14)}
+.dot:nth-child(1){background:#FF5F57}.dot:nth-child(2){background:#FEBC2E}.dot:nth-child(3){background:#28C840}
+.shotbar .addr{flex:1;margin-left:8px;background:var(--surface);border-radius:var(--radius-pill);
+        padding:5px 14px;font-size:15px;color:var(--muted);font-weight:600;
+        text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shotimg{flex:1 1 auto;min-height:0;background:var(--bg);display:flex;align-items:center;justify-content:center}
+.shotimg img{width:100%;height:100%;object-fit:contain;display:block}
+.shotcap{flex:0 0 auto;padding:13px 18px;font-size:17px;color:var(--muted);
+        font-weight:700;letter-spacing:.09em;text-transform:uppercase;border-top:1px solid rgba(var(--ink-rgb),.08)}
+
+/* ---- nav: edge-hover buttons, optically centred SVG chevrons --------------
+   A text glyph like ‹ or › never sits centred in a circle, because its ink is
+   offset from the advance width, so it reads low and to one side. Inline SVG on
+   the 256x256 grid, centred by place-items, then nudged 1px along travel. */
+.edge{pointer-events:none;position:fixed;top:0;bottom:0;width:130px;display:flex;align-items:center;
+      z-index:60;cursor:pointer;border:0;background:none;padding:0}
+.edge.left{left:0;justify-content:flex-start;padding-left:22px}
+.edge.right{right:0;justify-content:flex-end;padding-right:22px}
+.edgebtn{pointer-events:auto;width:56px;height:56px;border-radius:50%;background:rgba(var(--ink-rgb),.42);
+         display:grid;place-items:center;opacity:0;transform:scale(.9);
+         transition:opacity .25s,transform .25s,background .25s}
+.edge:hover .edgebtn,.edge:focus-visible .edgebtn{opacity:1;transform:scale(1);
+         background:rgba(var(--ink-rgb),.62)}
+.edge:focus-visible{outline:none}
+.chev{width:24px;height:24px;color:#fff;display:block}
+.chev.l{transform:translateX(1px)}
+.chev.r{transform:translateX(-1px)}
+.edge.off{visibility:hidden}
+/* Sidebar table of contents: part of the slide, first grid column. Never an
+   overlay, never scrollable: compact density keeps long decks visible. */
+nav.rail{grid-row:1/-1;grid-column:1;display:flex;flex-direction:column;justify-content:center;padding:28px 14px 20px 0;overflow:hidden}
+.rail-item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;
+         padding:6px 10px;border-radius:12px;cursor:pointer;color:var(--ink)}
+.rail-item:hover{background:rgba(var(--ink-rgb),.05)}
+.rail-item .rail-t{font-size:16px;font-weight:600;line-height:1.25}
+.rail-item.on{background:var(--accent)}
+.rail-item.on .rail-t{color:#fff}
+.s-foot .foot{width:fit-content;margin-left:auto;margin-right:auto;gap:56px}
+nav.rail.compact{padding:20px 8px 14px}
+nav.rail.compact .rail-item{padding:2px 6px;gap:6px}
+nav.rail.compact .rail-t{font-size:12px}
+.rail-item .rail-ic{flex:none;width:30px;height:30px;border-radius:9px;background:rgba(var(--ink-rgb),.06);display:grid;place-items:center;color:var(--ink)}
+.rail-item .rail-ic svg{width:18px;height:18px}
+.rail-item.on .rail-ic{background:rgba(255,255,255,.25);color:#fff}
+nav.rail.compact .rail-ic{width:20px;height:20px;border-radius:7px}
+nav.rail.compact .rail-ic svg{width:13px;height:13px}
+
+/* ---- print: Ctrl-P is a real path, so it gets a real answer ---------------
+   Printing needs three things the screen does not: the hidden slides turned back
+   on, one per page, and no motion to catch mid flight. The nav arrows are fixed
+   to the viewport, which on paper means they land on every page. */
+@media print{
+  @page{size:landscape;margin:0}
+  html,body{height:auto;overflow:visible;display:block}
+  .edge{display:none !important}
+  .slide{display:grid !important;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+         break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide,.slide *{animation:none !important;transition:none !important}
+}
+</style>
+<style>
+.covcap{margin-top:26px;border:1.5px dashed rgba(var(--ink-rgb),.26);border-radius:var(--radius-sm);background:rgba(255,255,255,.5);padding:14px 20px;display:flex;gap:18px;align-items:flex-start;font-size:19px;line-height:1.42;color:var(--ink)}
+.covcap .when{flex:none;width:150px;font-size:14px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.covcap .ct{flex:1}
+.covcap b{color:var(--text)}
+.slant{display:inline-block;transform:rotate(-3deg)}
+.slantpanel{background:var(--p3);border-radius:var(--radius-lg);padding:30px 44px;clip-path:polygon(2.5% 0,100% 0,97.5% 100%,0 100%)}
+.vrow{display:flex;gap:44px;align-items:center;justify-content:center}
+.vrail{writing-mode:vertical-rl;transform:rotate(180deg);font-size:18px;font-weight:800;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.panel{background:var(--surface);border-radius:var(--radius-sm);padding:20px 24px}
+.brandrow{display:flex;gap:18px;align-items:center}
+.brand{display:flex;align-items:center;justify-content:center;background:var(--surface);border-radius:var(--radius-sm);flex:none;overflow:hidden}
+.brand svg{width:78%;height:78%}
+</style>
+</head>
+<body class="tex-dots">
+<section class="slide hero-slide" data-toc="Flow" data-name="cover flow" data-rail="phosphor/paper-plane-tilt">
+<header class="s-head" style="text-align:center"><h1 class="title-xl">Talk Title<br><span>Subtitle Theme</span></h1></header>
+<div class="s-body">
+<p class="subc">One-line promise of what the audience will take away</p>
+<div class="cover-flow" style="margin-top:52px">
+<div class="cnode"><div class="circ" style="background:var(--p1)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div class="lbl">Pillar One</div><div class="sub">Short gloss</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p4)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg></div><div class="lbl">Pillar Two</div><div class="sub">Short gloss</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p3)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/magnifying-glass"><path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/></svg></div><div class="lbl">Pillar Three</div><div class="sub">Short gloss</div></div>
+</div>
+<div class="covcap"><span class="when">Use when</span><span class="ct">The default. <b>Three pillars of equal weight</b>, each with a one-line gloss. When one pillar outweighs the rest, use the big-number cover instead.</span></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<section class="slide hero-slide" data-toc="Number" data-name="cover big number" data-rail="phosphor/gauge">
+<header class="s-head"><h2 class="head">Talk Title, <em>filtered by the one number.</em></h2><p class="sub">The ranking is the product; the list is free.</p></header>
+<div class="s-body">
+<div class="hero-split">
+<div class="lead bigstat"><div class="n">921</div><div class="cap">the number the audience will repeat</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px">
+<div class="stat-rail" style="grid-template-columns:1fr 1fr">
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-bar"><path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/></svg>Pairs</div><div class="n">23,804</div><div class="t">ranked, not listed</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm68-84a12,12,0,0,1-12,12H128a12,12,0,0,1-12-12V72a12,12,0,0,1,24,0v44h44A12,12,0,0,1,196,128Z"/></svg>Hot</div><div class="n">3,872</div><div class="t">asked recently</div></div>
+</div>
+<div class="covcap"><span class="when">Use when</span><span class="ct"><b>One figure carries the talk.</b> Give it the slide and let two tiles prove it is real. Never two big numbers: a second hero halves the first.</span></div>
+</div>
+</div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<section class="slide hero-slide" data-toc="Logos" data-name="cover logo wall" data-rail="phosphor/tag">
+<header class="s-head" style="text-align:center"><h1 class="title-xl">Talk Title<br><span>Subtitle Theme</span></h1></header>
+<div class="s-body">
+<p class="subc">One-line promise of what the audience will take away</p>
+<div class="panel" style="margin-top:40px"><div class="brandrow" style="justify-content:center">
+<span class="brand" style="width:96px;height:96px"><svg preserveAspectRatio="xMidYMid meet" version="1.1" id="Layer_1-i1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 162 48.7" style="enable-background:new 0 0 162 48.7;" xml:space="preserve" data-icon="coloredIconsMustUse/alaska-airlines/light">
+ <style type="text/css">
+  .st0{fill:#FFFFFF;}
+ </style>
+ <g>
+  <path class="st0" d="M78,2.4L59.9,32.8c-2,3.1-2.9,6.3-3.1,9.4h-7.1c0.4-3.9,2-7.5,5.1-12.8L67.6,8.2c2.4-4.5,4.9-5.9,9.4-5.9H78z">
+  </path>
+  <path class="st0" d="M76.6,34.4c-1.4,1.2-3.9,3.1-6.1,3.1c-1.6,0-1.6-1.4-0.6-3.3C73.8,26.9,77.8,23,82.7,23h1L76.6,34.4z
+		 M83.3,18.7c-9.2,0-14.9,5.3-19.8,17.1c-1.2,2.9-2,6.7,2.4,6.5c2.4,0,6.5-1.4,9.4-3.3c-0.2,1-0.4,2.4-0.2,3.1h6.5
+		c0.2-2.6,1.2-5.7,3.3-9.4L92.9,19C89.6,18.9,86.4,18.7,83.3,18.7z">
+  </path>
+  <path class="st0" d="M143,34.4c-1.4,1.2-3.9,3.1-6.1,3.1c-1.6,0-1.6-1.4-0.6-3.3c3.9-7.3,7.9-11.2,12.8-11.2h1L143,34.4z
+		 M149.6,18.7c-9.2,0-14.9,5.3-19.8,17.1c-1.2,2.9-2,6.7,2.4,6.5c2.4,0,6.5-1.4,9.4-3.3c-0.2,1-0.4,2.4-0.2,3.1h6.5
+		c0.2-2.6,1.2-5.7,3.3-9.4l7.9-13.4C155.9,18.9,152.8,18.7,149.6,18.7z">
+  </path>
+  <path class="st0" d="M128.6,48.7h-2.2c-2.7,0-5.1-1.8-5.9-4.5L117.4,32l-6.1,10h-6.9l19.2-32.6c2.6-4.1,5.1-5.7,9.6-5.7h0.8
+		l-12.8,21.6l9.6-6.7h7.7l-16.1,11.2L128.6,48.7z">
+  </path>
+  <path class="st0" d="M65.4,0.4c-6.5,0-9.8,1.8-16.1,6.3L27.7,22.2H13.7c-3.9,0-7.3,0.2-9.6,2.6l-3.5,3.3c0,0,10.4-0.4,20-0.8L0,42
+		h8.8l21-15.1c4.1-0.2,6.9-0.2,6.9-0.2c4.9-0.2,7.7-4.5,7.7-4.5h-8.1L53.4,9.8L40.8,30.2c-2.7,4.7-3.9,8.1-4.5,11.6h7.3
+		c0.2-3.1,1.4-6.3,3.1-9.4L64,3.5c1.2-2,2.2-3.5,2.2-3.5L65.4,0.4z">
+  </path>
+  <path class="st0" d="M99.6,25.3c0,0.6,0.2,1,1.4,1.8l2,1.4c2.2,1.4,2.9,3.5,2.7,5.3c-0.8,4.9-4.3,8.6-11.8,8.6
+		c-3.3,0-4.7-0.2-8.6-0.8l2.9-4.9c2.7,0.4,4.3,0.8,6.3,0.8c2.7,0,3.9-1.4,4.1-2.4c0-0.6-0.2-1.4-1.6-2.4l-1.6-1.2
+		c-2.6-1.8-3.1-3.1-2.7-5.5c0.6-4.3,5.5-7.5,12.4-7.5c2.2,0,4.5,0.2,7.1,0.4l-2.7,4.7c-1.8-0.2-4.5-0.2-6.3-0.2
+		C101.1,23.6,99.8,24.4,99.6,25.3z">
+  </path>
+  <path class="st0" d="M158.5,35.2c2,0,3.5,1.6,3.5,3.7c0,2-1.6,3.7-3.5,3.7s-3.5-1.6-3.5-3.7C154.9,36.9,156.5,35.2,158.5,35.2z
+		 M158.5,41.8c1.6,0,2.7-1.2,2.7-2.9c0-1.6-1.2-2.9-2.7-2.9c-1.6,0-2.7,1.2-2.7,2.9C155.7,40.5,156.9,41.8,158.5,41.8z M158.1,40.8
+		h-0.8v-3.9h1.4c0.8,0,1.4,0.6,1.4,1.2c0,0.6-0.4,1-0.8,1.2l1,1.6h-1.2l-0.8-1.6h-0.4v1.6H158.1z M158.5,38.7c0.4,0,0.8-0.2,0.8-0.6
+		s-0.2-0.6-0.8-0.6h-0.6v1.2H158.5z">
+  </path>
+ </g>
+</svg></span>
+<span class="brand" style="width:96px;height:96px"><svg preserveAspectRatio="xMidYMid meet" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" data-icon="coloredIconsMustUse/hilton-hotels-resorts"><title>Hilton Hotels &amp; Resorts</title><path fill="#1E4380" d="M11.1968 3.6956C4.749 3.6956 0 7.8018 0 12.1897c0 2.2672 1.2753 4.1769 2.8798 5.5006l.122-.083C1.7288 16.5531.5798 14.9.5798 12.6365.9163 7.836 6.8255 5.1298 12.0763 5.1298c3.7177 0 10.3932.8607 10.3932 7.0862 0 3.2484-3.4645 7.4727-10.7367 7.4727-3.7243 0-6.618-1.9984-6.618-4.87 0-2.4873 1.943-4.2578 4.8414-4.2578.7985 0 1.5469.1868 2.1176.3423-1.2086-.218-3.085.093-4.0559.8572v4.2045h3.5612v-4.7796a4.3988 4.3988 0 0 1 1.5513.5977v4.182h.9277c-.7295.8196-2.0877 1.3186-3.2642 1.135v.176c3.3839.2666 4.8157-1.341 4.8157-3.1501 0-2.1283-1.9933-3.3782-4.0305-3.634V7.3488H8.0178v3.1805c-2.3045.465-4.5605 1.8371-4.5605 4.1097 0 3.4981 4.88 5.6654 9.1253 5.6654C19.035 20.3044 24 17.1786 24 12.7934c0-5.3088-7.1681-9.0978-12.8032-9.0978m4.9079 10.5528c0-1.5458-1.0548-2.7842-2.9744-3.3821V7.3488h3.5568v8.6161H15.575c.391-.552.5297-1.1783.5297-1.7165"/></svg></span>
+<span class="brand" style="width:96px;height:96px"><svg preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 99.999999 129.37755" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" data-icon="coloredIconsMustUse/cornell-university"><g transform="matrix(1.25 0 0 -1.25 -508.46 394.75)"><g transform="matrix(1.7966 0 0 1.7966 -354.51 -208.96)"><path d="m439.24 279.37v-32.24h13.445v6.459h12.938v-9.434l-7.464-7.107h-24.394l-7.463 7.107v38.19l7.463 7.107h24.394l7.464-7.107v-8.428h-12.938v5.453h-13.445zm26.951-6.02v9.239l-7.805 7.429h-24.847l-7.804-7.429v-38.678l7.804-7.43h24.847l7.805 7.43v10.244h-14.073v-6.459h-12.311v31.108h12.311v-5.454h14.073z" fill="#fff"/><path d="m10.949 0-10.949 10.422v50.053l10.949 10.424h32.65l10.947-10.424v-15.646h-21.566v8.0723h-11.414v-34.904h11.414v6.8145h21.566v-14.389l-10.946-10.423h-32.651zm0.79492 1.9883h31.059l9.7559 9.2871v11.547h-17.59v-6.8164h-15.391v38.885h15.391v-8.0723h17.59v12.805l-9.7559 9.2852h-31.059l-9.7559-9.2852v-48.348l9.7559-9.2871zm0.2832 0.70703-9.3301 8.8848v47.736l9.3301 8.8848h30.492l9.3301-8.8848v-11.791h-16.174v8.0723h-16.807v-40.299h16.807v6.8164h16.174v-10.535l-9.3301-8.8848h-30.492z" transform="matrix(.8 0 0 -.8 424.15 291.61)" fill="#b31b1b"/></g></g></svg></span>
+<span class="brand" style="width:96px;height:96px"><svg preserveAspectRatio="xMidYMid meet" fill="#012169" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" data-icon="coloredIconsMustUse/bank-of-america"><title>Bank of America</title><path d="M15.194 7.57c.487-.163 1.047-.307 1.534-.451-1.408-.596-3.176-1.227-4.764-1.625-.253.073-1.01.271-1.534.434.541.162 2.328.577 4.764 1.642zm-8.896 6.785c.577.343 1.19.812 1.786 1.209 3.952-3.068 7.85-5.432 12.127-6.767-.596-.307-1.119-.578-1.787-.902-2.562.65-6.947 2.4-12.126 6.46zm-.758-6.46c-2.112.974-4.331 2.31-5.54 3.085.433.199.866.361 1.461.65 2.671-1.805 4.764-2.905 5.594-3.266-.595-.217-1.154-.361-1.515-.47zm8.066.234c-.686-.379-3.068-1.263-4.71-1.642-.487.18-1.173.451-1.642.65.595.162 2.815.758 4.71 1.714.487-.235 1.173-.523 1.642-.722zm-3.374 1.552c-.56-.27-1.173-.523-1.643-.74-1.425.704-3.284 1.769-5.63 3.447.505.27 1.047.595 1.624.92 1.805-1.335 3.627-2.598 5.649-3.627zm1.732 8.825c3.79-3.249 9.113-6.407 12.036-7.544a48.018 48.018 0 00-1.949-1.155c-3.771 1.246-8.174 4.007-12.108 7.129.667.505 1.371 1.028 2.02 1.57zm2.851-.235h-.108l-.18-.27h-.109v.27h-.072v-.596h.27c.055 0 .109 0 .145.036.054.019.072.073.072.127 0 .108-.09.162-.198.162zm-.289-.343c.09 0 .199.018.199-.09 0-.072-.072-.09-.144-.09h-.163v.18zm-.523.036c0-.289.235-.523.541-.523.307 0 .542.234.542.523a.543.543 0 01-.542.542.532.532 0 01-.54-.542m.107 0c0 .235.199.433.451.433a.424.424 0 100-.848c-.27 0-.45.199-.45.415"/></svg></span>
+<span class="chip">+ more</span>
+</div></div>
+<div class="covcap"><span class="when">Use when</span><span class="ct">The story is an <b>ecosystem or market</b>: who is in it, not what it does. Swap in your sector's marks and keep one visual language per row. Never mix brand marks with UI glyphs here.</span></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<section class="slide hero-slide" data-toc="Statement" data-name="cover statement" data-rail="phosphor/bell">
+<header class="s-head" style="text-align:center"><h2 class="head" style="display:none">Cover statement</h2></header>
+<div class="s-body">
+<div class="pull">
+<p class="q">Stop grinding. <em>Start with what counts.</em></p>
+<p class="by">Deck Title · the one-line promise, stated as a decision</p>
+</div>
+<div class="covcap"><span class="when">Use when</span><span class="ct"><b>One sentence must land before any detail.</b> Confrontational openers earn this treatment; status updates do not. The byline carries the context the sentence refuses to.</span></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<section class="slide hero-slide" data-toc="Slant" data-name="cover slant" data-rail="phosphor/arrow-right">
+<header class="s-head" style="text-align:center"><h1 class="title-xl">Talk <span class="slant">Title</span><br>Subtitle Theme</h1></header>
+<div class="s-body">
+<p class="subc">One-line promise of what the audience will take away</p>
+<div class="slantpanel" style="margin-top:44px"><div class="chiprow" style="justify-content:center"><span class="chip">23,804 pairs</span><span class="chip">3,872 hot</span><span class="chip">No premium account</span></div></div>
+<div class="covcap"><span class="when">Use when</span><span class="ct">Same words as the flow cover, but the room needs <b>energy</b>. Rotation is decoration on words, never on data: tilt the accent, the panel edge, nothing that must be read precisely.</span></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<section class="slide hero-slide" data-toc="Rail" data-name="cover vertical rail" data-rail="phosphor/compass">
+<header class="s-head"><h2 class="head" style="display:none">Cover vertical rail</h2></header>
+<div class="s-body">
+<div class="vrow">
+<div class="vrail">Deck Title · Pre-Seed · 2026</div>
+<div style="max-width:1200px"><h1 class="title-xl" style="text-align:left">Talk Title<br><span>Subtitle Theme</span></h1>
+<p class="sub" style="margin-top:18px">One-line promise of what the audience will take away, given room to run long.</p></div>
+</div>
+<div class="covcap"><span class="when">Use when</span><span class="ct">The title runs <b>long</b> and the context (event, date, round) keeps crowding it. The rail carries the metadata out of the title's way. Never put data in the rail.</span></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+<div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="edge left" id="edgeL" role="button" tabindex="0" aria-label="Previous slide"><span class="edgebtn"><svg class="chev l" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"/></svg></span></div>
+<div class="edge right" id="edgeR" role="button" tabindex="0" aria-label="Next slide"><span class="edgebtn"><svg class="chev r" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M87.51,199.51a12,12,0,0,0,17,17l80-80a12,12,0,0,0,0-17l-80-80a12,12,0,0,0-17,17L159,128Z"/></svg></span></div>
+<script>
+let i=-1;const s=[...document.querySelectorAll('.slide')];
+const edgeL=document.getElementById('edgeL'),edgeR=document.getElementById('edgeR');
+const live=document.getElementById('live');
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Deferred rendering. The deck owns the work; the template owns the promise.
+   A deck that draws itself asynchronously (a diagram library, a chart, an image
+   decode) passes its promise to defer(), which bumps a counter; __deckReady
+   resolves when the counter is back to zero and the document has finished
+   loading, then waits for fonts and re-stages the scale so anything that changed
+   size is measured again.
+
+   Why a counter and not a collected array: an array has to be snapshotted at one
+   fixed line, and that line is an ordering rule every caller has to know. A
+   counter has no snapshot, so defer() works from any script in the document and
+   in any order, and there is nothing to get wrong. The promise is never
+   assigned by a deck.
+   The contract is one line: register with defer(), never assign the promise. */
+let pending=0,released=false,release=null,deferErrors=[];
+const gate=new Promise(r=>{release=r});
+const arm=()=>{if(!released&&pending===0){released=true;release(true)}};
+window.__deckReady=gate
+  .then(()=>document.fonts&&document.fonts.ready)
+  .then(()=>{stage();return document.body})
+  .then(body=>{if(deferErrors.length)throw deferErrors[0];return body});
+function defer(p){
+  if(released){
+    console.warn('defer() called after the deck had already settled; a screenshot or export may race it. Move the call into a script that runs before window load.');
+    return p;
+  }
+  pending++;
+  Promise.resolve(p).then(
+    ()=>{pending--;arm()},
+    e=>{deferErrors.push(e);pending--;arm()});
+  return p;
+}
+window.__deckDefer=defer;
+// Nothing may be outstanding by the time the document has finished loading, so
+// that is the second release trigger. A deck with no deferred work at all
+// resolves here, and a deck whose work settled earlier has already resolved.
+if(document.readyState==='complete')arm();
+else window.addEventListener('load',arm,{once:true});
+// PDF export and reduced motion both need settled slides, so kill the staged
+// entrance as well as the FLIP morph.
+if(reduceMotion)document.body.classList.add('no-anim');
+function stageScale(){return Math.min(window.innerWidth/1920,window.innerHeight/1080)}
+/* Every slide's own position label is written here, from the real slide count,
+   so the number can never drift from the deck. The name comes from the
+   section's data-name, which is the only per-slide text an author supplies:
+     <section class="slide" data-name="cover">
+   A slide with no data-name still gets "Slide N of TOTAL".
+
+   This runs once over ALL the slides, not just the active one, because @media
+   print turns every slide back on at the same time: labels written on slide
+   change would leave nine printed slides carrying one slide's numbers. */
+function labelOf(el,k){
+  const name=(el.getAttribute('data-name')||'').trim();
+  return 'Slide '+(k+1)+' of '+s.length+(name?': '+name:'');
+}
+function relabel(){
+  s.forEach((el,k)=>{
+    el.setAttribute('aria-label',labelOf(el,k));
+    /* No topbar, no page numbers: position lives in the rail. */
+  });
+}
+function show(n,instant){
+  n=Math.max(0,Math.min(s.length-1,n));
+  if(n===i){stage();return;}
+  if(window.__noMorph)document.body.classList.add('no-anim');
+  const from=i>=0?s[i]:null,to=s[n];
+  const sc=stageScale();
+  // Motion off means motion off, whatever turned it off: the OS setting, the
+  // export script's __noMorph flag, or the no-anim class set by hand. The class
+  // alone already kills every CSS animation, so it has to kill the FLIP too or a
+  // capture can still land on an element mid glide.
+  const freeze=reduceMotion||!!window.__noMorph||document.body.classList.contains('no-anim');
+  let pairs=[];
+  // FIRST, while the outgoing slide is still laid out: .slide is display:none,
+  // so the moment it loses .active every rect inside it reads zero and there is
+  // nothing left to measure. These are viewport rects, so they already carry the
+  // slide's own transform:scale; the delta is divided back out by that scale
+  // before it can be used as a translate inside the slide, or the element lands
+  // short at any viewport that is not exactly 1920x1080. The outgoing slide must
+  // also be settled: an entrance in flight is a transform on .s-foot, and
+  // measuring through it would glide the chrome from a place it was never at.
+  // playState, not presence: a rise with fill "both" stays in the timeline after
+  // it finishes, so getAnimations() alone would report every slide as busy.
+  const fromBusy=from&&from.getAnimations({subtree:true}).some(a=>a.playState==='running');
+  if(from&&!instant&&!freeze&&!fromBusy){
+    const targets=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el]));
+    for(const f of from.querySelectorAll('[data-morph]')){
+      const g=targets.get(f.dataset.morph);
+      if(g)pairs.push([g,f.getBoundingClientRect()]);
+    }
+  }
+  i=n;s.forEach((el,k)=>el.classList.toggle('active',k===i));
+  // The position rail, and only the position rail. --p belongs to .ring and needs
+  // a bare number while this is a width, so the two must not share a name: a
+  // custom property inherits, and a rail value of "40%" would make calc() invalid
+  // and void the conic gradient of every ring on the slide.
+    edgeL.classList.toggle('off',i===0);edgeR.classList.toggle('off',i===s.length-1);stage();
+  markToc();
+  live.textContent=labelOf(s[i],i);
+  // SECOND, after the toggle, so the incoming slide is laid out and has real
+  // rects to read, and with its own entrance suppressed while they are read: the
+  // entrance is a transform on .s-foot, so a rect taken with it running is 18px
+  // below the place the element is about to land, and the morph starts short by
+  // exactly that. The class comes off again before anything is painted, and the
+  // entrance then plays from zero as if it had never been interrupted. Nothing
+  // is touched when there is no pair to measure, which is every slide change
+  // under reduced motion.
+  let now=new Map();
+  if(pairs.length){
+    to.classList.add('measuring');
+    now=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el.getBoundingClientRect()]));
+    to.classList.remove('measuring');
+  }
+  // Two elements carrying the same data-morph name are the same object in two
+  // slides, and the one that moved is the one that glides.
+  for(const [g,r] of pairs){
+    const b=now.get(g.dataset.morph);
+    const dx=(r.left-b.left)/sc,dy=(r.top-b.top)/sc;
+    const sx=b.width?r.width/b.width:1,sy=b.height?r.height/b.height:1;
+    // A pair that did not move is not a morph. Animating it would only re-fade
+    // chrome that never left its place, and that is most of the chrome here: the
+    // four band grid pins the head to row two and the foot to row four, so
+    // their delta is zero on every slide. A deck that moves its chrome glides it.
+    if(!dx&&!dy&&sx===1&&sy===1)continue;
+    g.animate([
+      {transform:`translate(${dx}px,${dy}px) scale(${sx},${sy})`,opacity:.35},
+      {transform:'none',opacity:1}
+    ],{duration:450,easing:'cubic-bezier(.22,.8,.24,1)'});
+  }
+}
+function stage(){s[i].style.transform=`scale(${stageScale()})`}
+window.addEventListener('resize',stage);
+edgeL.addEventListener('click',e=>{e.stopPropagation();show(i-1);});
+edgeR.addEventListener('click',e=>{e.stopPropagation();show(i+1);});
+// stopPropagation, not just preventDefault. Space and Enter are handled here AND
+// on the document handler below, and preventDefault does not stop an event
+// travelling, so without it one key press moved two slides.
+edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i-1);}});
+edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i+1);}});
+document.addEventListener('keydown',e=>{const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
+const RAIL_ICONS={
+"phosphor/arrow-right":`<path d="M224.49,136.49l-72,72a12,12,0,0,1-17-17L187,140H40a12,12,0,0,1,0-24H187L135.51,64.48a12,12,0,0,1,17-17l72,72A12,12,0,0,1,224.49,136.49Z"/>`,
+"phosphor/bell":`<path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/>`,
+"phosphor/compass":`<path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212ZM163.27,77l-56,24a12,12,0,0,0-6.3,6.3l-24,56A12,12,0,0,0,92.73,179l56-24a12,12,0,0,0,6.3-6.3l24-56A12,12,0,0,0,163.27,77Zm-28.41,57.89-24,10.29,10.29-24,24-10.29Z"/>`,
+"phosphor/gauge":`<path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/>`,
+"phosphor/paper-plane-tilt":`<path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/>`,
+"phosphor/tag":`<path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/>`,
+};
+function shortOf(el){return el.getAttribute('data-toc')||el.getAttribute('data-name')||'';}
+function railHTML(){
+  let h='';
+  s.forEach((el,k)=>{
+    if(el.getAttribute('data-group')==='appendix')return;
+    const k2=el.getAttribute('data-rail')||'';
+    const ic=(k2&&RAIL_ICONS[k2])?`<span class="rail-ic"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg></span>`:'';
+    h+=`<button class="rail-item" data-i="${k}">${ic}<span class="rail-t">${shortOf(el)}</span></button>`;
+  });
+  return h;
+}
+function mountRail(){
+  const main=s.filter(el=>el.getAttribute('data-group')!=='appendix').length;
+  const cls=main>16?'rail compact':'rail';
+  s.forEach((el)=>{const n=document.createElement('nav');n.className=cls;n.setAttribute('aria-label','Deck contents');n.innerHTML=railHTML();el.prepend(n);});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();show(+b.dataset.i);}));});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();e.stopPropagation();show(+b.dataset.i);}}));});
+}
+function markToc(){document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',+b.dataset.i===i));}
+relabel();mountRail();show(0);
+</script>
+</body>
+</html>

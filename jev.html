@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<!-- STARTER DECK TEMPLATE. Copy it with `bun cli.mjs new <topic>.html` (which resolves
+     the skill-asset path for the icon modal) and replace the ten sample slides.
+     One self-contained file: inline SVG, vendored Mermaid beside the deck, light by
+     default with a presenter switcher for dark and palettes on the cover. Type over
+     Google Fonts with system fallbacks. The samples show anatomy and treatments
+     rather than a subject: 1 cover flow, 2 contents, 3 card grid,
+     4 two by two plus badge, 5 three steps, 6 standing bars, 7 hero split, 8 rings, 9 pull close,
+     10 .shot frame. Keep the four row grid, window.show(n) with .active, relabel() for every number,
+     the .edge nav, motion, print. Copy, icons, tints, the texture class and the slide set are yours.
+     A presenter can also edit text and swap icons directly in the browser (Edit in
+     the themebar) and export HTML or PDF from there. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deck Title: Presentation</title>
+<!-- Type arrives over the same Google Fonts link the production decks use.
+     Nunito carries body copy (variable 400 to 800 in one file); Lora 500
+     italic carries only the assertion titles. Self-hosting was tried and
+     dropped: decks open from any directory, and a relative assets path only
+     resolves next to the skill tree. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400..800&family=Lora:ital,wght@1,500&display=swap" rel="stylesheet">
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* ==========================================================================
+   THEME. Light is the default and stays the default: projected decks are read
+   in bright rooms and these decks get printed and forwarded, so --bg #F3F7F7 on
+   white surfaces is the canvas a deck ships on. See DESIGN.md -> "Theme".
+
+   Every colour below is a token, so a palette is a token swap and never an edit
+   to a rule. Two of them carry the weight:
+
+     --ink-rgb   the RGB triple behind the whole alpha family. Every hairline,
+                 tint and shadow is rgba(var(--ink-rgb),a), so one token flips
+                 all 101 of them at once: that is what makes dark mode a
+                 paragraph instead of a rewrite.
+     --accent    the one hue that is allowed to mean something. Changing it
+                 changes emphasis, not identity.
+
+   Palettes are [data-palette] on <html>; dark is [data-theme] on <html>. Both
+   are opt-in by a presenter, never set by the template. Only the first slide
+   carries the switcher (see .themebar), so a shipped deck shows no chrome.
+   ========================================================================== */
+:root{
+  --bg:#F3F7F7; --surface:#FFFFFF; --text:#17191C; --muted:#96999D;
+  --ink:#6B6F73; --accent:#2563EB;
+  --ink-rgb:23,25,28;
+  --p1:#D3E7E5; --p2:#F7D1E1; --p3:#FFE3A0; --p4:#DCCFEA; --p5:#D8E7E8;
+  /* Data marks. --pos/--neg carry direction, so they ship with a sign or a
+     shape alongside; never encode direction in colour alone. */
+  --pos:#2C7A6B; --neg:#B8413B; --warn:#E9A93C;
+  /* Radii, named the way DESIGN.md names them. --radius-pill is the only
+     rounding allowed on a data mark, and nothing here is a sharp rectangle. */
+  --radius-lg:24px; --radius-sm:14px; --radius-pill:999px;
+  --border:1.5px solid rgba(var(--ink-rgb),.08);
+  --chrome:var(--ink); /* the only hue a chrome element may use */
+}
+
+/* --------------------------------------------------------------- palettes --
+   Each palette is a complete set: canvas, surface, two text weights, the
+   accent, and five pastels. The pastels are for tiles and fills behind text,
+   so they stay light enough that --text on them clears 4.5:1; the accent is
+   the only one held dark enough to clear 4.5:1 as text on --surface.
+   Named by intent, not by hue, so a deck reads the same in every palette. */
+[data-palette="slate"]{ --bg:#F3F7F7; --surface:#FFFFFF; --text:#17191C; --ink:#6B6F73;
+  --muted:#96999D; --accent:#2563EB; --ink-rgb:23,25,28;
+  --p1:#D3E7E5; --p2:#F7D1E1; --p3:#FFE3A0; --p4:#DCCFEA; --p5:#D8E7E8;
+  --pos:#2C7A6B; --neg:#B8413B; --warn:#E9A93C; }
+[data-palette="ink"]{ --bg:#F4F4F5; --surface:#FFFFFF; --text:#18181B; --ink:#52525B;
+  --muted:#8B8B94; --accent:#4338CA; --ink-rgb:24,24,27;
+  --p1:#D6D9F2; --p2:#F5D9E4; --p3:#FBEBC0; --p4:#E2DCF0; --p5:#D7E4EC;
+  --pos:#2F6F63; --neg:#A93B36; --warn:#B87A16; }
+[data-palette="forest"]{ --bg:#F2F6F3; --surface:#FFFFFF; --text:#152019; --ink:#54655C;
+  --muted:#8A9A92; --accent:#16694A; --ink-rgb:21,32,25;
+  --p1:#D2E6DA; --p2:#F6DCE2; --p3:#F7E8BE; --p4:#DCE6D2; --p5:#D6E4E6;
+  --pos:#16694A; --neg:#A63D33; --warn:#9A6B12; }
+[data-palette="clay"]{ --bg:#F8F4F1; --surface:#FFFFFF; --text:#211A15; --ink:#6B5B50;
+  --muted:#9C8B80; --accent:#A34A22; --ink-rgb:33,26,21;
+  --p1:#E8DCCF; --p2:#F6D9CE; --p3:#FAE7C4; --p4:#EEDCD6; --p5:#E4E2D6;
+  --pos:#5C6B45; --neg:#A23B2A; --warn:#96631A; }
+
+/* ------------------------------------------------------------------- dark --
+   The same fifteen tokens, inverted once. Surfaces lift rather than the canvas
+   dropping, so a projected deck in a bright room is still the light default and
+   dark is something a presenter opts into for a screen. */
+[data-theme="dark"]{ --bg:#141618; --surface:#1C1F22; --text:#EDEEEF; --ink:#A8ADB2;
+  --muted:#7C8288; --ink-rgb:236,238,239;
+  --accent:#7FA9FF; --pos:#63C4AC; --neg:#E88C84; --warn:#E0B054;
+  /* Pastels become fills, not washes: they sit behind --text now, so they drop
+     in lightness to keep the same measured contrast. */
+  --p1:#223A38; --p2:#3D2A33; --p3:#3E3620; --p4:#332C42; --p5:#243539;
+  --border:1.5px solid rgba(var(--ink-rgb),.14); }
+[data-theme="dark"][data-palette="ink"]{ --accent:#A5A0F5; --ink-rgb:236,238,239;
+  --pos:#5FBFA6; --neg:#E89089; --warn:#DCB05E;
+  --p1:#262A44; --p2:#3F2B38; --p3:#403824; --p4:#332B47; --p5:#26333F; }
+[data-theme="dark"][data-palette="forest"]{ --accent:#63C79C; --ink-rgb:236,238,239;
+  --pos:#63C79C; --neg:#E89089; --warn:#DCB05E;
+  --p1:#1E3730; --p2:#3B2A2E; --p3:#3B3622; --p4:#2C3A29; --p5:#22383A; }
+[data-theme="dark"][data-palette="clay"]{ --accent:#E08A5C; --ink-rgb:236,238,239;
+  --pos:#8FB07A; --neg:#E89089; --warn:#DCB05E;
+  --p1:#3A322A; --p2:#432E26; --p3:#403724; --p4:#3B2E29; --p5:#383629; }
+/* ------------------------------------------------------------- typography --
+   Two families, one job each. Nunito carries everything that is read as
+   information: body copy, labels, numbers, captions. Lora 500 italic carries
+   only the assertion (the slide's title), because it is the one line the
+   audience is meant to remember, and a serif italic reads as a considered
+   claim rather than a label.
+
+   The tracking is positive here, not negative. A geometric sans wants to be
+   pulled tight at 56px; a serif italic has no geometric skeleton to tighten
+   against and goes loose and gappy if you try, so it is set slightly open with
+   more leading instead. Full rules and the measured sizes: DESIGN.md ->
+   "Typography". */
+.head,.title-xl{font-family:Lora,Georgia,serif;font-style:italic;font-weight:500;
+  letter-spacing:.005em;line-height:1.18}
+.title-xl{line-height:1.12}
+
+body{font-family:Nunito,Inter,Arial,sans-serif;
+     background:var(--bg);color:var(--text);overflow:hidden}
+html,body{height:100%;margin:0}
+body{display:flex;align-items:center;justify-content:center}
+/* Present to a screen reader, never to the eye. The live region that announces
+   each slide is one of these, so it has to be in the DOM and off the page. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+         overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* --------------------------------------------------------------------------
+   SLIDE ANATOMY: four bands, fixed order, never re-improvised.
+     row 1  (empty, collapses: position lives in the rail)
+     row 2  s-head   the assertion + subtext, always pinned to the TOP
+     row 3  s-body   content, always the MIDDLE, always vertically centred
+     row 4  s-foot   takeaway (bottom) + persistent footer chrome
+   Padding is constant, so it never gets re-derived per slide.
+   -------------------------------------------------------------------------- */
+.slide{display:none;width:1920px;height:1080px;flex:none;position:relative;
+       overflow:hidden;background:var(--bg);padding:38px 120px 34px 48px}
+.slide.active{display:grid;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+              animation:fade .2s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.s-head{grid-row:2;padding-top:4px}
+.s-body{grid-row:3;display:flex;flex-direction:column;justify-content:center;
+        min-height:0;padding:24px 0}
+.s-foot{grid-row:4;padding-top:20px}
+.s-head,.s-foot{grid-column:2}.s-body{grid-column:2}
+
+/* ---- background texture: pick ONE per deck on <body> and never change it -- */
+.slide::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none}
+.slide>*{position:relative;z-index:1}
+body.tex-dots .slide::before{
+  background-image:radial-gradient(rgba(var(--ink-rgb),.11) 1.5px,transparent 1.6px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+          mask-image:radial-gradient(ellipse 72% 62% at 50% 40%,#000,transparent 78%);
+}
+body.tex-grid .slide::before{
+  background-image:linear-gradient(rgba(var(--ink-rgb),.06) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(var(--ink-rgb),.06) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+          mask-image:radial-gradient(ellipse 78% 68% at 50% 38%,#000,transparent 80%);
+}
+.slide.hero-slide::before{
+  -webkit-mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+          mask-image:radial-gradient(ellipse 92% 82% at 50% 42%,#000,transparent 88%);
+}
+
+/* ---- motion: staged entrance plus a tile cascade --------------------------
+   Every selector in this block is on ONE line, and that is not a formatting
+   preference. A list broken across lines is a descendant combinator, so keep
+   the :is() list on one line when you add a container to it. */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.slide.active>.s-head,.slide.active>.s-body,.slide.active>.s-foot{animation:rise .45s cubic-bezier(.22,.8,.24,1) both}
+.slide.active>.s-head{animation-delay:.04s}
+.slide.active>.s-body{animation-delay:.10s}
+.slide.active>.s-foot{animation-delay:.20s}
+/* Bands are direct children of .slide; tiles are children of a container, which
+   sits inside .s-body, so the cascade cannot be a `.slide.active > *` rule. Only
+   tile containers are listed. A bare .s-body > * would hand an animation to every
+   inline child of every text block, and one emphasised word would drop in on its
+   own. Tiles inside every container stagger, including .hero-split,
+   so their contents never travel twice. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*{animation:rise .5s cubic-bezier(.22,.8,.24,1) both;animation-delay:var(--d,0s)}
+/* The stagger lives in a custom property, so the five rules below are the only
+   place a number appears. A tile's delay has to be set on the tile: a rule keyed
+   on .s-body's own children staggers the containers, not the tiles inside them,
+   which is the difference between a cascade and three cards arriving together. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(1){--d:.18s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(2){--d:.26s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(3){--d:.34s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(4){--d:.42s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split)>*:nth-child(n+5){--d:.50s}
+/* Two guards, identical, so a PDF looks exactly like the reduced motion deck.
+   Both need the universal `*`, because `> *` reaches only direct children and a
+   capture can still land on a tile mid flight. The slide is named on its own
+   because `*` never matches its own element. The nav sits outside every slide,
+   so it is named too: both the button and the position rail transition. */
+@media (prefers-reduced-motion:reduce){.slide.active,.slide.active *,.edge,.edge *{animation:none !important;transition:none !important}}
+body.no-anim .slide.active,body.no-anim .slide.active *,body.no-anim .edge,body.no-anim .edge *{animation:none !important;transition:none !important}
+/* One synchronous measurement, with the entrance suppressed so the rect is the
+   place the element is about to land in. show() adds and removes this inside a
+   single task, so it is never painted. */
+.slide.measuring,.slide.measuring *{animation:none !important}
+
+/* ---- chrome: constant across every slide --------------------------------- */
+
+/* .badge docks top-right and is `position:absolute`. It is for a status or a
+   date, never a restatement of the slide title. */
+.badge{position:absolute;top:32px;right:120px;background:var(--surface);
+       border:var(--border);border-radius:var(--radius-sm);padding:9px 18px;
+       font-size:19px;font-weight:700;color:var(--ink)}
+
+/* ---- type ---------------------------------------------------------------- */
+.head{font-size:56px;font-weight:500;letter-spacing:.005em;line-height:1.12;max-width:1600px;text-align:center;margin-left:auto;margin-right:auto}
+.head em{font-style:normal;color:var(--accent)}
+.head.sm{font-size:44px}
+.sub{font-size:27px;color:var(--ink);font-weight:500;margin-top:12px;margin-left:auto;margin-right:auto;text-align:center;line-height:1.4;max-width:1400px}
+.title-xl{font-size:88px;font-weight:500;letter-spacing:.005em;line-height:1.04;text-align:center}
+.title-xl span{color:var(--accent)}
+.subc{text-align:center;color:var(--ink);font-size:29px;font-weight:500}
+.subc b{color:var(--accent);font-weight:800}
+
+/* ---- icons --------------------------------------------------------------- */
+.ph{width:40px;height:40px;flex-shrink:0}
+.ph.xl{width:78px;height:78px}
+.ph.xs{width:24px;height:24px}
+.qicon{width:78px;height:78px;min-width:78px;border-radius:18px;background:var(--p1);
+       display:flex;align-items:center;justify-content:center;color:var(--text)}
+.qicon.sm{width:62px;height:62px;min-width:62px;border-radius:16px}
+.tagline{display:flex;align-items:center;gap:8px;font-size:18px;color:var(--accent);
+         font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin-bottom:4px}
+.tagline .ph{width:22px;height:22px}
+
+/* ---- takeaway: always the bottom band, one sentence --------------------- */
+/* data-morph="take" on every takeaway: it is the one element that persists in
+   the same band on every content slide, so it is the one that glides when the
+   band changes height. See the FLIP block in the script. */
+.takeaway{margin:26px auto 0;width:fit-content;max-width:100%;background:var(--surface);border-radius:var(--radius-sm);
+          padding:18px 24px;font-size:23px;font-weight:600;display:flex;
+          align-items:center;justify-content:center;text-align:center;gap:14px;line-height:1.35}
+.takeaway .ph{color:var(--accent)}
+.takeaway b{color:var(--accent);font-weight:800}
+
+/* ---- gapnote: a caveat you make TO the audience ---------------------------
+   content_philosophy.md rule 6a allows exactly one kind of note on a shipped
+   slide: an honest caveat about the claim ("we have not charged anyone yet").
+   It is never a note to the author. This is the only element in the template
+   with a dashed edge, so it reads as an aside at a glance and cannot be mistaken
+   for chrome or for a card.
+
+   Place it inside .s-body, after the content it qualifies, never inside a
+   .card (a dashed border inside a rounded card is noise) and never instead of a
+   .takeaway. It sets no background, so it does not compete with the mark it
+   sits under. */
+.gapnote{margin-top:22px;padding:13px 18px;border:1.5px dashed rgba(var(--ink-rgb),.28);
+         border-radius:var(--radius-sm);font-size:20px;line-height:1.4;
+         color:var(--ink)}
+.gapnote b{color:var(--text);font-weight:700}
+.gapnote .tagline{margin-bottom:2px}
+
+/* ---- emphasis: hand circle + marker wash -----------------------------------
+   Two inline devices for the words inside a line, when color alone is not
+   enough. Both inherit the surrounding type, so they work in a 70px pull, an
+   88px bridge, or a 23px takeaway. Same block here and in the gallery: keep
+   the two in step. Gallery 7 washes its pull line, gallery 2 circles its
+   bridge word.
+   .sketch draws the hand circle in accent around one word. z-index:0 holds the arcs
+   inside the span's own stacking context, so the circle survives any surface
+   behind it. .mark washes the marker (--p3 at two alphas) behind two to four
+   words; box-decoration-break keeps it whole across a line break. One device
+   per line: a circled wash competes with itself. */
+.sketch{position:relative;z-index:0;white-space:nowrap}
+/* .title-xl colors every descendant span accent; the circled word stays ink. */
+.title-xl .sketch{color:var(--text)}
+.sketch:before{content:"";position:absolute;z-index:-1;left:-.5em;top:-.06em;
+  width:100%;height:.94em;padding:.12em .3em;opacity:.7;
+  border:2.5px solid var(--accent);border-right-color:transparent;border-radius:50%;
+  transform:rotate(2deg)}
+.sketch:after{content:"";position:absolute;z-index:-1;left:-.5em;top:.12em;
+  width:100%;height:.94em;padding:.12em .3em;opacity:.7;
+  border:2.5px solid var(--accent);border-left-color:transparent;border-top-color:transparent;
+  border-radius:50%;transform:rotate(-1deg)}
+.mark{border-radius:.5em;padding:0 .1em;-webkit-box-decoration-break:clone;box-decoration-break:clone;
+  background-image:linear-gradient(-100deg,rgba(255,227,160,.25),rgba(255,227,160,.75) 95%,rgba(255,227,160,.15))}
+
+/* ---- treatments ---------------------------------------------------------- */
+.gridQ{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.card{background:var(--surface);border-radius:var(--radius-lg);padding:24px 26px;
+      display:flex;flex-direction:column}
+/* The auto margin pins the last child to the bottom of an equal-height card.
+   It REPLACES that child's own margin-top, so a short card gets the key-point
+   line flush against the paragraph above it with no breathing room at all,
+   which reads as a typesetting mistake rather than as a pinned line. The
+   padding restores a guaranteed gap while the auto margin keeps its job. */
+.card>*:last-child{margin-top:auto;padding-top:14px}
+.card h3{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.22}
+/* The icon tile and the heading beside it share one centreline. `flex-start` is
+   the trap: the tile is 78px and the heading stack is one or two lines, so
+   top-aligning leaves the tile hanging below a one-line title and the text
+   hanging below a two-line one, and the card looks assembled rather than
+   drawn. `center` is what makes the pair read as one object. qa-matrix.mjs
+   asserts the two centrelines agree within 2px, so an edit here cannot quietly
+   undo it. */
+.qhead{display:flex;gap:16px;align-items:center}
+.desc{font-size:21px;color:var(--ink);line-height:1.46;margin-top:14px;
+      background:var(--bg);border-radius:var(--radius-sm);padding:13px 15px}
+.desc b{color:var(--text);font-weight:700}
+.meta{margin-top:14px;font-size:19px;color:var(--ink);line-height:1.5}
+.meta b{color:var(--accent);font-weight:700}
+.steps3{display:flex;align-items:stretch}
+.step{flex:1;background:var(--surface);border-radius:var(--radius-lg);padding:24px;
+      display:flex;flex-direction:column}
+.step>*:last-child{margin-top:auto;padding-top:14px}
+.step h4{font-size:25px;font-weight:700;margin-bottom:10px}
+.step p{font-size:20px;color:var(--ink);line-height:1.44}
+.glue{align-self:center;padding:0 12px;color:var(--muted);font-size:34px;font-weight:600}
+.hero-split{display:flex;gap:56px;align-items:center}
+.hero-split .lead{flex:none;width:560px}
+.bigstat{display:flex;flex-direction:column;align-items:center;text-align:center}
+.bigstat .n{font-size:172px;line-height:.92;font-weight:800;letter-spacing:-.05em;color:var(--accent)}
+.bigstat .cap{font-size:25px;color:var(--ink);font-weight:600;margin-top:12px;line-height:1.4}
+.stat-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.stat-rail .st{background:var(--surface);border-radius:var(--radius-sm);padding:20px 22px;
+              display:flex;flex-direction:column;gap:10px}
+.stat-rail .st .hd{display:flex;align-items:center;gap:10px;font-size:17px;
+                   color:var(--muted);font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.stat-rail .st .hd .ph{width:24px;height:24px;color:var(--accent)}
+.stat-rail .st .n{font-size:38px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.stat-rail .st .t{font-size:19px;color:var(--ink);line-height:1.4}
+.pull{display:flex;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;padding:0 140px}
+.pull .q{font-size:70px;font-weight:700;line-height:1.16;letter-spacing:-.03em}
+.pull .q em{font-style:normal;color:var(--accent)}
+.pull .by{font-size:24px;color:var(--muted);margin-top:26px;font-weight:600}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+/* A contents entry is a .ti element, not an anchor. An href="#" is focusable,
+   announced as a link, and goes nowhere: three costs for nothing. Use an
+   <a class="ti"> only in a deck where the entry really navigates. */
+.toc .ti{display:flex;gap:14px;align-items:center;background:var(--surface);
+         border-radius:16px;padding:17px 20px;font-size:23px;font-weight:600;
+         color:var(--text);text-decoration:none}
+.toc .ti .n{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--accent);
+            color:#fff;font-weight:800;font-size:22px;display:grid;place-items:center}
+.toc .ti .ap{color:var(--muted);font-weight:500;font-size:19px;margin-left:auto}
+.cover-flow{display:flex;justify-content:center;align-items:center;gap:26px}
+.cnode{text-align:center}
+.cnode .circ{width:166px;height:166px;border-radius:50%;display:flex;
+             align-items:center;justify-content:center;margin:0 auto}
+.cnode .lbl{margin-top:14px;font-weight:700;border-radius:var(--radius-sm);padding:9px 20px;
+            font-size:20px;display:inline-block;background:var(--surface)}
+.cnode .sub{font-size:17px;color:var(--ink);margin-top:8px}
+
+/* ---- data marks: rounded geometry, no sharp rectangles -------------------- */
+.pillbar{display:flex;gap:7px;height:26px}
+.pillbar i{flex:1;border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.10)}
+.pillbar i.on{background:var(--accent)}
+.pillbar i.hot{background:var(--p3)}
+.vbars{display:flex;align-items:flex-end;gap:22px;height:340px}
+.vbars .vb{flex:1;display:flex;flex-direction:column;align-items:center;gap:14px;height:100%}
+.vbars .vb .col{width:100%;max-width:60px;flex:1;display:flex;align-items:flex-end;
+                border-radius:var(--radius-pill);background:rgba(var(--ink-rgb),.07);overflow:hidden}
+.vbars .vb .col i{display:block;width:100%;border-radius:var(--radius-pill);background:var(--accent)}
+.vbars .vb .col i.hot{background:var(--warn)}
+.vbars .vb .vv{font-size:20px;font-weight:800;color:var(--accent)}
+.vbars .vb .lb{font-size:18px;font-weight:700;color:var(--ink)}
+.chiprow{display:flex;gap:10px;flex-wrap:wrap}
+.chip{border-radius:var(--radius-pill);padding:8px 16px;font-size:18px;font-weight:700;
+      background:var(--p1);color:var(--text)}
+/* One share against a whole. --p is a bare number, because the gradient does the
+   multiplying, and nothing but a ring may set it. The default applies when a deck
+   sets nothing. This is why show() writes the position rail to --pp instead: a
+   custom property inherits, and a rail value of "40%" would make calc() invalid
+   and void this gradient on every slide. */
+.ring{position:relative;width:158px;height:158px;border-radius:50%;
+      background:conic-gradient(var(--accent) calc(var(--p,50) * 1%),rgba(var(--ink-rgb),.08) 0);
+      display:grid;place-items:center}
+.ring::after{content:"";position:absolute;inset:24px;border-radius:50%;background:var(--surface)}
+.ring span{position:relative;z-index:1;font-size:36px;font-weight:800;color:var(--accent)}
+
+/* ---- screenshot frame: macOS-style window chrome for any image ------------
+   The frame needs a visible edge, and that is not decoration. --surface is
+   #FFFFFF on a --bg of #F3F7F7: white on near-white is a contrast ratio of
+   1.04:1, so with no border the frame has no silhouette at all and the shot
+   reads as a white rectangle floating on the canvas, not as a window. A 1.5px
+   ink-at-8% hairline is what gives it an edge, and it is the deck's own rule
+   rather than a new colour. --shadow does not exist in this system: depth comes
+   from the texture and the pastel surfaces, and a drop shadow is exactly the
+   "heavy" look this palette refuses. */
+.shot{background:var(--surface);border:var(--border);border-radius:var(--radius-lg);overflow:hidden;
+      /* The frame needs a background, not just a border, or it reads as a white
+         rectangle with a picture on it. Three tints inside the token palette do
+         the work: a tinted strip under the chrome bar, a slightly cooler bar,
+         and a lighter "lit display" for the image area. The eye reads the
+         difference between the three as a window. No shadow is involved: there
+         is no --shadow token in this system on purpose. */
+      display:flex;flex-direction:column;flex:1 1 auto;min-height:0;max-height:100%}
+.shotbar{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:13px 18px;
+        border-bottom:1px solid rgba(var(--ink-rgb),.10);
+        background:#EEF4F4}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(var(--ink-rgb),.14)}
+.dot:nth-child(1){background:#FF5F57}.dot:nth-child(2){background:#FEBC2E}.dot:nth-child(3){background:#28C840}
+.shotbar .addr{flex:1;margin-left:8px;background:var(--surface);border-radius:var(--radius-pill);
+        padding:5px 14px;font-size:15px;color:var(--muted);font-weight:600;
+        text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The "display": a touch lighter and cooler than the bar above it, so the bar
+   and the screen separate even before you read the caption. */
+.shotimg{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;
+         background:#FAFCFC}
+.shotimg img{width:100%;height:100%;object-fit:contain;display:block}
+/* The caption band is the OTHER end of the window, so it wears the chrome bar's
+   colour rather than the white surface. Left white it reads as a window with a
+   white chin, which is the same defect as a frameless frame. */
+.shotcap{flex:0 0 auto;padding:13px 18px;font-size:17px;color:var(--muted);
+        font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+        border-top:1px solid rgba(var(--ink-rgb),.10);
+        background:#EEF4F4}
+
+/* ---- nav: edge-hover buttons, optically centred SVG chevrons --------------
+   A text glyph like ‹ or › never sits centred in a circle, because its ink is
+   offset from the advance width, so it reads low and to one side. Inline SVG on
+   the 256x256 grid, centred by place-items, then nudged 1px along travel. */
+.edge{pointer-events:none;position:fixed;top:0;bottom:0;width:130px;display:flex;align-items:center;
+      z-index:60;cursor:pointer;border:0;background:none;padding:0}
+.edge.left{left:0;justify-content:flex-start;padding-left:22px}
+.edge.right{right:0;justify-content:flex-end;padding-right:22px}
+.edgebtn{pointer-events:auto;width:56px;height:56px;border-radius:50%;background:rgba(var(--ink-rgb),.42);
+         display:grid;place-items:center;opacity:0;transform:scale(.9);
+         transition:opacity .25s,transform .25s,background .25s}
+.edge:hover .edgebtn,.edge:focus-visible .edgebtn{opacity:1;transform:scale(1);
+         background:rgba(var(--ink-rgb),.62)}
+.edge:focus-visible{outline:none}
+.chev{width:24px;height:24px;color:#fff;display:block}
+.chev.l{transform:translateX(1px)}
+.chev.r{transform:translateX(-1px)}
+.edge.off{visibility:hidden}
+/* Sidebar table of contents: part of the slide, first grid column. Never an
+   overlay, never scrollable: compact density keeps long decks visible. */
+nav.rail{grid-row:1/-1;grid-column:1;display:flex;flex-direction:column;justify-content:center;padding:28px 14px 20px 0;overflow:hidden}
+.rail-item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;
+         padding:6px 10px;border-radius:12px;cursor:pointer;color:var(--ink)}
+.rail-item:hover{background:rgba(var(--ink-rgb),.05)}
+.rail-item .rail-t{font-size:16px;font-weight:600;line-height:1.25}
+.rail-item.on{background:var(--accent)}
+.rail-item.on .rail-t{color:#fff}
+.s-foot .foot{width:fit-content;margin-left:auto;margin-right:auto;gap:56px}
+nav.rail.compact{padding:20px 8px 14px}
+nav.rail.micro{padding:14px 6px 10px}
+nav.rail.micro .rail-item{padding:1px 5px;gap:5px;border-radius:8px}
+nav.rail.micro .rail-t{font-size:11px;line-height:1.15}
+nav.rail.micro .rail-ic{width:16px;height:16px;border-radius:6px}
+nav.rail.micro .rail-ic svg{width:11px;height:11px}
+nav.rail.compact .rail-item{padding:2px 6px;gap:6px}
+nav.rail.compact .rail-t{font-size:12px}
+.rail-item .rail-ic{flex:none;width:30px;height:30px;border-radius:9px;background:rgba(var(--ink-rgb),.06);display:grid;place-items:center;color:var(--ink)}
+.rail-item .rail-ic svg{width:18px;height:18px}
+.rail-item.on .rail-ic{background:rgba(255,255,255,.25);color:#fff}
+nav.rail.compact .rail-ic{width:20px;height:20px;border-radius:7px}
+nav.rail.compact .rail-ic svg{width:13px;height:13px}
+
+/* ---- print: Ctrl-P is a real path, so it gets a real answer ---------------
+   Printing needs three things the screen does not: the hidden slides turned back
+   on, one per page, and no motion to catch mid flight. The nav arrows are fixed
+   to the viewport, which on paper means they land on every page. */
+@media print{
+  @page{size:landscape;margin:0}
+  html,body{height:auto;overflow:visible;display:block}
+  /* Presenter chrome never prints: nav arrows, the theme switcher and hit
+     strip, and the icon modal. Editing outlines are class-gated to a live
+     browser, so there is nothing to hide for them. */
+  .edge,.themebar,.themehit,.editmodal{display:none !important}
+  .slide{display:grid !important;grid-template-columns:264px 1fr;column-gap:56px;grid-template-rows:auto auto minmax(0,1fr) auto;
+         break-after:page;page-break-after:always}
+  .slide:last-of-type{break-after:auto;page-break-after:auto}
+  .slide,.slide *{animation:none !important;transition:none !important}
+}
+/* ==========================================================================
+   THEMEBAR: a presenter's switcher, not deck content.
+
+   Light on light is the default and the default stays. This bar exists so a
+   presenter can move a deck to a dark room or a house palette without editing
+   CSS, and it is hidden until asked for twice over: it renders only on the
+   first slide (`body[data-themebar]`), and it is only visible while the pointer
+   is over the top edge of that slide. A shipped deck therefore shows no chrome
+   at all, and a PDF never captures it.
+
+   Position is fixed to the stage, not to the viewport, so it scales with the
+   deck exactly like everything else. A DevTools affordance that moved
+   independently of the thing it is inspecting would be worse than none.
+
+   Prefers-reduced-motion: the reveal is instant, because the motion is the
+   affordance and dropping it makes the bar feel absent.
+   ========================================================================== */
+.themebar{position:fixed;left:0;right:0;top:0;z-index:60;
+  display:flex;align-items:center;gap:10px;padding:9px 14px;
+  background:var(--surface);color:var(--ink);
+  border-bottom:1.5px solid rgba(var(--ink-rgb),.10);
+  box-shadow:0 6px 18px rgba(var(--ink-rgb),.10);
+  font:500 13px/1 Nunito,Inter,sans-serif;
+  opacity:0;transform:translateY(-100%);pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease}
+/* The hit target is the top strip of the first slide only. It exists while the
+   cover is showing and nowhere else, so the switcher can never appear over the
+   argument. The bar reveals on hover of that strip, not of the bar, so the
+   pointer can arrive from below. */
+.themehit{position:fixed;left:0;right:0;top:0;height:34px;z-index:59;
+  display:none}
+body.on-cover .themehit{display:block}
+body.on-cover .themehit:hover ~ .themebar,body.on-cover .themebar:hover{opacity:1;transform:none;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){
+  .themebar{transition:none}
+}
+/* Captures (export-pdf, shot) inject their own display:none for the bar, so a
+   PNG never carries it. That injection, not a body attribute, is the guard,
+   because the attribute is how a presenter asks for the switcher and a capture
+   must never inherit the request. */
+
+.themebar .tlabel{letter-spacing:.06em;text-transform:uppercase;font-size:10px;
+  color:var(--muted);margin-right:2px}
+.themebar .sep{width:1px;height:18px;background:rgba(var(--ink-rgb),.12)}
+
+/* Mode: two states, one control. A segmented pair rather than a toggle,
+   because "which am I in" is the question a presenter actually has. */
+.tmode{display:flex;gap:2px;padding:2px;border-radius:var(--radius-pill);
+  background:rgba(var(--ink-rgb),.06)}
+.tmode button{appearance:none;border:0;background:transparent;cursor:pointer;
+  font:600 11px/1 inherit;color:var(--ink);padding:5px 11px;border-radius:var(--radius-pill);
+  display:flex;align-items:center;gap:5px}
+.tmode button[aria-pressed="true"]{background:var(--surface);color:var(--text);
+  box-shadow:0 1px 3px rgba(var(--ink-rgb),.14)}
+.tmode button:hover{color:var(--text)}
+
+/* Palettes: real swatches of the palette they set, because the only honest
+   preview of a colour scheme is the colour scheme. */
+.tpals{display:flex;gap:5px;align-items:center}
+.tpal{appearance:none;cursor:pointer;border:1.5px solid rgba(var(--ink-rgb),.16);
+  width:30px;height:22px;border-radius:7px;padding:0;overflow:hidden;
+  display:flex;position:relative}
+.tpal i{flex:1}
+.tpal[aria-pressed="true"]{border-color:var(--text);
+  box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--text)}
+.tpal:hover{border-color:var(--ink)}
+.tpal .pname{position:absolute;inset:auto 0 0 0;font:600 8px/1.4 inherit;
+  text-align:center;letter-spacing:.04em;text-transform:uppercase;
+  background:rgba(var(--ink-rgb),.72);color:var(--surface)}
+
+.themebar .tspread{margin-left:auto;display:flex;align-items:center;gap:8px;
+  color:var(--muted);font-size:11px}
+.themebar .tspread b{color:var(--ink);font-weight:600}
+
+/* ---- edit mode: visibility, outlines, modal --------------------------------
+   Editing is a body class, never inline styles, so leaving edit mode restores
+   the deck exactly: nothing written while editing survives except the text and
+   the replaced icons, which is the point. Outlines are 2px accent at 60% so
+   they read as handles, not as deck content, and they never print or capture:
+   .editing exists only in a live browser, and print/CSS-injection hide the rest. */
+.tedit,.texport{appearance:none;cursor:pointer;border:1.5px solid rgba(var(--ink-rgb),.16);
+  background:transparent;color:var(--ink);font:600 11px/1 Nunito,Inter,sans-serif;
+  padding:6px 12px;border-radius:var(--radius-pill)}
+.tedit:hover,.texport:hover{color:var(--text);border-color:var(--ink)}
+.tedit[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--surface)}
+body.editing [data-editable]{outline:2px dashed rgba(var(--ink-rgb),.35);outline-offset:3px;cursor:text}
+body.editing [data-editable]:focus{outline:2px solid var(--accent);outline-offset:3px}
+body.editing svg[data-icon]{cursor:pointer}
+body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset:3px}
+.editmodal{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-start;justify-content:center;
+  padding:12vh 20px 20px;background:rgba(var(--ink-rgb),.4)}
+.editmodal[hidden]{display:none}
+.editmodal-panel{width:640px;max-width:100%;max-height:70vh;display:flex;flex-direction:column;
+  background:var(--surface);color:var(--text);border-radius:var(--radius-lg);
+  box-shadow:0 18px 60px rgba(var(--ink-rgb),.3);overflow:hidden}
+.editmodal-head{display:flex;align-items:center;gap:10px;padding:14px 18px;
+  border-bottom:1.5px solid rgba(var(--ink-rgb),.1)}
+.editmodal-current{font:500 12px/1 ui-monospace,Menlo,monospace;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.editmodal-close{appearance:none;border:0;background:transparent;cursor:pointer;
+  font-size:22px;line-height:1;color:var(--ink);padding:2px 8px}
+.editmodal-close:hover{color:var(--text)}
+.editmodal-search{margin:14px 18px 4px;padding:10px 14px;font:500 15px/1.4 Nunito,Inter,sans-serif;
+  color:var(--text);background:var(--bg);border:1.5px solid rgba(var(--ink-rgb),.16);
+  border-radius:var(--radius-sm);outline:none}
+.editmodal-search:focus{border-color:var(--accent)}
+.editmodal-hint{padding:2px 18px 6px;font-size:12px;color:var(--muted);min-height:20px}
+.editmodal-results{overflow-y:auto;padding:4px 10px 14px;display:flex;flex-direction:column;gap:2px}
+.editmodal-row{display:flex;align-items:center;gap:12px;padding:8px 10px;border:0;background:transparent;
+  cursor:pointer;border-radius:var(--radius-sm);font:500 14px/1.3 Nunito,Inter,sans-serif;
+  color:var(--text);text-align:left;width:100%}
+.editmodal-row:hover{background:rgba(var(--ink-rgb),.06)}
+.editmodal-row svg{width:30px;height:30px;flex:none}
+.editmodal-row .nm{font-weight:700}
+.editmodal-row .ti{color:var(--ink);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== deck extension: gallery blocks copied by name =======================
+   Everything below is lifted verbatim from templates/slides/patterns.html so a
+   copy nobody can diff cannot rot. Nothing here restates a template rule. */
+
+/* ---- shared bits the gallery reuses -------------------------------------- */
+.panel{background:var(--surface);border-radius:var(--radius-sm);padding:20px 24px}
+.panel .pt{font-size:16px;color:var(--muted);font-weight:800;letter-spacing:.09em;
+           text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.panel .pt .ph{width:20px;height:20px;color:var(--accent)}
+.rule-fade{height:1px;border:0;background:linear-gradient(90deg,transparent,rgba(var(--ink-rgb),.18),transparent)}
+.mini2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:26px auto 0}
+.mini2 .mn{border-top:1.5px solid rgba(var(--ink-rgb),.10);padding-top:14px}
+.mini2 .mn .n{font-size:31px;font-weight:800;color:var(--accent);letter-spacing:-.02em;
+              font-variant-numeric:tabular-nums}
+.mini2 .mn .t{font-size:17px;color:var(--ink);margin-top:5px;line-height:1.3}
+
+/* ---- bridge question ------------------------------------------------------
+   The seam between two movements: one question the previous slide earned and
+   the next one answers, set like the cover and centred in the body band. The
+   question reuses .title-xl (88px Lora, spans in accent), so the emphasis
+   works exactly the way a cover title does. Nothing on the slide: no
+   icon, no takeaway, and no rail entry (data-group="bridge"), so the sidebar
+   stays the narrative outline. */
+.ask{display:flex;align-items:center;justify-content:center;min-height:100%;padding:0 60px}
+.ask .title-xl{max-width:1400px}
+
+/* ---- comparison, parallel structure ------------------------------------- */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:var(--radius-lg);
+         overflow:hidden;background:var(--surface)}
+.compare .side{padding:28px 34px}
+.compare .side+.side{border-left:1.5px solid rgba(var(--ink-rgb),.10)}
+.compare .chd{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.compare .chd .nm{font-size:27px;font-weight:800;letter-spacing:-.02em}
+.compare .chd .tg{font-size:14px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+                  color:var(--muted);margin-top:4px}
+.crow{display:grid;grid-template-columns:1fr 1fr;gap:16px 30px;align-items:center;
+      padding:13px 0;border-top:1px solid rgba(var(--ink-rgb),.09)}
+.crow .k{font-size:19px;color:var(--ink)}
+.crow .v{font-size:21px;font-weight:800;text-align:left;color:var(--text);
+         font-variant-numeric:tabular-nums}
+.crow .v.win{color:var(--accent)}
+.crow .v .ph{width:20px;height:20px;color:var(--accent);vertical-align:-2px;margin-left:6px}
+
+.grid3.tall{gap:22px}
+.grid3.tall .card{padding:32px 34px}
+.grid3.tall .qicon{width:92px;height:92px;min-width:92px;border-radius:20px}
+.grid3.tall .card h3{font-size:29px}
+.grid3.tall .desc{font-size:22px;padding:16px 18px;margin-top:18px}
+.grid3.tall .meta{margin-top:auto;padding-top:18px}
+
+/* ---- ladder: treads that touch, so the eye reads a stair ---------------- */
+.ladder{display:grid;grid-template-columns:repeat(5,1fr);
+        grid-template-rows:repeat(5,62px);gap:7px 12px}
+.rung{background:var(--accent);border-radius:14px;position:relative;
+      display:flex;align-items:flex-start;justify-content:center;padding-top:11px}
+.rung .rv{font-size:24px;font-weight:800;color:#fff;letter-spacing:-.02em;
+          font-variant-numeric:tabular-nums}
+.rung .rk{position:absolute;left:16px;top:14px;font-size:13px;font-weight:800;
+          letter-spacing:.11em;color:rgba(255,255,255,.72)}
+.ladlabels{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px}
+.ladlabels span{text-align:center;font-size:18px;font-weight:700;color:var(--ink);line-height:1.24}
+.ladlabels span i{display:block;font-style:normal;font-size:15px;color:var(--muted);
+                  font-weight:600;margin-top:3px}
+.ladfoot{display:flex;gap:12px;margin-top:24px;align-items:center}
+
+/* ---- numbered editorial list -------------------------------------------- */
+.numbered{display:flex;flex-direction:column}
+.numbered .row{display:grid;grid-template-columns:150px 1fr 250px;gap:34px;
+               align-items:center;padding:22px 0;border-top:1px solid rgba(var(--ink-rgb),.10)}
+.numbered .row:first-child{border-top:0}
+.numbered .row .idx{font-size:46px;font-weight:800;color:var(--accent);letter-spacing:-.02em}
+.numbered .row h4{font-size:28px;font-weight:700;margin-bottom:7px}
+.numbered .row p{font-size:21px;color:var(--ink);line-height:1.45}
+.numbered .row .nm{justify-self:end;text-align:right}
+.numbered .row .nm .who{font-size:19px;color:var(--ink);font-weight:700}
+.numbered .row .nm .when2{font-size:16px;color:var(--muted);margin-top:5px;
+                          letter-spacing:.06em;font-weight:700}
+
+/* ---- chart dominant columns --------------------------------------------- */
+.chartcol{display:grid;grid-template-columns:1fr 372px;gap:52px;align-items:stretch}
+.chartcol .viz{align-self:center}
+.readout{display:flex;flex-direction:column;justify-content:center;height:100%;
+         border-left:1.5px solid rgba(var(--ink-rgb),.10);padding-left:44px;gap:30px}
+.readout .ro{border-top:1px solid rgba(var(--ink-rgb),.10);padding-top:24px}
+.readout .ro:first-child{border-top:0;padding-top:0}
+.readout .ro .h{font-size:15px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+                color:var(--muted);display:flex;align-items:center;gap:9px}
+.readout .ro .h .ph{width:20px;height:20px;color:var(--accent)}
+.readout .ro .n{font-size:40px;font-weight:800;color:var(--accent);letter-spacing:-.02em;
+                margin-top:10px}
+.readout .ro .t{font-size:20px;color:var(--ink);line-height:1.42;margin-top:8px}
+
+/* ---- data table: hairline rows, right aligned numerals -------------------- */
+.dtable{width:100%;border-collapse:separate;border-spacing:0}
+.dtable th{font-size:15px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+           color:var(--muted);text-align:left;padding:0 20px 11px;
+           border-bottom:1px solid rgba(var(--ink-rgb),.14);white-space:nowrap}
+.dtable th.num,.dtable td.num{text-align:right;font-variant-numeric:tabular-nums}
+.dtable td{font-size:22px;padding:12px 20px;color:var(--ink);font-weight:500;
+           border-bottom:1px solid rgba(var(--ink-rgb),.09);white-space:nowrap}
+.dtable td.sv{color:var(--text);font-weight:700}
+.dtable td .svc{display:inline-flex;align-items:center;gap:13px}
+.dtable td .svc .ico{width:24px;height:24px;color:var(--muted);flex:none}
+.dtable td .svc .ico .ph{width:24px;height:24px}
+.dtable tr.hot td{background:var(--p1);color:var(--text);font-weight:700;
+                  padding-top:14px;padding-bottom:14px;border-bottom-color:transparent;
+                  margin:0 -20px}
+.dtable tr.hot td:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm);
+                              padding-left:20px;padding-right:20px}
+.dtable tr.hot td:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+                             padding-left:20px;padding-right:20px}
+.dtable tr.hot td .svc .ico{color:var(--accent)}
+.dtable td .dlt{font-weight:800}
+.dtable td .dlt.up{color:var(--pos,var(--accent))}
+.dtable td .dlt.dn{color:var(--neg,var(--muted))}
+.dtable tfoot td{border-bottom:0;padding-top:15px;font-size:23px;font-weight:800;
+                 color:var(--text)}
+.dtable tfoot td .tl{font-size:15px;font-weight:800;letter-spacing:.11em;
+                     text-transform:uppercase;color:var(--muted)}
+
+/* ---- the window frame already ships in this template's own <style> ----------
+   .shot, .shotbar, .dot, .shotimg and .shotcap are NOT repeated here. The only
+   addition the reconstructed code pane needs is breathing room inside the
+   "display" area, and the frame keeps its edge, its three tints and its
+   caption band exactly as template.html defines them. */
+.shotimg.has-code{padding:34px 44px;align-items:stretch}
+
+/* ---- reconstructed API exchange, set at presentation type size -------------
+   content_philosophy.md rule 4: a screenshot is almost always illegible, and
+   the exception is a reconstructed detail at presentation type size. This is
+   that exception, so it is 23px monospace, not a scaled-down capture. */
+.codepanes{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:56px}
+.codepane{min-width:0}
+.codepane .ct{display:flex;align-items:center;gap:11px;font-size:16px;font-weight:800;
+              letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+              margin-bottom:18px;padding-bottom:12px;border-bottom:1.5px solid rgba(var(--ink-rgb),.10)}
+.codepane .ct .ph{width:20px;height:20px;color:var(--accent)}
+.codeblock{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:23px;
+           line-height:1.62;color:var(--ink);white-space:pre}
+.codeblock b{color:var(--accent);font-weight:700}
+.codeblock i{font-style:normal;color:var(--text);font-weight:700}
+
+/* ---- mermaid: the nine self-drawing types, then theming, then the band -----
+   Order matters and it is the gallery's order. MERMAID.md section 4's block
+   ends with `.mmdwrap svg{height:auto!important}`, and the sizing recipe below
+   has to come AFTER it or that auto height wins and the drawing escapes the
+   band: the same source measured 505x566 in a 1432x430 box and came back
+   1432x1605, clipped at both ends of the stage. */
+.mermaid-fail{font-size:20px;color:var(--neg);font-weight:700;padding:20px}
+.mmdwrap .node-bkg{fill:var(--surface)!important;stroke:rgba(var(--ink-rgb),.12)!important;stroke-width:1.5px!important}
+.mmdwrap marker path,.mmdwrap marker polygon,.mmdwrap marker rect{
+  fill:var(--muted)!important;stroke:var(--muted)!important}
+.mmdwrap .edgePaths path{stroke:var(--muted)!important;fill:none!important}
+
+/* ==========================================================================
+   Mermaid light-canvas theming. MERMAID.md section 4. Anchor on .mmdwrap,
+   never .mermaid: the render step removes class="mermaid" once a node is
+   processed. Every declaration carries !important because Mermaid injects
+   ID-scoped rules that would otherwise win. */
+.mmddbwrap,.mmdwrap .node rect,.mmdwrap .node circle,.mmdwrap .node ellipse,
+.mmdwrap .node polygon,.mmdwrap .node path{
+  fill:var(--surface) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+  stroke-width:1.5px !important;
+  filter:none !important;
+}
+.mmdwrap .node rect,.mmdwrap .node circle,.mmdwrap .node ellipse{rx:18px;ry:18px !important}
+.mmdwrap .node .label,.mmdwrap .nodeLabel,.mmdwrap .label{color:var(--text) !important}
+.mmdwrap .node .label p,.mmdwrap .nodeLabel p{margin:0 !important}
+.mmdwrap .cluster rect{
+  fill:rgba(var(--ink-rgb),.05) !important;
+  stroke:rgba(var(--ink-rgb),.10) !important;
+  stroke-width:1.5px !important;
+  rx:24px;ry:24px !important;
+  filter:none !important;
+}
+.mmdwrap .cluster-label text,.mmdwrap .cluster-label span{color:var(--text) !important}
+.mmdwrap .edgePaths .path,.mmdwrap .flowchart-link{
+  stroke:var(--muted) !important;fill:none !important;
+}
+.mmdwrap .marker{fill:var(--muted) !important;stroke:var(--muted) !important}
+.mmdwrap .marker.cross{stroke:var(--muted) !important}
+.mmdwrap .edgeLabel rect{opacity:1 !important;fill:transparent !important;stroke:none !important}
+.mmdwrap .edgeLabel{background:transparent !important}
+.mmdwrap .edgeLabel p,.mmdwrap .edgeLabel span{
+  background:var(--bg) !important;color:var(--ink) !important;
+  border-radius:10px !important;padding:3px 10px !important;
+}
+.mmdwrap .edge-thickness-invisible{stroke-width:0 !important;fill:none!important}
+.mmdwrap foreignObject{overflow:visible !important}
+.mmdwrap svg{max-width:100% !important;height:auto !important}
+
+/* ---- sizing: this is the recipe that both fills the band and never
+   overflows it, and it is last so it outranks the height:auto above --------- */
+.mmdwrap{width:100%;height:100%;display:flex;
+         align-items:center;justify-content:center;overflow:hidden}
+.mmdwrap svg{width:100%!important;height:100%!important;
+             max-width:none!important;max-height:none!important}
+.mmdbox{width:100%;display:block;min-height:0}
+.mmdbox.tall{height:600px}
+.mmdbox.mid{height:430px}
+.mmdbox.short{height:240px}
+
+</style>
+</head>
+<!-- Background texture: ONE per deck, chosen here on <body> and never changed.
+     tex-dots below is a soft field, right for rounded marks and circles.
+     tex-grid is a ruled sheet, right for tables, matrices and timelines. -->
+<body class="tex-dots">
+<!--
+  Ten sample slides, each a DIFFERENT treatment, so the variety rule is visible
+  in the scaffold: cover flow, contents, three up card grid, two by two grid,
+  three steps, standing pill bars, hero split, share rings, pull close, and the
+  screenshot frame. Chrome carries icons on every slide except slide 4, which
+  shows the badge for a review date. Light only.
+
+  No slide states its own position in this file. relabel() writes the aria-label,
+  the aria-label from the real slide count, so
+  adding or deleting a slide cannot leave a stale "of 9" behind. Each section
+  carries only a data-name, which is the short description a screen reader reads
+  out after the position.
+-->
+
+<!-- 1. Cover. No top-right chrome on the cover: the title owns the slide. -->
+<section class="slide hero-slide" data-toc="Cover" data-name="cover" data-rail="phosphor/database">
+<header class="s-head" style="text-align:center"><h1 class="title-xl">Jev<br><span>TypeSafe AI's first<br>System One model</span></h1></header>
+<div class="s-body">
+<p class="subc">Unstructured state in, typed probabilistic decisions out, <b>70 to 500 milliseconds</b> later</p>
+<div class="cover-flow" style="margin-top:52px">
+<div class="cnode"><div class="circ" style="background:var(--p1)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/code"><path d="M71.68,97.22,34.74,128l36.94,30.78a12,12,0,1,1-15.36,18.44l-48-40a12,12,0,0,1,0-18.44l48-40A12,12,0,0,1,71.68,97.22Zm176,21.56-48-40a12,12,0,1,0-15.36,18.44L221.26,128l-36.94,30.78a12,12,0,1,0,15.36,18.44l48-40a12,12,0,0,0,0-18.44ZM164.1,28.72a12,12,0,0,0-15.38,7.18l-64,176a12,12,0,0,0,7.18,15.37A11.79,11.79,0,0,0,96,228a12,12,0,0,0,11.28-7.9l64-176A12,12,0,0,0,164.1,28.72Z"/></svg></div><div class="lbl">State in</div><div class="sub">A string, a JSON object, or an array of text</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p4)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightning"><path d="M219.71,117.38a12,12,0,0,0-7.25-8.52L161.28,88.39l10.59-70.61a12,12,0,0,0-20.64-10l-112,120a12,12,0,0,0,4.31,19.33l51.18,20.47L84.13,238.22a12,12,0,0,0,20.64,10l112-120A12,12,0,0,0,219.71,117.38ZM113.6,203.55l6.27-41.77a12,12,0,0,0-7.41-12.92L68.74,131.37,142.4,52.45l-6.27,41.77a12,12,0,0,0,7.41,12.92l43.72,17.49Z"/></svg></div><div class="lbl">One parallel pass</div><div class="sub">Every typed question, answered at once</div></div>
+<div class="glue">›</div>
+<div class="cnode"><div class="circ" style="background:var(--p3)"><svg class="ph xl" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/git-branch"><path d="M236,64a36,36,0,1,0-48,33.94V112a4,4,0,0,1-4,4H96a27.8,27.8,0,0,0-4,.29V97.94a36,36,0,1,0-24,0v60.12a36,36,0,1,0,24,0V144a4,4,0,0,1,4-4h88a28,28,0,0,0,28-28V97.94A36.07,36.07,0,0,0,236,64ZM80,52A12,12,0,1,1,68,64,12,12,0,0,1,80,52Zm0,152a12,12,0,1,1,12-12A12,12,0,0,1,80,204ZM200,76a12,12,0,1,1,12-12A12,12,0,0,1,200,76Z"/></svg></div><div class="lbl">Typed decisions out</div><div class="sub">Your code branches on a probability, not a paragraph</div></div>
+</div>
+<div class="chiprow" style="justify-content:center;margin-top:44px"><span class="chip">Released 15 Sep 2026</span><span class="chip">jev-1.13.0</span><span class="chip">Early access, San Francisco</span></div>
+</div>
+<footer class="s-foot"></footer>
+
+</section>
+
+<!-- 2. The friction. One pair, five identical rows, read down before across. -->
+<section class="slide" data-toc="Optimised for people" data-name="two column comparison" data-rail="phosphor/copy">
+<header class="s-head"><h2 class="head">RLHF optimised every frontier model for a person on the other side of the screen</h2><p class="sub">Same five rows on both sides.</p></header>
+<div class="s-body">
+<div class="compare">
+<div class="side">
+<div class="chd"><div class="qicon sm" style="background:var(--p1)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chat-circle"><path d="M128,20A108,108,0,0,0,31.85,177.23L21,209.66A20,20,0,0,0,46.34,235l32.43-10.81A108,108,0,1,0,128,20Zm0,192a84,84,0,0,1-42.06-11.27,12,12,0,0,0-6-1.62,12.1,12.1,0,0,0-3.8.62l-29.79,9.93,9.93-29.79a12,12,0,0,0-1-9.81A84,84,0,1,1,128,212Z"/></svg></div><div><div class="nm">Chat models</div><div class="tg">What we have</div></div></div>
+<div class="crow"><div class="k">What it optimises</div><div class="v">Human preference</div></div>
+<div class="crow"><div class="k">What it emits</div><div class="v">Strings</div></div>
+<div class="crow"><div class="k">How it samples</div><div class="v">One token at a time</div></div>
+<div class="crow"><div class="k">How it sounds certain</div><div class="v">Often overconfident</div></div>
+<div class="crow"><div class="k">Where it runs</div><div class="v">With a human reading</div></div>
+</div>
+<div class="side">
+<div class="chd"><div class="qicon sm" style="background:var(--p5)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/code"><path d="M71.68,97.22,34.74,128l36.94,30.78a12,12,0,1,1-15.36,18.44l-48-40a12,12,0,0,1,0-18.44l48-40A12,12,0,0,1,71.68,97.22Zm176,21.56-48-40a12,12,0,1,0-15.36,18.44L221.26,128l-36.94,30.78a12,12,0,1,0,15.36,18.44l48-40a12,12,0,0,0,0-18.44ZM164.1,28.72a12,12,0,0,0-15.38,7.18l-64,176a12,12,0,0,0,7.18,15.37A11.79,11.79,0,0,0,96,228a12,12,0,0,0,11.28-7.9l64-176A12,12,0,0,0,164.1,28.72Z"/></svg></div><div><div class="nm">System One</div><div class="tg">What software needs</div></div></div>
+<div class="crow"><div class="k">What it optimises</div><div class="v win">Calibrated decisions</div></div>
+<div class="crow"><div class="k">What it emits</div><div class="v win">Typed values</div></div>
+<div class="crow"><div class="k">How it samples</div><div class="v win">Every answer at once</div></div>
+<div class="crow"><div class="k">How it sounds certain</div><div class="v win">A score on every answer</div></div>
+<div class="crow"><div class="k">Where it runs</div><div class="v win">Unattended</div></div>
+</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/bell"><path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/></svg>Each goal on the left quietly assumes a person is on the other end.</div></footer>
+
+</section>
+
+<!-- 3. The bridge. One question the previous slide earned, asked before it is
+     answered. data-group="bridge" keeps it out of the rail. -->
+<section class="slide" data-name="bridge question" data-group="bridge">
+<header class="s-head"></header>
+<div class="s-body">
+<div class="ask"><p class="title-xl">So what does a model built to be <span>called</span> rather than <span class="sketch">read by a person</span> look like?</p></div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+
+<!-- 4. Diagram full band. A fan-out and a fan-in: one request, four fields of
+     the response, one branch. A flowchart earns its place on a convergence. -->
+<section class="slide" data-toc="One request" data-name="response shape diagram" data-rail="phosphor/graph">
+<header class="s-head"><h2 class="head">One POST in, and every field of the response is already code</h2><p class="sub">Jev evaluates all your typed questions in one pass and hands back one typed value per question.</p></header>
+<div class="s-body">
+<div class="mmdbox mid">
+<pre class="mermaid">
+---
+config: {look: classic, fontFamily: 'Nunito, Inter, sans-serif'}
+---
+flowchart TD
+    req@{ shape: rounded, label: "POST /v1/systemone&#10;state + questions + model" } --> val@{ shape: rounded, label: "one typed value per question&#10;choice · score · noul" }
+    req --> prob@{ shape: rounded, label: "probabilities&#10;the full distribution" }
+    req --> conf@{ shape: rounded, label: "confidence&#10;0 to 1, on choice and score" }
+    val --> br@{ shape: rounded, label: "your code branches on the number" }
+    prob --> br
+    conf --> br
+</pre>
+</div>
+<div class="mini2" style="margin-top:30px">
+<div class="mn"><div class="n">392</div><div class="t">input tokens on the worked example in the docs, and output tokens are free</div></div>
+<div class="mn"><div class="n">0</div><div class="t">schema mismatches possible: the answer space is defined in the request</div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/check-circle"><path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/></svg>There is no prose to parse, so there is no regex, no retry loop, and no malformed branch to handle.</div></footer>
+
+</section>
+
+<!-- 5. Three primitives. Equal weight is the point, so a plain 2x2-free grid. -->
+<section class="slide" data-toc="Three primitives" data-name="three card grid" data-rail="phosphor/list-checks">
+<header class="s-head"><h2 class="head">Three question types cover the decisions software actually has to make</h2><p class="sub">Mix all three in one call; each is evaluated independently.</p></header>
+<div class="s-body">
+<div class="grid3 tall">
+<div class="card"><div class="qhead"><div class="qicon"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/list-checks"><path d="M228,128a12,12,0,0,1-12,12H128a12,12,0,0,1,0-24h88A12,12,0,0,1,228,128ZM128,76h88a12,12,0,0,0,0-24H128a12,12,0,0,0,0,24Zm88,104H128a12,12,0,0,0,0,24h88a12,12,0,0,0,0-24ZM79.51,39.51,56,63l-7.51-7.52a12,12,0,0,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,127l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,191l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>One of your options</div><h3>Choice</h3></div></div><p class="desc">Up to <b>255</b> labelled keys. Returns the winner, a probability for each, and a confidence.</p><div class="meta"><b>Key point:</b> <i>department: "technical", 0.85</i></div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sliders"><path d="M68,102.06V40a12,12,0,0,0-24,0v62.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V169.94a36,36,0,0,0,0-67.88ZM56,148a12,12,0,1,1,12-12A12,12,0,0,1,56,148ZM164,88a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0V54.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V121.94A36.07,36.07,0,0,0,164,88Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,128,100Zm108,68a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0v94.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V201.94A36.07,36.07,0,0,0,236,168Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,200,180Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>A position on a scale</div><h3>Score</h3></div></div><p class="desc">A <b>2 to 10 level</b> rubric you define. Returns a fractional score and the distribution over levels.</p><div class="meta"><b>Key point:</b> <i>severity: 7.2 of 10, confidence 0.61</i></div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/question"><path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>A number from 0 to 1</div><h3>Noul</h3></div></div><p class="desc">A calibrated probability from <b>0 to 1</b>. No bare boolean to guess at.</p><div class="meta"><b>Key point:</b> <i>is_urgent: 0.94, so page on-call</i></div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightning"><path d="M219.71,117.38a12,12,0,0,0-7.25-8.52L161.28,88.39l10.59-70.61a12,12,0,0,0-20.64-10l-112,120a12,12,0,0,0,4.31,19.33l51.18,20.47L84.13,238.22a12,12,0,0,0,20.64,10l112-120A12,12,0,0,0,219.71,117.38ZM113.6,203.55l6.27-41.77a12,12,0,0,0-7.41-12.92L68.74,131.37,142.4,52.45l-6.27,41.77a12,12,0,0,0,7.41,12.92l43.72,17.49Z"/></svg>Ask four narrow questions, not one broad one, then weight them in code.</div></footer>
+
+</section>
+
+<!-- 6. Ladder. Five treads that touch, so the eye reads a stair and not five
+     bars. This deck's reading of what schema validation costs a caller. -->
+<section class="slide" data-toc="The ladder" data-name="ladder" data-rail="phosphor/ladder">
+<header class="s-head"><h2 class="head">Every LLM answer today is a ladder your code has to climb</h2><p class="sub">Our reading of what structured output costs the caller, in the order the work happens.</p></header>
+<div class="s-body">
+<div class="ladder">
+<div class="rung" style="grid-row:5/6;grid-column:1"><span class="rk">Rung 01</span><span class="rv"><svg class="ph xs" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/chat-circle"><path d="M128,20A108,108,0,0,0,31.85,177.23L21,209.66A20,20,0,0,0,46.34,235l32.43-10.81A108,108,0,1,0,128,20Zm0,192a84,84,0,0,1-42.06-11.27,12,12,0,0,0-6-1.62,12.1,12.1,0,0,0-3.8.62l-29.79,9.93,9.93-29.79a12,12,0,0,0-1-9.81A84,84,0,1,1,128,212Z"/></svg></span></div>
+<div class="rung" style="grid-row:4/6;grid-column:2"><span class="rk">Rung 02</span><span class="rv"><svg class="ph xs" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/brackets-curly"><path d="M54.8,119.49A35.06,35.06,0,0,1,49.05,128a35.06,35.06,0,0,1,5.75,8.51C60,147.24,60,159.83,60,172c0,25.94,1.84,32,20,32a12,12,0,0,1,0,24c-19.14,0-32.2-6.9-38.8-20.51C36,196.76,36,184.17,36,172c0-25.94-1.84-32-20-32a12,12,0,0,1,0-24c18.16,0,20-6.06,20-32,0-12.17,0-24.76,5.2-35.49C47.8,34.9,60.86,28,80,28a12,12,0,0,1,0,24c-18.16,0-20,6.06-20,32C60,96.17,60,108.76,54.8,119.49ZM240,116c-18.16,0-20-6.06-20-32,0-12.17,0-24.76-5.2-35.49C208.2,34.9,195.14,28,176,28a12,12,0,0,0,0,24c18.16,0,20,6.06,20,32,0,12.17,0,24.76,5.2,35.49A35.06,35.06,0,0,0,207,128a35.06,35.06,0,0,0-5.75,8.51C196,147.24,196,159.83,196,172c0,25.94-1.84,32-20,32a12,12,0,0,0,0,24c19.14,0,32.2-6.9,38.8-20.51C220,196.76,220,184.17,220,172c0-25.94,1.84-32,20-32a12,12,0,0,0,0-24Z"/></svg></span></div>
+<div class="rung" style="grid-row:3/6;grid-column:3"><span class="rk">Rung 03</span><span class="rv"><svg class="ph xs" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/flow-arrow"><path d="M248.49,71.51l-32-32a12,12,0,0,0-17,17L211,68h-3c-52,0-64.8,30.71-75.08,55.38-8.82,21.17-15.45,37.05-42.75,40.09a44,44,0,1,0,.28,24.08c43.34-3.87,55.07-32,64.63-54.93C164.9,109,172,92,208,92h3l-11.52,11.51a12,12,0,0,0,17,17l32-32A12,12,0,0,0,248.49,71.51ZM48,196a20,20,0,1,1,20-20A20,20,0,0,1,48,196Z"/></svg></span></div>
+<div class="rung" style="grid-row:2/6;grid-column:4"><span class="rk">Rung 04</span><span class="rv"><svg class="ph xs" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/check-square"><path d="M79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0ZM228,48V208a20,20,0,0,1-20,20H48a20,20,0,0,1-20-20V48A20,20,0,0,1,48,28H208A20,20,0,0,1,228,48Zm-24,4H52V204H204Z"/></svg></span></div>
+<div class="rung" style="grid-row:1/6;grid-column:5"><span class="rk">Rung 05</span><span class="rv"><svg class="ph xs" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/arrows-clockwise"><path d="M228,48V96a12,12,0,0,1-12,12H168a12,12,0,0,1,0-24h19l-7.8-7.8a75.55,75.55,0,0,0-53.32-22.26h-.43A75.49,75.49,0,0,0,72.39,75.57,12,12,0,1,1,55.61,58.41a99.38,99.38,0,0,1,69.87-28.47H126A99.42,99.42,0,0,1,196.2,59.23L204,67V48a12,12,0,0,1,24,0ZM183.61,180.43a75.49,75.49,0,0,1-53.09,21.63h-.43A75.55,75.55,0,0,1,76.77,179.8L69,172H88a12,12,0,0,0,0-24H40a12,12,0,0,0-12,12v48a12,12,0,0,0,24,0V189l7.8,7.8A99.42,99.42,0,0,0,130,226.06h.56a99.38,99.38,0,0,0,69.87-28.47,12,12,0,0,0-16.78-17.16Z"/></svg></span></div>
+</div>
+<div class="ladlabels"><span>Ask the model<i>a paragraph, or a schema</i></span><span>Parse the string<i>into a value</i></span><span>Validate it<i>against your type</i></span><span>Retry on failure<i>and pay again</i></span><span>Branch<i>the only part you wanted</i></span></div>
+<div class="ladfoot"><div class="chiprow"><span class="chip">five rungs, one call each</span><span class="chip">the failure mode is a throw</span><span class="chip">the cost is per retry</span></div></div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/arrows-clockwise"><path d="M228,48V96a12,12,0,0,1-12,12H168a12,12,0,0,1,0-24h19l-7.8-7.8a75.55,75.55,0,0,0-53.32-22.26h-.43A75.49,75.49,0,0,0,72.39,75.57,12,12,0,1,1,55.61,58.41a99.38,99.38,0,0,1,69.87-28.47H126A99.42,99.42,0,0,1,196.2,59.23L204,67V48a12,12,0,0,1,24,0ZM183.61,180.43a75.49,75.49,0,0,1-53.09,21.63h-.43A75.55,75.55,0,0,1,76.77,179.8L69,172H88a12,12,0,0,0,0-24H40a12,12,0,0,0-12,12v48a12,12,0,0,0,24,0V189l7.8,7.8A99.42,99.42,0,0,0,130,226.06h.56a99.38,99.38,0,0,0,69.87-28.47,12,12,0,0,0-16.78-17.16Z"/></svg>TypeSafe's claim is that you can delete the first four rungs, not that the fifth one gets easier.</div></footer>
+
+</section>
+
+<!-- 7. Stat rail: four equal published numbers, and the caveat that makes them
+     honest. -->
+<section class="slide" data-toc="Speed and cost" data-name="stat rail" data-rail="phosphor/gauge">
+<header class="s-head"><h2 class="head">Seventy milliseconds to half a second, and a fraction of a cent a decision</h2><p class="sub">What TypeSafe publishes for Jev 1.13.</p></header>
+<div class="s-body">
+<div class="stat-rail">
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/timer"><path d="M128,44a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,44Zm0,168a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,212ZM164.49,99.51a12,12,0,0,1,0,17l-28,28a12,12,0,0,1-17-17l28-28A12,12,0,0,1,164.49,99.51ZM92,16A12,12,0,0,1,104,4h48a12,12,0,0,1,0,24H104A12,12,0,0,1,92,16Z"/></svg>Latency</div><div class="n">70–500 ms</div><div class="t">end to end, against <b>3 to 329 seconds</b> for frontier models</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightning"><path d="M219.71,117.38a12,12,0,0,0-7.25-8.52L161.28,88.39l10.59-70.61a12,12,0,0,0-20.64-10l-112,120a12,12,0,0,0,4.31,19.33l51.18,20.47L84.13,238.22a12,12,0,0,0,20.64,10l112-120A12,12,0,0,0,219.71,117.38ZM113.6,203.55l6.27-41.77a12,12,0,0,0-7.41-12.92L68.74,131.37,142.4,52.45l-6.27,41.77a12,12,0,0,0,7.41,12.92l43.72,17.49Z"/></svg>Speedup</div><div class="n">40–200×</div><div class="t">at the same intelligence on System One work</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/coins"><path d="M188,86.11V84c0-14.62-10.83-27.55-30.51-36.4C140.87,40.12,119,36,96,36S51.13,40.12,34.51,47.6C14.83,56.45,4,69.38,4,84v40c0,14.62,10.83,27.55,30.51,36.4A131.67,131.67,0,0,0,68,169.88V172c0,14.62,10.83,27.55,30.51,36.4C115.13,215.88,137,220,160,220s44.87-4.12,61.49-11.6C241.17,199.55,252,186.62,252,172V132C252,109.86,226.71,92.08,188,86.11ZM228,132c0,7.75-21.77,22.48-61.81,23.88C180.33,147.4,188,136.3,188,124V110.44C213.88,115.15,228,125.48,228,132ZM107.37,147.63c-3.63.24-7.42.37-11.37.37-5.08,0-9.89-.22-14.43-.61a10.94,10.94,0,0,0-1.14-.09c-1.51-.14-3-.3-4.43-.48V130.93A187,187,0,0,0,96,132a187,187,0,0,0,20-1.07v15.89c-2.49.3-5.07.56-7.75.75C108,147.58,107.66,147.6,107.37,147.63ZM164,117.14V124c0,4.78-8.28,12.21-24,17.54v-15a115.32,115.32,0,0,0,17.49-6.13Q160.93,118.86,164,117.14ZM96,60c44,0,68,15.85,68,24s-24,24-68,24S28,92.15,28,84,52,60,96,60ZM28,124v-6.86q3.08,1.71,6.51,3.26A115.32,115.32,0,0,0,52,126.53v15C36.28,136.21,28,128.78,28,124Zm64,48v0c1.33,0,2.66,0,4,0q5.44,0,10.77-.32,4.45,1.57,9.23,2.86v15C100.28,184.21,92,176.78,92,172Zm48,22.82V178.94A186.45,186.45,0,0,0,160,180a187,187,0,0,0,20-1.07v15.89a170.08,170.08,0,0,1-40,0Zm64-5.28v-15a115.32,115.32,0,0,0,17.49-6.13q3.44-1.54,6.51-3.26V172C228,176.78,219.72,184.21,204,189.54Z"/></svg>Input price</div><div class="n">$42</div><div class="t">per <b>billion</b> input tokens: 238× below Claude Fable 5.1</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sparkle"><path d="M199,125.31l-49.88-18.39L130.69,57a19.92,19.92,0,0,0-37.38,0L74.92,106.92,25,125.31a19.92,19.92,0,0,0,0,37.38l49.88,18.39L93.31,231a19.92,19.92,0,0,0,37.38,0l18.39-49.88L199,162.69a19.92,19.92,0,0,0,0-37.38Zm-63.38,35.16a12,12,0,0,0-7.11,7.11L112,212.28l-16.47-44.7a12,12,0,0,0-7.11-7.11L43.72,144l44.7-16.47a12,12,0,0,0,7.11-7.11L112,75.72l16.47,44.7a12,12,0,0,0,7.11,7.11L180.28,144ZM140,40a12,12,0,0,1,12-12h12V16a12,12,0,0,1,24,0V28h12a12,12,0,0,1,0,24H188V64a12,12,0,0,1-24,0V52H152A12,12,0,0,1,140,40ZM252,88a12,12,0,0,1-12,12h-4v4a12,12,0,0,1-24,0v-4h-4a12,12,0,0,1,0-24h4V72a12,12,0,0,1,24,0v4h4A12,12,0,0,1,252,88Z"/></svg>Output price</div><div class="n">Free</div><div class="t">billed on input only: there is no output string</div></div>
+</div>
+<div class="gapnote" style="margin-top:32px"><span class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/info"><path d="M108,84a16,16,0,1,1,16,16A16,16,0,0,1,108,84Zm128,44A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Zm-72,36.68V132a20,20,0,0,0-20-20,12,12,0,0,0-4,23.32V168a20,20,0,0,0,20,20,12,12,0,0,0,4-23.32Z"/></svg>Caveat</span>TypeSafe ran these evaluations from laptops on the US West Coast, and says it cannot yet prove the price is not subsidised.</div>
+<div class="mini2" style="margin-top:28px">
+<div class="panel"><div class="pt"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sparkle"><path d="M199,125.31l-49.88-18.39L130.69,57a19.92,19.92,0,0,0-37.38,0L74.92,106.92,25,125.31a19.92,19.92,0,0,0,0,37.38l49.88,18.39L93.31,231a19.92,19.92,0,0,0,37.38,0l18.39-49.88L199,162.69a19.92,19.92,0,0,0,0-37.38Zm-63.38,35.16a12,12,0,0,0-7.11,7.11L112,212.28l-16.47-44.7a12,12,0,0,0-7.11-7.11L43.72,144l44.7-16.47a12,12,0,0,0,7.11-7.11L112,75.72l16.47,44.7a12,12,0,0,0,7.11,7.11L180.28,144ZM140,40a12,12,0,0,1,12-12h12V16a12,12,0,0,1,24,0V28h12a12,12,0,0,1,0,24H188V64a12,12,0,0,1-24,0V52H152A12,12,0,0,1,140,40ZM252,88a12,12,0,0,1-12,12h-4v4a12,12,0,0,1-24,0v-4h-4a12,12,0,0,1,0-24h4V72a12,12,0,0,1,24,0v4h4A12,12,0,0,1,252,88Z"/></svg>Why output is free</div><div class="meta" style="margin-top:0">There are <b>no output tokens</b> because the answer is a value, not a sequence of them.</div></div>
+<div class="panel"><div class="pt"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightning"><path d="M219.71,117.38a12,12,0,0,0-7.25-8.52L161.28,88.39l10.59-70.61a12,12,0,0,0-20.64-10l-112,120a12,12,0,0,0,4.31,19.33l51.18,20.47L84.13,238.22a12,12,0,0,0,20.64,10l112-120A12,12,0,0,0,219.71,117.38ZM113.6,203.55l6.27-41.77a12,12,0,0,0-7.41-12.92L68.74,131.37,142.4,52.45l-6.27,41.77a12,12,0,0,0,7.41,12.92l43.72,17.49Z"/></svg>What half a second buys</div><div class="meta" style="margin-top:0">One decision per request, or per block on a chain, with <b>no queue in front of it.</b></div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg>Cheaper intelligence is not a discount. It is more branches your code is allowed to take.</div></footer>
+
+</section>
+
+<!-- 8. The rest of the contract, as a table. One row tinted: the price. -->
+<section class="slide" data-toc="The contract" data-name="spec table" data-rail="phosphor/table">
+<header class="s-head"><h2 class="head">Everything else in the contract is a published limit you can check</h2><p class="sub">Jev 1.13.0, as documented.</p></header>
+<div class="s-body">
+<table class="dtable">
+<thead><tr><th>Setting</th><th>Published value</th><th>What it means for you</th></tr></thead>
+<tbody>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/calculator"><path d="M200,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V40A20,20,0,0,0,200,20Zm-4,192H60V44H196ZM80,76A12,12,0,0,1,92,64h72a12,12,0,0,1,0,24H92A12,12,0,0,1,80,76Zm40,52a16,16,0,1,1-16-16A16,16,0,0,1,120,128Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,128Zm-48,48a16,16,0,1,1-16-16A16,16,0,0,1,120,176Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,176Z"/></svg></span>Model id</span></td><td>jev-1.13.0</td><td>Alias <i>jev-latest</i> moves on release; pin the id to keep thresholds stable</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></span>Context per request</span></td><td>64k tokens</td><td>32k of that is the state plus the single longest question</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg></span>Rate limits</span></td><td>100k tok/s, 80 req/s</td><td>Adjusting dynamically while GPU capacity lands</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/file-text"><path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/></svg></span>Input</span></td><td>Text only</td><td>String, JSON object, or array of text. No image, audio, or video yet</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/globe"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,187a113.4,113.4,0,0,1-20.39-35h40.82a116.94,116.94,0,0,1-10,20.77A108.61,108.61,0,0,1,128,207Zm-26.49-59a135.42,135.42,0,0,1,0-40h53a135.42,135.42,0,0,1,0,40ZM44,128a83.49,83.49,0,0,1,2.43-20H77.25a160.63,160.63,0,0,0,0,40H46.43A83.49,83.49,0,0,1,44,128Zm84-79a113.4,113.4,0,0,1,20.39,35H107.59a116.94,116.94,0,0,1,10-20.77A108.61,108.61,0,0,1,128,49Zm50.73,59h30.82a83.52,83.52,0,0,1,0,40H178.75a160.63,160.63,0,0,0,0-40Zm20.77-24H173.71a140.82,140.82,0,0,0-15.5-34.36A84.51,84.51,0,0,1,199.52,84ZM97.79,49.64A140.82,140.82,0,0,0,82.29,84H56.48A84.51,84.51,0,0,1,97.79,49.64ZM56.48,172H82.29a140.82,140.82,0,0,0,15.5,34.36A84.51,84.51,0,0,1,56.48,172Zm101.73,34.36A140.82,140.82,0,0,0,173.71,172h25.81A84.51,84.51,0,0,1,158.21,206.36Z"/></svg></span>Language</span></td><td>English best</td><td>CJK handled but not equally well; route on confidence if you use it</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/shield-check"><path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/></svg></span>Your data</span></td><td>Never trained on</td><td>The same weights serve every account; no fine-tuning per customer</td></tr>
+<tr class="hot"><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/coins"><path d="M188,86.11V84c0-14.62-10.83-27.55-30.51-36.4C140.87,40.12,119,36,96,36S51.13,40.12,34.51,47.6C14.83,56.45,4,69.38,4,84v40c0,14.62,10.83,27.55,30.51,36.4A131.67,131.67,0,0,0,68,169.88V172c0,14.62,10.83,27.55,30.51,36.4C115.13,215.88,137,220,160,220s44.87-4.12,61.49-11.6C241.17,199.55,252,186.62,252,172V132C252,109.86,226.71,92.08,188,86.11ZM228,132c0,7.75-21.77,22.48-61.81,23.88C180.33,147.4,188,136.3,188,124V110.44C213.88,115.15,228,125.48,228,132ZM107.37,147.63c-3.63.24-7.42.37-11.37.37-5.08,0-9.89-.22-14.43-.61a10.94,10.94,0,0,0-1.14-.09c-1.51-.14-3-.3-4.43-.48V130.93A187,187,0,0,0,96,132a187,187,0,0,0,20-1.07v15.89c-2.49.3-5.07.56-7.75.75C108,147.58,107.66,147.6,107.37,147.63ZM164,117.14V124c0,4.78-8.28,12.21-24,17.54v-15a115.32,115.32,0,0,0,17.49-6.13Q160.93,118.86,164,117.14ZM96,60c44,0,68,15.85,68,24s-24,24-68,24S28,92.15,28,84,52,60,96,60ZM28,124v-6.86q3.08,1.71,6.51,3.26A115.32,115.32,0,0,0,52,126.53v15C36.28,136.21,28,128.78,28,124Zm64,48v0c1.33,0,2.66,0,4,0q5.44,0,10.77-.32,4.45,1.57,9.23,2.86v15C100.28,184.21,92,176.78,92,172Zm48,22.82V178.94A186.45,186.45,0,0,0,160,180a187,187,0,0,0,20-1.07v15.89a170.08,170.08,0,0,1-40,0Zm64-5.28v-15a115.32,115.32,0,0,0,17.49-6.13q3.44-1.54,6.51-3.26V172C228,176.78,219.72,184.21,204,189.54Z"/></svg></span>Price</span></td><td>$42 per Btok</td><td>Input only. Output is free. Prepaid credit from $5</td></tr>
+</tbody>
+</table>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/table"><path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/></svg>A closed-weight hosted model, reached by one Bearer-authenticated POST.</div></footer>
+
+</section>
+
+<!-- 9. The surface break: one 172px figure, two supporting tiles, one caveat. -->
+<section class="slide" data-toc="Their benchmark" data-name="one big number" data-rail="phosphor/lightning">
+<header class="s-head"><h2 class="head sm">On their own workflows, TypeSafe reports 193.6× faster and 444.6× cheaper</h2><p class="sub">Their headline claim, their recorded run, and the caveats printed next to it.</p></header>
+<div class="s-body">
+<div class="hero-split">
+<div class="lead bigstat"><div class="n">193.6<span class="x">×</span></div><div class="cap">faster than frontier LLMs<br>on the same workflow</div></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px">
+<div class="stat-rail" style="grid-template-columns:1fr 1fr">
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/coins"><path d="M188,86.11V84c0-14.62-10.83-27.55-30.51-36.4C140.87,40.12,119,36,96,36S51.13,40.12,34.51,47.6C14.83,56.45,4,69.38,4,84v40c0,14.62,10.83,27.55,30.51,36.4A131.67,131.67,0,0,0,68,169.88V172c0,14.62,10.83,27.55,30.51,36.4C115.13,215.88,137,220,160,220s44.87-4.12,61.49-11.6C241.17,199.55,252,186.62,252,172V132C252,109.86,226.71,92.08,188,86.11ZM228,132c0,7.75-21.77,22.48-61.81,23.88C180.33,147.4,188,136.3,188,124V110.44C213.88,115.15,228,125.48,228,132ZM107.37,147.63c-3.63.24-7.42.37-11.37.37-5.08,0-9.89-.22-14.43-.61a10.94,10.94,0,0,0-1.14-.09c-1.51-.14-3-.3-4.43-.48V130.93A187,187,0,0,0,96,132a187,187,0,0,0,20-1.07v15.89c-2.49.3-5.07.56-7.75.75C108,147.58,107.66,147.6,107.37,147.63ZM164,117.14V124c0,4.78-8.28,12.21-24,17.54v-15a115.32,115.32,0,0,0,17.49-6.13Q160.93,118.86,164,117.14ZM96,60c44,0,68,15.85,68,24s-24,24-68,24S28,92.15,28,84,52,60,96,60ZM28,124v-6.86q3.08,1.71,6.51,3.26A115.32,115.32,0,0,0,52,126.53v15C36.28,136.21,28,128.78,28,124Zm64,48v0c1.33,0,2.66,0,4,0q5.44,0,10.77-.32,4.45,1.57,9.23,2.86v15C100.28,184.21,92,176.78,92,172Zm48,22.82V178.94A186.45,186.45,0,0,0,160,180a187,187,0,0,0,20-1.07v15.89a170.08,170.08,0,0,1-40,0Zm64-5.28v-15a115.32,115.32,0,0,0,17.49-6.13q3.44-1.54,6.51-3.26V172C228,176.78,219.72,184.21,204,189.54Z"/></svg>Cheaper</div><div class="n">444.6×</div><div class="t">same workflow, measured against their own evals site</div></div>
+<div class="st"><div class="hd"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/timer"><path d="M128,44a96,96,0,1,0,96,96A96.11,96.11,0,0,0,128,44Zm0,168a72,72,0,1,1,72-72A72.08,72.08,0,0,1,128,212ZM164.49,99.51a12,12,0,0,1,0,17l-28,28a12,12,0,0,1-17-17l28-28A12,12,0,0,1,164.49,99.51ZM92,16A12,12,0,0,1,104,4h48a12,12,0,0,1,0,24H104A12,12,0,0,1,92,16Z"/></svg>Recorded run</div><div class="n">75×</div><div class="t">0.114 s against 8.566 s, and $0.000081 against $0.013880</div></div>
+</div>
+<div class="gapnote"><span class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/info"><path d="M108,84a16,16,0,1,1,16,16A16,16,0,0,1,108,84Zm128,44A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Zm-72,36.68V132a20,20,0,0,0-20-20,12,12,0,0,0-4,23.32V168a20,20,0,0,0,20,20,12,12,0,0,0,4-23.32Z"/></svg>Caveat</span>TypeSafe says 193.6× and 444.6× are the high end of real-world gains, that the workflows were written by their own capabilities team, and that the reference answers are the average of two frontier models. Nobody outside the company has reproduced this.</div>
+</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/crosshair"><path d="M232,116h-4.72A100.21,100.21,0,0,0,140,28.72V24a12,12,0,0,0-24,0v4.72A100.21,100.21,0,0,0,28.72,116H24a12,12,0,0,0,0,24h4.72A100.21,100.21,0,0,0,116,227.28V232a12,12,0,0,0,24,0v-4.72A100.21,100.21,0,0,0,227.28,140H232a12,12,0,0,0,0-24Zm-92,87v-3a12,12,0,0,0-24,0v3a76.15,76.15,0,0,1-63-63h3a12,12,0,0,0,0-24H53a76.15,76.15,0,0,1,63-63v3a12,12,0,0,0,24,0V53a76.15,76.15,0,0,1,63,63h-3a12,12,0,0,0,0,24h3A76.15,76.15,0,0,1,140,203ZM128,84a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,84Zm0,64a20,20,0,1,1,20-20A20,20,0,0,1,128,148Z"/></svg>The recorded run is the checkable number: same workflow, both costs and both clocks printed.</div></footer>
+
+</section>
+
+<!-- 10. Diagram full band, but a cycle this time: the training loop is the
+     shape that earns a flowchart. -->
+<section class="slide" data-toc="RLCD" data-name="training loop diagram" data-rail="phosphor/target">
+<header class="s-head"><h2 class="head">Training scores the probability against the outcome, not the wording against a rater</h2><p class="sub">Reinforcement Learning for Calibrated Decisions, as TypeSafe describes it.</p></header>
+<div class="s-body">
+<div class="mmdbox" style="height:288px">
+<pre class="mermaid">
+---
+config: {look: classic, fontFamily: 'Nunito, Inter, sans-serif'}
+---
+flowchart LR
+    task@{ shape: rounded, label: "1 A System One task&#10;structured state, typed question" } --> pred@{ shape: rounded, label: "2 Jev returns a distribution&#10;not a string" }
+    pred --> real@{ shape: rounded, label: "3 The outcome happens&#10;refund granted, ticket routed" }
+    real --> score@{ shape: rounded, label: "4 Score the predicted probability&#10;against what actually occurred" }
+    score --> upd@{ shape: rounded, label: "5 RLCD update: reward&#10;distributions that were honest" }
+    upd -.->|"the next task, and a sharper calibration"| task
+</pre>
+</div>
+<div class="mini2" style="margin-top:34px">
+<div class="panel"><div class="pt"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/users"><path d="M125.18,156.94a64,64,0,1,0-82.36,0,100.23,100.23,0,0,0-39.49,32,12,12,0,0,0,19.35,14.2,76,76,0,0,1,122.64,0,12,12,0,0,0,19.36-14.2A100.33,100.33,0,0,0,125.18,156.94ZM44,108a40,40,0,1,1,40,40A40,40,0,0,1,44,108Zm206.1,97.67a12,12,0,0,1-16.78-2.57A76.31,76.31,0,0,0,172,172a12,12,0,0,1,0-24,40,40,0,1,0-10.3-78.67,12,12,0,1,1-6.16-23.19,64,64,0,0,1,57.64,110.8,100.23,100.23,0,0,1,39.49,32A12,12,0,0,1,250.1,205.67Z"/></svg>What RLHF rewards</div><div class="meta" style="margin-top:0">Write-ups and chat responses that <b>human raters prefer.</b> A rater cannot tell you a probability was overconfident.</div></div>
+<div class="panel"><div class="pt"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/target"><path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/></svg>What RLCD rewards</div><div class="meta" style="margin-top:0">Answers whose probabilities <b>match outcomes.</b> Saying 80% sure has to be right 80% of the time.</div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/target"><path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/></svg>Optimising against outcomes is what makes an overconfident answer cost the model something.</div></footer>
+
+</section>
+
+<!-- 11. Diagram beside a readout. Different frame and different silhouette from
+     slide 10 on purpose: a decision tree, not a cycle. -->
+<section class="slide" data-toc="Confidence" data-name="confidence routing diagram" data-rail="phosphor/git-branch">
+<header class="s-head"><h2 class="head">Confidence is what turns an answer into a routing decision</h2><p class="sub">Every Choice and Score answer carries a 0 to 1 score your code thresholds on.</p></header>
+<div class="s-body">
+<div class="chartcol">
+<div class="viz">
+<div class="mmdbox tall">
+<pre class="mermaid">
+---
+config: {look: classic, fontFamily: 'Nunito, Inter, sans-serif'}
+---
+flowchart TD
+    ans@{ shape: rounded, label: "choice: technical&#10;confidence 0.78" } --> thr{"Clear of the bar?"}
+    thr -->|"under 0.5"| human@{ shape: rounded, label: "route to a human" }
+    thr -->|"0.5 to 0.9"| confirm@{ shape: rounded, label: "ask, or flag for review" }
+    thr -->|"0.9 and up"| act@{ shape: rounded, label: "act on it" }
+</pre>
+</div>
+</div>
+<div class="readout">
+<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/question"><path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/></svg>The floor</div><div class="n">0.5</div><div class="t">Below this the model is telling you it does not know. Do not guess on its behalf.</div></div>
+<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/shield-check"><path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/></svg>The destructive bar</div><div class="n">0.9</div><div class="t">A read-only screen and an irreversible transfer get different thresholds.</div></div>
+<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sliders"><path d="M68,102.06V40a12,12,0,0,0-24,0v62.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V169.94a36,36,0,0,0,0-67.88ZM56,148a12,12,0,1,1,12-12A12,12,0,0,1,56,148ZM164,88a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0V54.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V121.94A36.07,36.07,0,0,0,164,88Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,128,100Zm108,68a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0v94.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V201.94A36.07,36.07,0,0,0,236,168Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,200,180Z"/></svg>The scale</div><div class="n">0 to 1</div><div class="t">1 when all the probability sits on one outcome, 0 when it is spread evenly.</div></div>
+</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg>A confidence score nobody has calibrated is a vibe with a decimal point on it.</div></footer>
+
+</section>
+
+<!-- 12. Four equal workloads. Equal weight is the point. -->
+<section class="slide" data-toc="Workloads" data-name="four workload cards" data-rail="phosphor/squares-four">
+<header class="s-head"><h2 class="head">The work that wants this is the work where the answer shape is already known</h2><p class="sub">Four named workloads, and what each gets instead of prose.</p></header>
+<div class="s-body">
+<div class="gridQ">
+<div class="card"><div class="qhead"><div class="qicon"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/signpost"><path d="M248.92,104,215.3,66.62A20,20,0,0,0,200.44,60H140V32a12,12,0,0,0-24,0V60H40A20,20,0,0,0,20,80v64a20,20,0,0,0,20,20h76v60a12,12,0,0,0,24,0V164h60.44a20,20,0,0,0,14.86-6.62L248.92,120A12,12,0,0,0,248.92,104Zm-50.26,36H44V84H198.66l25.2,28Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Routing</div><h3>Which handler is this?</h3></div></div><p class="desc">Classify a request into one of your keys and send it on.</p><div class="meta"><b>Key point:</b> billing, technical, sales</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/shield-check"><path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Guardrails</div><h3>Is this attempt safe?</h3></div></div><p class="desc">Score prompts and outputs for jailbreaks, fast enough to sit inline.</p><div class="meta"><b>Key point:</b> a gate you set, not a blocklist</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/scales"><path d="M243.14,131.54l-32-80h0a12,12,0,0,0-13.73-7.25L140,57V40a12,12,0,0,0-24,0V62.37L53.4,76.29a12,12,0,0,0-8.54,7.25h0l0,0v0l-32,79.92A12,12,0,0,0,12,168c0,12.13,6.2,22.43,17.45,29A55,55,0,0,0,56,204a55,55,0,0,0,26.55-7C93.8,190.43,100,180.13,100,168a12,12,0,0,0-.86-4.46L72.38,96.65,116,87V204H104a12,12,0,0,0,0,24h48a12,12,0,0,0,0-24H140V81.63l40.42-9-23.56,58.9A12,12,0,0,0,156,136c0,12.13,6.2,22.43,17.45,29a53.78,53.78,0,0,0,53.1,0C237.8,158.43,244,148.13,244,136A12,12,0,0,0,243.14,131.54ZM56,180c-3.71,0-18-1.87-19.81-10.18L56,120.31l19.81,49.51C74,178.13,59.71,180,56,180Zm144-32c-3.71,0-18-1.87-19.81-10.18L200,88.31l19.81,49.51C218,146.13,203.71,148,200,148Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Judging</div><h3>LLM-as-a-judge, typed</h3></div></div><p class="desc">Exactly one of your grades, with a probability for each.</p><div class="meta"><b>Key point:</b> nothing to parse, no invented score</div></div>
+<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p5)"><svg class="ph md" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/cursor-click"><path d="M224.15,179.17l-46.82-46.82,37.92-13.51c.26-.09.51-.19.76-.3a20,20,0,0,0-1.76-37.27L54.16,29A20,20,0,0,0,29,54.16L81.27,214.24A20,20,0,0,0,118.54,216c.11-.25.21-.5.3-.76l13.51-37.92,46.83,46.82a20,20,0,0,0,28.28,0l16.69-16.68A20,20,0,0,0,224.15,179.17Zm-30.83,25.17-48.48-48.48A20,20,0,0,0,130.7,150a20.47,20.47,0,0,0-3.73.35A20,20,0,0,0,112.35,162c-.11.25-.2.5-.3.76L100.4,195.5,54.29,54.29,195.5,100.4l-32.71,11.65c-.25.09-.51.19-.76.3a20,20,0,0,0-6.16,32.48h0l48.48,48.48ZM84,16V12a12,12,0,0,1,24,0v4a12,12,0,0,1-24,0ZM12,108a12,12,0,0,1,0-24h4a12,12,0,0,1,0,24ZM120.62,24.21l4-12a12,12,0,0,1,22.77,7.58l-4,12a12,12,0,0,1-22.77-7.58Zm-81.23,104a12,12,0,0,1-7.59,15.17l-12,4a12,12,0,1,1-7.59-22.76l12-4A12,12,0,0,1,39.39,128.21Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/tag"><path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/></svg>Agents</div><h3>Vet the click</h3></div></div><p class="desc">One call returns is-it-safe, the action type, and a confidence.</p><div class="meta"><b>Key point:</b> 70 to 500 ms fits inside an agent loop</div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/squares-four"><path d="M100,36H56A20,20,0,0,0,36,56v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,100,36ZM96,96H60V60H96ZM200,36H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,200,36Zm-4,60H160V60h36Zm-96,40H56a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,100,136Zm-4,60H60V160H96Zm104-60H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,200,136Zm-4,60H160V160h36Z"/></svg>The boring competitor is a regex and a keyword list.</div></footer>
+
+</section>
+
+<!-- 13. A reconstructed detail at presentation type size inside the window
+     frame. content_philosophy.md rule 4. -->
+<section class="slide" data-toc="The call" data-name="api exchange in a window frame" data-rail="phosphor/terminal">
+<header class="s-head"><h2 class="head">One POST, one response, and the branch you were going to write anyway</h2><p class="sub">The worked example from the TypeSafe docs, at presentation type size.</p></header>
+<div class="s-body">
+<div class="shot">
+<div class="shotbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="addr">POST api.typesafe.ai/v1/systemone</span></div>
+<div class="shotimg has-code">
+<div class="codepanes">
+<div class="codepane">
+<div class="ct"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/terminal"><path d="M120,137,48,201A12,12,0,1,1,32,183l61.91-55L32,73A12,12,0,1,1,48,55l72,64A12,12,0,0,1,120,137Zm96,43H120a12,12,0,0,0,0,24h96a12,12,0,0,0,0-24Z"/></svg>Request</div>
+<div class="codeblock">{
+  <b>"state"</b>: "Stripe failed again. Losing sales.",
+  <b>"model"</b>: "jev-latest",
+  <b>"questions"</b>: {
+    <b>"department"</b>:  { <i>choice</i>, 3 keys },
+    <b>"frustration"</b>: { <i>score</i>,  3 levels },
+    <b>"is_urgent"</b>:   { <i>noul</i> }
+  }
+}</div>
+</div>
+<div class="codepane">
+<div class="ct"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/brackets-curly"><path d="M54.8,119.49A35.06,35.06,0,0,1,49.05,128a35.06,35.06,0,0,1,5.75,8.51C60,147.24,60,159.83,60,172c0,25.94,1.84,32,20,32a12,12,0,0,1,0,24c-19.14,0-32.2-6.9-38.8-20.51C36,196.76,36,184.17,36,172c0-25.94-1.84-32-20-32a12,12,0,0,1,0-24c18.16,0,20-6.06,20-32,0-12.17,0-24.76,5.2-35.49C47.8,34.9,60.86,28,80,28a12,12,0,0,1,0,24c-18.16,0-20,6.06-20,32C60,96.17,60,108.76,54.8,119.49ZM240,116c-18.16,0-20-6.06-20-32,0-12.17,0-24.76-5.2-35.49C208.2,34.9,195.14,28,176,28a12,12,0,0,0,0,24c18.16,0,20,6.06,20,32,0,12.17,0,24.76,5.2,35.49A35.06,35.06,0,0,0,207,128a35.06,35.06,0,0,0-5.75,8.51C196,147.24,196,159.83,196,172c0,25.94-1.84,32-20,32a12,12,0,0,0,0,24c19.14,0,32.2-6.9,38.8-20.51C220,196.76,220,184.17,220,172c0-25.94,1.84-32,20-32a12,12,0,0,0,0-24Z"/></svg>Response, and the branch</div>
+<div class="codeblock">{
+  <b>"department"</b>:  { <i>"technical"</i>, 0.85 },
+  <b>"frustration"</b>: { <i>1.0</i>, conf 1.00 },
+  <b>"is_urgent"</b>:   { <i>1.0</i> },
+  <b>"usage"</b>: { input_tokens: 392 }
+}
+
+<b>if</b> (answers.is_urgent.noul > 0.7)
+    page_the_on_call();</div>
+</div>
+</div>
+</div>
+<div class="shotcap">One endpoint, Bearer auth, no SDK required</div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/terminal"><path d="M120,137,48,201A12,12,0,1,1,32,183l61.91-55L32,73A12,12,0,1,1,48,55l72,64A12,12,0,0,1,120,137Zm96,43H120a12,12,0,0,0,0,24h96a12,12,0,0,0,0-24Z"/></svg>Plain fetch and a Bearer key is the whole integration.</div></footer>
+
+</section>
+
+<!-- 14. Close on substance: the one sentence the audience should repeat. -->
+<section class="slide hero-slide" data-toc="Close" data-name="pull close" data-rail="phosphor/paper-plane-tilt">
+<header class="s-head" style="text-align:center"><h2 class="head" style="display:none">Close</h2></header>
+<div class="s-body">
+<div class="pull">
+<p class="q">Use an LLM to <em>write</em>.<br>Use Jev to <em>decide</em>.</p>
+<p class="by">Jev 1.13.0 · api.typesafe.ai/v1/systemone · early access from $5 prepaid</p>
+</div>
+</div>
+<footer class="s-foot"></footer>
+</section>
+
+<!-- 15. Appendix: the checkable limits behind every number in the main flow. -->
+<section class="slide" data-toc="Appendix" data-name="appendix model card" data-rail="phosphor/file-text" data-group="appendix">
+<header class="s-head"><h2 class="head">Appendix: the limits and prices behind every number in this deck</h2><p class="sub">Everything here is from docs.typesafe.ai/models, checked against the page rather than a press summary.</p></header>
+<div class="s-body">
+<table class="dtable">
+<thead><tr><th>Limit</th><th class="num">Value</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></span>Context per request</span></td><td class="num">64k tokens</td><td>State plus all questions combined</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/file-text"><path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/></svg></span>State budget</span></td><td class="num">32k tokens</td><td>Applies to the state plus the longest single question</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/speedometer"><path d="M119.51,143.51l88-88a12,12,0,1,1,17,17l-88,88a12,12,0,1,1-17-17Zm14.23-43.2a12,12,0,1,0,2.62-23.85A75.15,75.15,0,0,0,128,76a76.08,76.08,0,0,0-76,76,12,12,0,0,0,24,0,52.06,52.06,0,0,1,52-52A54.75,54.75,0,0,1,133.74,100.31Zm101.54,7.5A12,12,0,0,0,213.09,117a92.47,92.47,0,0,1,2.58,63H40.34A92.23,92.23,0,0,1,128,60h.84a91.43,91.43,0,0,1,34.2,6.91,12,12,0,0,0,9.14-22.19A116.07,116.07,0,0,0,18.57,190.58,20.09,20.09,0,0,0,37.46,204H218.53a20.06,20.06,0,0,0,18.88-13.38,116.39,116.39,0,0,0-2.13-82.81Z"/></svg></span>Throughput</span></td><td class="num">100k tok/s</td><td>Returns 429 above either ceiling</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/gauge"><path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/></svg></span>Request rate</span></td><td class="num">80 req/s</td><td>SDKs retry with backoff and honour retry-after</td></tr>
+<tr class="hot"><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/coins"><path d="M188,86.11V84c0-14.62-10.83-27.55-30.51-36.4C140.87,40.12,119,36,96,36S51.13,40.12,34.51,47.6C14.83,56.45,4,69.38,4,84v40c0,14.62,10.83,27.55,30.51,36.4A131.67,131.67,0,0,0,68,169.88V172c0,14.62,10.83,27.55,30.51,36.4C115.13,215.88,137,220,160,220s44.87-4.12,61.49-11.6C241.17,199.55,252,186.62,252,172V132C252,109.86,226.71,92.08,188,86.11ZM228,132c0,7.75-21.77,22.48-61.81,23.88C180.33,147.4,188,136.3,188,124V110.44C213.88,115.15,228,125.48,228,132ZM107.37,147.63c-3.63.24-7.42.37-11.37.37-5.08,0-9.89-.22-14.43-.61a10.94,10.94,0,0,0-1.14-.09c-1.51-.14-3-.3-4.43-.48V130.93A187,187,0,0,0,96,132a187,187,0,0,0,20-1.07v15.89c-2.49.3-5.07.56-7.75.75C108,147.58,107.66,147.6,107.37,147.63ZM164,117.14V124c0,4.78-8.28,12.21-24,17.54v-15a115.32,115.32,0,0,0,17.49-6.13Q160.93,118.86,164,117.14ZM96,60c44,0,68,15.85,68,24s-24,24-68,24S28,92.15,28,84,52,60,96,60ZM28,124v-6.86q3.08,1.71,6.51,3.26A115.32,115.32,0,0,0,52,126.53v15C36.28,136.21,28,128.78,28,124Zm64,48v0c1.33,0,2.66,0,4,0q5.44,0,10.77-.32,4.45,1.57,9.23,2.86v15C100.28,184.21,92,176.78,92,172Zm48,22.82V178.94A186.45,186.45,0,0,0,160,180a187,187,0,0,0,20-1.07v15.89a170.08,170.08,0,0,1-40,0Zm64-5.28v-15a115.32,115.32,0,0,0,17.49-6.13q3.44-1.54,6.51-3.26V172C228,176.78,219.72,184.21,204,189.54Z"/></svg></span>Input price</span></td><td class="num">$42 / Btok</td><td>$0.042 per Mtok. Output free. Prepaid, no seat fee</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sparkle"><path d="M199,125.31l-49.88-18.39L130.69,57a19.92,19.92,0,0,0-37.38,0L74.92,106.92,25,125.31a19.92,19.92,0,0,0,0,37.38l49.88,18.39L93.31,231a19.92,19.92,0,0,0,37.38,0l18.39-49.88L199,162.69a19.92,19.92,0,0,0,0-37.38Zm-63.38,35.16a12,12,0,0,0-7.11,7.11L112,212.28l-16.47-44.7a12,12,0,0,0-7.11-7.11L43.72,144l44.7-16.47a12,12,0,0,0,7.11-7.11L112,75.72l16.47,44.7a12,12,0,0,0,7.11,7.11L180.28,144ZM140,40a12,12,0,0,1,12-12h12V16a12,12,0,0,1,24,0V28h12a12,12,0,0,1,0,24H188V64a12,12,0,0,1-24,0V52H152A12,12,0,0,1,140,40ZM252,88a12,12,0,0,1-12,12h-4v4a12,12,0,0,1-24,0v-4h-4a12,12,0,0,1,0-24h4V72a12,12,0,0,1,24,0v4h4A12,12,0,0,1,252,88Z"/></svg></span>Aliases</span></td><td class="num">2</td><td>jev-latest and jev-preview both resolve to 1.13.0 today</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/shield-check"><path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/></svg></span>Data retention</span></td><td class="num">Zero</td><td>Zero data retention available on enterprise plans</td></tr>
+</tbody>
+</table>
+<div class="gapnote" style="margin-top:26px"><span class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/info"><path d="M108,84a16,16,0,1,1,16,16A16,16,0,0,1,108,84Zm128,44A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Zm-72,36.68V132a20,20,0,0,0-20-20,12,12,0,0,0-4,23.32V168a20,20,0,0,0,20,20,12,12,0,0,0,4-23.32Z"/></svg>Caveat</span>The rate limits are documented as adjusting dynamically and changeable without notice while GPU capacity lands. Anything built on 80 requests a second should re-read this page before it depends on the number.</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/file-text"><path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/></svg>Model aliases move on release, so pin a versioned id if you have tuned confidence thresholds.</div></footer>
+
+</section>
+
+<!-- 16. Appendix: what is not public. The slide that protects the deck's
+     credibility, and content_philosophy.md rule 6. -->
+<section class="slide" data-toc="Appendix" data-name="appendix what is undisclosed" data-rail="phosphor/question" data-group="appendix">
+<header class="s-head"><h2 class="head">Appendix: five things TypeSafe has not published, and one number it calls non-empirical</h2><p class="sub">The other half of the claims on slides 7 and 9.</p></header>
+<div class="s-body">
+<div class="numbered">
+<div class="row"><div class="idx">01</div><div><h4>No parameter count, no architecture</h4><p>Transformer-based, trained on synthetic data. That is all of it.</p></div><div class="nm"><div class="who">Undisclosed</div><div class="when2">AS OF 15 SEP 2026</div></div></div>
+<div class="row"><div class="idx">02</div><div><h4>No weights, no technical paper</h4><p>Hosted and closed weight. There is nothing to inspect.</p></div><div class="nm"><div class="who">Undisclosed</div><div class="when2">BY DESIGN</div></div></div>
+<div class="row"><div class="idx">03</div><div><h4>No training data provenance</h4><p>Synthetic is stated. What generated it is not.</p></div><div class="nm"><div class="who">Undisclosed</div><div class="when2">FAQ, SEPT 2026</div></div></div>
+<div class="row"><div class="idx">04</div><div><h4>The workflow evals are their own</h4><p>Written by their own team; the reference is two frontier models.</p></div><div class="nm"><div class="who">Biased, admitted</div><div class="when2">BLOG NUANCE</div></div></div>
+<div class="row"><div class="idx">05</div><div><h4>The type-safety number is arithmetic</h4><p>Guaranteed by construction, so they add 0% rather than measure it.</p></div><div class="nm"><div class="who">Not empirical</div><div class="when2">BLOG NUANCE</div></div></div>
+</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/question"><path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/></svg>Naming the gap is worth more than a page of confident arithmetic.</div></footer>
+
+</section>
+
+<!-- 17. Appendix: the confidence formulas, so the numbers can be reproduced. -->
+<section class="slide" data-toc="Appendix" data-name="appendix confidence formulas" data-rail="phosphor/calculator" data-group="appendix">
+<header class="s-head"><h2 class="head">Appendix: how each confidence number follows from the distribution</h2><p class="sub">The exact formulas TypeSafe publishes, so a threshold you tune can be checked by hand.</p></header>
+<div class="s-body">
+<table class="dtable">
+<thead><tr><th>Question type</th><th>Formula</th><th>Reads as</th></tr></thead>
+<tbody>
+<tr class="hot"><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/list-checks"><path d="M228,128a12,12,0,0,1-12,12H128a12,12,0,0,1,0-24h88A12,12,0,0,1,228,128ZM128,76h88a12,12,0,0,0,0-24H128a12,12,0,0,0,0,24Zm88,104H128a12,12,0,0,0,0,24h88a12,12,0,0,0,0-24ZM79.51,39.51,56,63l-7.51-7.52a12,12,0,0,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,127l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,191l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Z"/></svg></span>Choice, n options</span></td><td>(p<sub>max</sub> &minus; 1/n) &divide; (1 &minus; 1/n)</td><td>How far the winner sits above an even split. 1 means certain</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/sliders"><path d="M68,102.06V40a12,12,0,0,0-24,0v62.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V169.94a36,36,0,0,0,0-67.88ZM56,148a12,12,0,1,1,12-12A12,12,0,0,1,56,148ZM164,88a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0V54.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V121.94A36.07,36.07,0,0,0,164,88Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,128,100Zm108,68a36.07,36.07,0,0,0-24-33.94V40a12,12,0,0,0-24,0v94.06a36,36,0,0,0,0,67.88V216a12,12,0,0,0,24,0V201.94A36.07,36.07,0,0,0,236,168Zm-36,12a12,12,0,1,1,12-12A12,12,0,0,1,200,180Z"/></svg></span>Score, n levels</span></td><td>1 &minus; &Sigma;p<sub>i</sub>|i&minus;m| &divide; MAD<sub>unif</sub></td><td>Probability-weighted distance from the peak level, against an even spread</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/question"><path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/></svg></span>Noul</span></td><td>|2p &minus; 1|</td><td>Not returned. The probability itself already carries the doubt</td></tr>
+<tr><td class="sv"><span class="svc"><span class="ico"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/graph"><path d="M200,152a35.77,35.77,0,0,0-16.46,4l-21.39-16.64A35.49,35.49,0,0,0,164,128.65l10.35-3.44A36,36,0,1,0,164,100c0,1.11.06,2.21.16,3.3l-7.78,2.59A36,36,0,0,0,128,92c-1,0-1.88,0-2.81.12l-4.45-10A36,36,0,1,0,96,92c1,0,1.88,0,2.81-.12l4.45,10a35.91,35.91,0,0,0-8.59,39.7L73.39,160.49a36,36,0,1,0,15.94,17.93l21.28-18.91a35.91,35.91,0,0,0,36.8-1.21L167,173.56A36,36,0,1,0,200,152Zm0-64a12,12,0,1,1-12,12A12,12,0,0,1,200,88ZM84,56A12,12,0,1,1,96,68,12,12,0,0,1,84,56ZM56,204a12,12,0,1,1,12-12A12,12,0,0,1,56,204Zm60-76a12,12,0,1,1,12,12A12,12,0,0,1,116,128Zm84,72a12,12,0,1,1,12-12A12,12,0,0,1,200,200Z"/></svg></span>Also worth computing</span></td><td>p<sub>max</sub> &divide; p<sub>second</sub></td><td>Targets the top two candidates, and ignores how the rest is spread</td></tr>
+</tbody>
+</table>
+<div class="gapnote" style="margin-top:26px"><span class="tagline"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/info"><path d="M108,84a16,16,0,1,1,16,16A16,16,0,0,1,108,84Zm128,44A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Zm-72,36.68V132a20,20,0,0,0-20-20,12,12,0,0,0-4,23.32V168a20,20,0,0,0,20,20,12,12,0,0,0,4-23.32Z"/></svg>Caveat</span>TypeSafe says its confidence is one reasonable summary, not the only one. Every answer ships its full <i>probabilities</i>, so compute whichever measure your domain wants.</div>
+</div>
+<footer class="s-foot"><div class="takeaway" data-morph="take"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="phosphor/calculator"><path d="M200,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V40A20,20,0,0,0,200,20Zm-4,192H60V44H196ZM80,76A12,12,0,0,1,92,64h72a12,12,0,0,1,0,24H92A12,12,0,0,1,80,76Zm40,52a16,16,0,1,1-16-16A16,16,0,0,1,120,128Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,128Zm-48,48a16,16,0,1,1-16-16A16,16,0,0,1,120,176Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,176Z"/></svg>Because the probabilities ship with the answer, the formula is a starting point you are free to replace.</div></footer>
+
+</section>
+
+<!-- Carries the slide position to a screen reader. show() writes the active
+     slide's own aria-label here, so the label is written once per slide and
+     the announcement can never drift from the slide. -->
+<div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<div class="edge left" id="edgeL" role="button" tabindex="0" aria-label="Previous slide"><span class="edgebtn"><svg class="chev l" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"/></svg></span></div>
+<div class="edge right" id="edgeR" role="button" tabindex="0" aria-label="Next slide"><span class="edgebtn"><svg class="chev r" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M87.51,199.51a12,12,0,0,0,17,17l80-80a12,12,0,0,0,0-17l-80-80a12,12,0,0,0-17,17L159,128Z"/></svg></span></div>
+<script>
+let i=-1;const s=[...document.querySelectorAll('.slide')];
+const edgeL=document.getElementById('edgeL'),edgeR=document.getElementById('edgeR');
+const live=document.getElementById('live');
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Deferred rendering. The deck owns the work; the template owns the promise.
+   A deck that draws itself asynchronously (a diagram library, a chart, an image
+   decode) passes its promise to defer(), which bumps a counter; __deckReady
+   resolves when the counter is back to zero and the document has finished
+   loading, then waits for fonts and re-stages the scale so anything that changed
+   size is measured again.
+
+   Why a counter and not a collected array: an array has to be snapshotted at one
+   fixed line, and that line is an ordering rule every caller has to know. A
+   counter has no snapshot, so defer() works from any script in the document and
+   in any order, and there is nothing to get wrong. The promise is never
+   assigned by a deck.
+   The contract is one line: register with defer(), never assign the promise. */
+let pending=0,released=false,release=null,deferErrors=[];
+const gate=new Promise(r=>{release=r});
+const arm=()=>{if(!released&&pending===0){released=true;release(true)}};
+window.__deckReady=gate
+  .then(()=>document.fonts&&document.fonts.ready)
+  .then(()=>{stage();return document.body})
+  .then(body=>{if(deferErrors.length)throw deferErrors[0];return body});
+function defer(p){
+  if(released){
+    console.warn('defer() called after the deck had already settled; a screenshot or export may race it. Move the call into a script that runs before window load.');
+    return p;
+  }
+  pending++;
+  Promise.resolve(p).then(
+    ()=>{pending--;arm()},
+    e=>{deferErrors.push(e);pending--;arm()});
+  return p;
+}
+window.__deckDefer=defer;
+// Nothing may be outstanding by the time the document has finished loading, so
+// that is the second release trigger. A deck with no deferred work at all
+// resolves here, and a deck whose work settled earlier has already resolved.
+if(document.readyState==='complete')arm();
+else window.addEventListener('load',arm,{once:true});
+// PDF export and reduced motion both need settled slides, so kill the staged
+// entrance as well as the FLIP morph.
+if(reduceMotion)document.body.classList.add('no-anim');
+function stageScale(){return Math.min(window.innerWidth/1920,window.innerHeight/1080)}
+/* Every slide's own position label is written here, from the real slide count,
+   so the number can never drift from the deck. The name comes from the
+   section's data-name, which is the only per-slide text an author supplies:
+     <section class="slide" data-name="cover">
+   A slide with no data-name still gets "Slide N of TOTAL".
+
+   This runs once over ALL the slides, not just the active one, because @media
+   print turns every slide back on at the same time: labels written on slide
+   change would leave nine printed slides carrying one slide's numbers. */
+function labelOf(el,k){
+  const name=(el.getAttribute('data-name')||'').trim();
+  return 'Slide '+(k+1)+' of '+s.length+(name?': '+name:'');
+}
+function relabel(){
+  s.forEach((el,k)=>{
+    el.setAttribute('aria-label',labelOf(el,k));
+    /* No topbar, no page numbers: position lives in the rail. */
+  });
+}
+function show(n,instant){
+  n=Math.max(0,Math.min(s.length-1,n));
+  if(n===i){stage();return;}
+  if(window.__noMorph)document.body.classList.add('no-anim');
+  const from=i>=0?s[i]:null,to=s[n];
+  const sc=stageScale();
+  // Motion off means motion off, whatever turned it off: the OS setting, the
+  // export script's __noMorph flag, or the no-anim class set by hand. The class
+  // alone already kills every CSS animation, so it has to kill the FLIP too or a
+  // capture can still land on an element mid glide.
+  const freeze=reduceMotion||!!window.__noMorph||document.body.classList.contains('no-anim');
+  let pairs=[];
+  // FIRST, while the outgoing slide is still laid out: .slide is display:none,
+  // so the moment it loses .active every rect inside it reads zero and there is
+  // nothing left to measure. These are viewport rects, so they already carry the
+  // slide's own transform:scale; the delta is divided back out by that scale
+  // before it can be used as a translate inside the slide, or the element lands
+  // short at any viewport that is not exactly 1920x1080. The outgoing slide must
+  // also be settled: an entrance in flight is a transform on .s-foot, and
+  // measuring through it would glide the chrome from a place it was never at.
+  // playState, not presence: a rise with fill "both" stays in the timeline after
+  // it finishes, so getAnimations() alone would report every slide as busy.
+  const fromBusy=from&&from.getAnimations({subtree:true}).some(a=>a.playState==='running');
+  if(from&&!instant&&!freeze&&!fromBusy){
+    const targets=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el]));
+    for(const f of from.querySelectorAll('[data-morph]')){
+      const g=targets.get(f.dataset.morph);
+      if(g)pairs.push([g,f.getBoundingClientRect()]);
+    }
+  }
+  i=n;s.forEach((el,k)=>el.classList.toggle('active',k===i));
+  edgeL.classList.toggle('off',i===0);edgeR.classList.toggle('off',i===s.length-1);stage();
+  markToc();
+  live.textContent=labelOf(s[i],i);
+  // SECOND, after the toggle, so the incoming slide is laid out and has real
+  // rects to read, and with its own entrance suppressed while they are read: the
+  // entrance is a transform on .s-foot, so a rect taken with it running is 18px
+  // below the place the element is about to land, and the morph starts short by
+  // exactly that. The class comes off again before anything is painted, and the
+  // entrance then plays from zero as if it had never been interrupted. Nothing
+  // is touched when there is no pair to measure, which is every slide change
+  // under reduced motion.
+  let now=new Map();
+  if(pairs.length){
+    to.classList.add('measuring');
+    now=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el.getBoundingClientRect()]));
+    to.classList.remove('measuring');
+  }
+  // Two elements carrying the same data-morph name are the same object in two
+  // slides, and the one that moved is the one that glides.
+  for(const [g,r] of pairs){
+    const b=now.get(g.dataset.morph);
+    const dx=(r.left-b.left)/sc,dy=(r.top-b.top)/sc;
+    const sx=b.width?r.width/b.width:1,sy=b.height?r.height/b.height:1;
+    // A pair that did not move is not a morph. Animating it would only re-fade
+    // chrome that never left its place, and that is most of the chrome here: the
+    // four band grid pins the head to row two and the foot to row four, so
+    // their delta is zero on every slide. A deck that moves its chrome glides it.
+    if(!dy&&sx===1&&sy===1)continue;
+    g.animate([
+      {transformOrigin:'50% 50%',transform:`translateY(${dy}px) scale(${sx},${sy})`,opacity:.35},
+      {transformOrigin:'50% 50%',transform:'none',opacity:1}
+    ],{duration:450,easing:'cubic-bezier(.22,.8,.24,1)'});
+  }
+}
+function stage(){s[i].style.transform=`scale(${stageScale()})`}
+window.addEventListener('resize',stage);
+edgeL.addEventListener('click',e=>{e.stopPropagation();show(i-1);});
+edgeR.addEventListener('click',e=>{e.stopPropagation();show(i+1);});
+// stopPropagation, not just preventDefault. Space and Enter are handled here AND
+// on the document handler below, and preventDefault does not stop an event
+// travelling, so without it one key press moved two slides.
+edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i-1);}});
+edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i+1);}});
+/* Edit mode guard: keystrokes that land in editable text, a form field, or the
+   icon modal belong to the edit, not to navigation. Without this, typing a
+   space in a headline advances the slide. */
+document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
+const RAIL_ICONS={
+ "phosphor/database":`<path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/>`,
+ "phosphor/copy":`<path d="M216,28H88A12,12,0,0,0,76,40V76H40A12,12,0,0,0,28,88V216a12,12,0,0,0,12,12H168a12,12,0,0,0,12-12V180h36a12,12,0,0,0,12-12V40A12,12,0,0,0,216,28ZM156,204H52V100H156Zm48-48H180V88a12,12,0,0,0-12-12H100V52H204Z"/>`,
+ "phosphor/graph":`<path d="M200,152a35.77,35.77,0,0,0-16.46,4l-21.39-16.64A35.49,35.49,0,0,0,164,128.65l10.35-3.44A36,36,0,1,0,164,100c0,1.11.06,2.21.16,3.3l-7.78,2.59A36,36,0,0,0,128,92c-1,0-1.88,0-2.81.12l-4.45-10A36,36,0,1,0,96,92c1,0,1.88,0,2.81-.12l4.45,10a35.91,35.91,0,0,0-8.59,39.7L73.39,160.49a36,36,0,1,0,15.94,17.93l21.28-18.91a35.91,35.91,0,0,0,36.8-1.21L167,173.56A36,36,0,1,0,200,152Zm0-64a12,12,0,1,1-12,12A12,12,0,0,1,200,88ZM84,56A12,12,0,1,1,96,68,12,12,0,0,1,84,56ZM56,204a12,12,0,1,1,12-12A12,12,0,0,1,56,204Zm60-76a12,12,0,1,1,12,12A12,12,0,0,1,116,128Zm84,72a12,12,0,1,1,12-12A12,12,0,0,1,200,200Z"/>`,
+ "phosphor/list-checks":`<path d="M228,128a12,12,0,0,1-12,12H128a12,12,0,0,1,0-24h88A12,12,0,0,1,228,128ZM128,76h88a12,12,0,0,0,0-24H128a12,12,0,0,0,0,24Zm88,104H128a12,12,0,0,0,0,24h88a12,12,0,0,0,0-24ZM79.51,39.51,56,63l-7.51-7.52a12,12,0,0,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,127l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Zm0,64L56,191l-7.51-7.52a12,12,0,1,0-17,17l16,16a12,12,0,0,0,17,0l32-32a12,12,0,0,0-17-17Z"/>`,
+ "phosphor/ladder":`<path d="M219.27,211.9,168.77,73l7.63-21H184a12,12,0,0,0,0-24H88a12,12,0,0,0-1.11,23.94l-58.16,160a12,12,0,0,0,7.17,15.37A11.83,11.83,0,0,0,40,228a12,12,0,0,0,11.28-7.9L60,196H98.5l-5.78,15.9a12,12,0,0,0,7.18,15.37,11.79,11.79,0,0,0,4.1.73,12,12,0,0,0,11.28-7.9L132.77,172h46.46l17.49,48.1A12,12,0,0,0,208,228a11.83,11.83,0,0,0,4.1-.73A12,12,0,0,0,219.27,211.9ZM124.69,124H86.22L95,100h38.46Zm17.45-48H103.68l8.73-24h38.46ZM68.77,172l8.73-24H116l-8.73,24Zm72.73-24L156,108.11,170.5,148Z"/>`,
+ "phosphor/gauge":`<path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/>`,
+ "phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
+ "phosphor/lightning":`<path d="M219.71,117.38a12,12,0,0,0-7.25-8.52L161.28,88.39l10.59-70.61a12,12,0,0,0-20.64-10l-112,120a12,12,0,0,0,4.31,19.33l51.18,20.47L84.13,238.22a12,12,0,0,0,20.64,10l112-120A12,12,0,0,0,219.71,117.38ZM113.6,203.55l6.27-41.77a12,12,0,0,0-7.41-12.92L68.74,131.37,142.4,52.45l-6.27,41.77a12,12,0,0,0,7.41,12.92l43.72,17.49Z"/>`,
+ "phosphor/target":`<path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/>`,
+ "phosphor/git-branch":`<path d="M236,64a36,36,0,1,0-48,33.94V112a4,4,0,0,1-4,4H96a27.8,27.8,0,0,0-4,.29V97.94a36,36,0,1,0-24,0v60.12a36,36,0,1,0,24,0V144a4,4,0,0,1,4-4h88a28,28,0,0,0,28-28V97.94A36.07,36.07,0,0,0,236,64ZM80,52A12,12,0,1,1,68,64,12,12,0,0,1,80,52Zm0,152a12,12,0,1,1,12-12A12,12,0,0,1,80,204ZM200,76a12,12,0,1,1,12-12A12,12,0,0,1,200,76Z"/>`,
+ "phosphor/squares-four":`<path d="M100,36H56A20,20,0,0,0,36,56v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,100,36ZM96,96H60V60H96ZM200,36H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,200,36Zm-4,60H160V60h36Zm-96,40H56a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,100,136Zm-4,60H60V160H96Zm104-60H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,200,136Zm-4,60H160V160h36Z"/>`,
+ "phosphor/terminal":`<path d="M120,137,48,201A12,12,0,1,1,32,183l61.91-55L32,73A12,12,0,1,1,48,55l72,64A12,12,0,0,1,120,137Zm96,43H120a12,12,0,0,0,0,24h96a12,12,0,0,0,0-24Z"/>`,
+ "phosphor/paper-plane-tilt":`<path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/>`,
+ "phosphor/file-text":`<path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/>`,
+ "phosphor/question":`<path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/>`,
+ "phosphor/calculator":`<path d="M200,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V40A20,20,0,0,0,200,20Zm-4,192H60V44H196ZM80,76A12,12,0,0,1,92,64h72a12,12,0,0,1,0,24H92A12,12,0,0,1,80,76Zm40,52a16,16,0,1,1-16-16A16,16,0,0,1,120,128Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,128Zm-48,48a16,16,0,1,1-16-16A16,16,0,0,1,120,176Zm48,0a16,16,0,1,1-16-16A16,16,0,0,1,168,176Z"/>`,
+};
+function shortOf(el){return el.getAttribute('data-toc')||el.getAttribute('data-name')||'';}
+function railHTML(){
+  let h='';
+  s.forEach((el,k)=>{
+    // Appendix and bridges are not the narrative: the rail is the table of
+    // contents, and a filler slide in it is noise. Bridges still show the rail
+    // (position matters there too) with nothing highlighted, like appendix.
+    const g=el.getAttribute('data-group');
+    if(g==='appendix'||g==='bridge')return;
+    const k2=el.getAttribute('data-rail')||'';
+    const ic=(k2&&RAIL_ICONS[k2])?`<span class="rail-ic"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg></span>`:'';
+    h+=`<button class="rail-item" data-i="${k}">${ic}<span class="rail-t">${shortOf(el)}</span></button>`;
+  });
+  // Every appendix slide shares one entry: position without enumeration. The
+  // icon is the first appendix slide's own rail glyph, so it verifies through
+  // the same registry as every other entry, and the click lands on the first
+  // appendix slide while arrows still walk them one by one.
+  const apx=s.filter(el=>el.getAttribute('data-group')==='appendix');
+  if(apx.length){
+    const first=s.indexOf(apx[0]);
+    const k2=apx[0].getAttribute('data-rail')||'';
+    const ic=(k2&&RAIL_ICONS[k2])?`<span class="rail-ic"><svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg></span>`:'';
+    h+=`<button class="rail-item" data-i="${first}" data-apx="1">${ic}<span class="rail-t">Appendix</span></button>`;
+  }
+  return h;
+}
+function mountRail(){
+  // The tier counts rows, and the Appendix row is a row: one entry for every
+  // appendix slide would defeat its own purpose, but the single entry still
+  // takes vertical room.
+  const apxN=s.filter(el=>el.getAttribute('data-group')==='appendix').length;
+  const main=s.filter(el=>{const g=el.getAttribute('data-group');return g!=='appendix'&&g!=='bridge';}).length+(apxN?1:0);
+  /* Three tiers, not two: past 28 entries even the compact rows push the last
+     one onto the footer band, and the rail has to stay complete or the overview
+     it exists to give is gone. See DESIGN.md -> 'Sidebar table of contents'. */
+  const cls=main>28?'rail micro':main>16?'rail compact':'rail';
+  s.forEach((el)=>{const n=document.createElement('nav');n.className=cls;n.setAttribute('aria-label','Deck contents');n.innerHTML=railHTML();el.prepend(n);});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();show(+b.dataset.i);}));});
+  s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();e.stopPropagation();show(+b.dataset.i);}}));});
+}
+function markToc(){/* A bridge belongs to what follows it: on a bridge slide the rail highlights the next slide that carries an entry, so the question visibly leads somewhere instead of leaving the rail dead. Past the last entry there is nothing to highlight. */let k=i;while(s[k]&&s[k].getAttribute('data-group')==='bridge')k++;const apx=s[k]&&s[k].getAttribute('data-group')==='appendix';document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',!!s[k]&&(apx?b.hasAttribute('data-apx'):+b.dataset.i===k)));}
+relabel();mountRail();show(0);
+</script>
+
+<!-- ==========================================================================
+     THEMEBAR: a presenter's switcher, not deck content.
+
+     Light on light is the default and stays the default. The bar exists so the
+     deck can be moved to a dark room or a house palette without editing CSS.
+     It lives only on the first slide: the hit strip renders while the cover is
+     showing and nowhere else, and it is visible only while the pointer is over
+     that strip. Captures (export-pdf, shot) inject their own display:none, so a
+     PNG never carries it. Choice persists in localStorage; Escape resets.
+     ========================================================================== -->
+<div class="themehit" aria-hidden="true"></div>
+<script>
+/* Skill asset root for lazy browser data (the icon modal's search index).
+   `bun cli.mjs new` rewrites this one const to the correct relative path from
+   the deck to the skill's assets/; the default serves decks that sit next to
+   the skill tree. If it points nowhere, the modal says so and names the fix. */
+window.__SKILL_ASSETS__="./assets";
+</script>
+<div class="themebar" role="toolbar" aria-label="Deck theme" hidden>
+  <span class="tlabel">Theme</span>
+  <div class="tmode" role="group" aria-label="Light or dark">
+    <button type="button" data-mode="light" aria-pressed="true">Light</button>
+    <button type="button" data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="tlabel">Palette</span>
+  <div class="tpals" role="group" aria-label="Colour palette"></div>
+  <span class="tspread"><b class="tpalname">Slate</b> &middot; <span id="themereset">reset</span></span>
+  <span class="sep" aria-hidden="true"></span>
+  <button type="button" class="tedit" aria-pressed="false" title="Edit text and icons directly on the slides">Edit</button>
+  <button type="button" class="texport" data-export="html" title="Download this deck as a standalone HTML file">HTML</button>
+  <button type="button" class="texport" data-export="pdf" title="Open the print dialog; save as PDF">PDF</button>
+</div>
+
+<!-- ==========================================================================
+     EDITMODAL: the icon search for edit mode. Hidden until an icon is clicked
+     while editing. Search data is generated, never committed: `bun cli.mjs
+     icons build` writes assets/icon-index.js plus assets/icon-files/, loaded
+     lazily here so a deck that never opens the modal never pays for 9k icons.
+     ========================================================================== -->
+<div class="editmodal" role="dialog" aria-modal="true" aria-label="Replace icon" hidden>
+  <div class="editmodal-panel">
+    <div class="editmodal-head">
+      <span class="tlabel">Replace icon</span>
+      <code class="editmodal-current"></code>
+      <button type="button" class="editmodal-close" aria-label="Close">×</button>
+    </div>
+    <input type="search" class="editmodal-search" placeholder="Search 9,000 icons: try syringe, bank, calendar…" aria-label="Search icons" autocomplete="off">
+    <div class="editmodal-hint"></div>
+    <div class="editmodal-results" role="listbox" aria-label="Matching icons"></div>
+  </div>
+</div>
+
+<script>
+/* Palette swatches show the palette they set: a colour scheme's only honest
+   preview is the colour scheme itself. Names are read from the token block, so
+   adding a [data-palette] rule is all it takes to appear here. */
+(function themeBar(){
+  const KEY='deck-theme';
+  const root=document.documentElement;
+  const bar=document.querySelector('.themebar');
+  if(!bar)return;
+  const modeBtns=[...bar.querySelectorAll('.tmode button')];
+  const palWrap=bar.querySelector('.tpals');
+  const nameOut=bar.querySelector('.tpalname');
+
+  /* Read the palettes straight out of the stylesheet: every [data-palette] rule
+     that declares --accent is a palette. Nothing to keep in sync by hand. */
+  const PALETTES=[];
+  for(const sheet of document.styleSheets){
+    let rules;try{rules=sheet.cssRules}catch{continue}
+    for(const rule of rules){
+      if(rule.type!==CSSRule.STYLE_RULE)continue;
+      const sel=rule.selectorText||'';
+      if(!/^\[data-palette="[a-z]+"\]$/.test(sel))continue;
+      const name=sel.slice(15,-2); /* [data-palette="X"]: the name starts after the 15-char prefix */
+      if(PALETTES.some(p=>p.name===name))continue;
+      const g=(prop)=>(rule.style.getPropertyValue(prop)||'').trim();
+      PALETTES.push({name,bg:g('--bg'),surface:g('--surface'),accent:g('--accent'),p1:g('--p1'),text:g('--text')});
+    }
+  }
+  const ORDER=['slate','ink','forest','clay'];
+  PALETTES.sort((a,b)=>{const x=ORDER.indexOf(a.name),y=ORDER.indexOf(b.name);return(x<0?99:x)-(y<0?99:y)});
+
+  for(const p of PALETTES){
+    const b=document.createElement('button');
+    b.type='button';b.className='tpal';b.dataset.pal=p.name;
+    b.setAttribute('aria-pressed','false');
+    b.title=p.name;
+    b.innerHTML=`<i style="background:${p.bg}"></i><i style="background:${p.accent}"></i><i style="background:${p.p1}"></i>`;
+    palWrap.append(b);
+  }
+  const palBtns=[...palWrap.children];
+
+  function apply(state,persist){
+    const mode=state.mode==='dark'?'dark':'light';
+    const pal=state.pal&&PALETTES.some(p=>p.name===state.pal)?state.pal:'slate';
+    if(mode==='dark')root.setAttribute('data-theme','dark');else root.removeAttribute('data-theme');
+    root.setAttribute('data-palette',pal);
+    modeBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+    palBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pal===pal)));
+    const p=PALETTES.find(x=>x.name===pal);
+    if(nameOut&&p)nameOut.textContent=p.name[0].toUpperCase()+p.name.slice(1);
+    bar.hidden=false;
+    if(persist)try{localStorage.setItem(KEY,JSON.stringify({mode,pal}))}catch{}
+  }
+
+  modeBtns.forEach(b=>b.addEventListener('click',()=>{
+    const mode=b.dataset.mode;
+    apply({mode,pal:root.getAttribute('data-palette')||'slate'},true);
+  }));
+  palBtns.forEach(b=>b.addEventListener('click',()=>{
+    apply({mode:root.getAttribute('data-theme')==='dark'?'dark':'light',pal:b.dataset.pal},true);
+  }));
+  bar.querySelector('#themereset').addEventListener('click',()=>{
+    apply({mode:'light',pal:'slate'},true);
+  });
+
+  /* Keyboard equivalent of hovering the top strip, so the switcher is reachable
+     without a pointer: focus lands on the first control when it is tabbed to. */
+  document.addEventListener('keydown',(e)=>{
+    // Edit mode owns Escape first: an open modal closes via its own capture
+    // listener (which stops propagation, so this never fires for it), and a
+    // keystroke inside editable text must not reset the theme out from under
+    // the edit.
+    if(e.key==='Escape'&&!bar.hidden
+      &&!(e.target.closest&&e.target.closest('[contenteditable],input,textarea')))
+      {root.removeAttribute('data-theme');root.setAttribute('data-palette','slate');apply({mode:'light',pal:'slate'},true)}
+  });
+
+  let saved=null;
+  try{saved=JSON.parse(localStorage.getItem(KEY)||'null')}catch{}
+  if(saved&&(saved.mode==='dark'||saved.pal))apply(saved,false);
+  else bar.hidden=false;
+
+  /* The switcher lives on the first slide only. Wrapping show() rather than
+     polling keeps one source of truth for which slide is showing. */
+  if(typeof window.show==='function'){
+    const _show=window.show;
+    window.show=function(n){_show(n);document.body.classList.toggle('on-cover',n===0);};
+    document.body.classList.add('on-cover');
+  }
+})();
+</script>
+
+<script>
+/* ==========================================================================
+   EDITMODE: edit text and swap icons directly on the slides, then export.
+   A human path, not an agent path: agents build decks through the skill; a
+   presenter fixes a typo or swaps a glyph without touching source. Off on load,
+   toggled from the themebar, available on every slide (unlike the theme
+   switcher, which lives on the cover only). Exported HTML keeps the theme and
+   the new bytes; it never keeps the editing state.
+   ========================================================================== */
+(function editMode(){
+  const bar=document.querySelector('.themebar');
+  if(!bar)return;
+  const editBtn=bar.querySelector('.tedit');
+  const modal=document.querySelector('.editmodal');
+  const search=modal.querySelector('.editmodal-search');
+  const results=modal.querySelector('.editmodal-results');
+  const hint=modal.querySelector('.editmodal-hint');
+  const current=modal.querySelector('.editmodal-current');
+
+  /* Text that is safe to edit in place. Structural chrome (rail, themebar,
+     modal) is never editable; scripts and styles are not elements. Table cells
+     are included because results tables are edited, not rebuilt. */
+  const EDITABLE='.head,.sub,.subc,.takeaway,.card h3,.desc,.meta,.tagline,.step h4,.step p,.bigstat .n,.bigstat .t,.cnode .lbl,.cnode .sub,.pull,.pull .t,.bigstrip .n,.bigstrip .t,.mn .n,.mn .t,.shotcap,td,th';
+  const inChrome=(el)=>!!(el.closest&&el.closest('.themebar,.editmodal,nav.rail'));
+
+  function setEditing(on){
+    document.body.classList.toggle('editing',on);
+    editBtn.setAttribute('aria-pressed',String(on));
+    document.querySelectorAll('.slide').forEach(s=>{
+      s.querySelectorAll(EDITABLE).forEach(el=>{
+        if(inChrome(el))return;
+        if(on)el.setAttribute('contenteditable','plaintext-only');
+        else el.removeAttribute('contenteditable');
+      });
+    });
+  }
+  editBtn.addEventListener('click',()=>setEditing(!document.body.classList.contains('editing')));
+
+  /* ---- icon search data: lazy, and honest about absence -------------------
+     file:// blocks fetch() but allows <script>, so the index and the svg bytes
+     arrive as generated JS (`bun cli.mjs icons build`). Nothing loads until the
+     modal opens, so a deck that is only presented never pays for 9k icons. */
+  const loadedScripts=new Set();
+  const skillAsset=(rel)=>String(window.__SKILL_ASSETS__||'../assets').replace(/\/$/,'')+'/'+rel;
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(loadedScripts.has(src))return res();
+      const s=document.createElement('script');s.src=src;
+      s.onload=()=>{loadedScripts.add(src);res();};
+      s.onerror=()=>rej(new Error(src));
+      document.head.append(s);
+    });
+  }
+  const bucketOf=(key)=>{const c=(key[0]||'').toLowerCase();return/[a-z0-9]/.test(c)?c:'misc';};
+  async function ensureIndex(){
+    if(window.__ICON_INDEX)return window.__ICON_INDEX;
+    try{await loadScript(skillAsset('icon-index.js'));}
+    catch(e){throw new Error('no icon data at '+skillAsset('icon-index.js')+'. From the deck folder, point the deck at the skill (window.__SKILL_ASSETS__), or run `bun cli.mjs icons build` in the skill.');}
+    if(!window.__ICON_INDEX)throw new Error('icon-index.js loaded but defined nothing.');
+    return window.__ICON_INDEX;
+  }
+  async function ensureBucket(key){
+    window.__ICON_FILES=window.__ICON_FILES||{};
+    if(window.__ICON_FILES[key])return;
+    await loadScript(skillAsset('icon-files/'+bucketOf(key)+'.js'));
+  }
+
+  /* Same matching the CLI uses: every word must appear in name/title/tags, and
+     exact and prefix matches outrank substring ones. Two searches for the same
+     words agree by construction, not by testing. */
+  function searchIndex(index,words){
+    const out=[];
+    for(const [key,title,tags,dataIcon] of index){
+      const hay=`${key} ${title} ${tags}`.toLowerCase();
+      const kl=key.toLowerCase(), tl=(title||'').toLowerCase();
+      if(!words.every(w=>hay.includes(w)||kl.includes(w.replace(/-/g,''))))continue;
+      let score=0;
+      for(const w of words){
+        if(kl===w)score+=4;
+        else if(kl.startsWith(w))score+=3;
+        else if(kl.includes(w))score+=2;
+        else if(tl.includes(w))score+=1;
+        else score+=0.5;
+      }
+      out.push({key,title,tags,dataIcon,score});
+    }
+    out.sort((a,b)=>b.score-a.score||(a.key<b.key?-1:1));
+    return out.slice(0,12);
+  }
+
+  let target=null, lastQuery='';
+  function openModal(svg){
+    target=svg;lastQuery='';
+    current.textContent='now: '+(svg.getAttribute('data-icon')||'(no data-icon)');
+    search.value='';results.innerHTML='';
+    hint.textContent='Type to search. Choosing replaces this glyph in place.';
+    modal.hidden=false;
+    setTimeout(()=>search.focus(),30);
+  }
+  function closeModal(){modal.hidden=true;results.innerHTML='';target=null;}
+
+  let debounce=null;
+  search.addEventListener('input',()=>{
+    clearTimeout(debounce);
+    debounce=setTimeout(runSearch,120);
+  });
+  async function runSearch(){
+    const words=search.value.toLowerCase().split(/\s+/).filter(Boolean);
+    results.innerHTML='';
+    if(!words.length){hint.textContent='Type to search. Choosing replaces this glyph in place.';return;}
+    let index;
+    try{index=await ensureIndex();}
+    catch(e){hint.textContent=String(e.message||e);return;}
+    const hits=searchIndex(index,words);
+    if(!hits.length){hint.textContent='No match. Fewer words, or different ones.';return;}
+    hint.textContent=hits.length+' match'+(hits.length===1?'':'es')+'. Choosing replaces the glyph.';
+    // Load the buckets behind the visible hits so every row gets a preview.
+    await Promise.all([...new Set(hits.map(h=>bucketOf(h.key)))].map(async b=>{
+      try{await loadScript(skillAsset('icon-files/'+b+'.js'));}catch(e){/* preview falls back to text */}
+    }));
+    for(const h of hits){
+      const row=document.createElement('button');
+      row.type='button';row.className='editmodal-row';
+      const svg=(window.__ICON_FILES||{})[h.key];
+      row.innerHTML=(svg||'<svg viewBox="0 0 256 256" width="30" height="30"><rect width="256" height="256" fill="none" stroke="currentColor" stroke-width="12"/></svg>')
+        +`<span><span class="nm"></span><br><span class="ti"></span></span>`;
+      row.querySelector('.nm').textContent=h.key;
+      row.querySelector('.ti').textContent=(h.title||'')+(h.tags?' · '+h.tags.split(',').slice(0,3).join(', '):'');
+      row.addEventListener('click',()=>choose(h));
+      results.append(row);
+    }
+  }
+
+  function choose(h){
+    if(!target){closeModal();return;}
+    const svgText=(window.__ICON_FILES||{})[h.key];
+    if(!svgText){hint.textContent='Bytes for '+h.key+' did not load. Try again.';return;}
+    const tpl=document.createElement('template');tpl.innerHTML=svgText.trim();
+    const fresh=tpl.content.firstElementChild;
+    if(!fresh||fresh.tagName.toLowerCase()!=='svg'){hint.textContent='Bytes for '+h.key+' are not an svg. Try another.';return;}
+    // The old node's sizing contract survives; everything else comes from the
+    // file, byte for byte, which is what the provenance gate checks.
+    for(const a of ['class','style','width','height'])if(target.hasAttribute(a))fresh.setAttribute(a,target.getAttribute(a));
+    fresh.setAttribute('data-icon',h.dataIcon);
+    target.replaceWith(fresh);
+    closeModal();
+  }
+
+  // In edit mode, an icon click opens the modal instead of doing whatever the
+  // icon would otherwise do. Capture phase, so rail and edge handlers (which
+  // stop propagation on their own events) keep working everywhere else.
+  document.addEventListener('click',e=>{
+    if(!document.body.classList.contains('editing'))return;
+    const svg=e.target.closest&&e.target.closest('svg[data-icon]');
+    if(!svg||svg.closest('.themebar,.editmodal'))return;
+    e.preventDefault();e.stopPropagation();
+    openModal(svg);
+  },true);
+
+  modal.querySelector('.editmodal-close').addEventListener('click',closeModal);
+  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  // Escape closes the modal before the theme reset below ever sees it.
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!modal.hidden){e.stopPropagation();closeModal();}
+  },true);
+
+  /* ---- exports --------------------------------------------------------------
+     HTML serializes the live document minus the editing state: text and icons
+     stay, outlines and attributes go, theme choice stays (it is the look).
+     PDF is the print path, which already hides chrome and lays one slide per
+     page. Both are presenter tools; neither is part of any check. */
+  function cleanForExport(){
+    const wasEditing=document.body.classList.contains('editing');
+    if(wasEditing)setEditing(false);
+    closeModal();
+    return wasEditing;
+  }
+  bar.querySelector('[data-export="html"]').addEventListener('click',()=>{
+    const resume=cleanForExport();
+    let html='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    // Serialization expands self-closing SVG tags (<path/> becomes
+    // <path></path>), which breaks the byte-provenance the visuals gate
+    // checks: every inlined glyph must match its vendored file byte for byte.
+    // These elements are always empty in icon artwork, so collapsing an
+    // immediately-closed pair back restores the file bytes exactly.
+    html=html.replace(/><\/(path|circle|rect|line|polyline|polygon|ellipse|use|stop)>/g,'/>');
+    const stem=(document.title||'deck').replace(/[^\w\-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+    a.download=(stem||'deck')+'-edited.html';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    if(resume)setEditing(true);
+  });
+  bar.querySelector('[data-export="pdf"]').addEventListener('click',()=>{cleanForExport();window.print();});
+})();
+</script>
+
+<!-- Diagrams: the vendored UMD build, never a CDN. mermaid@12.0.0 is a pinned
+     devDependency of this skill, so the file is on disk after `bun install`:
+     cp <skill>/node_modules/mermaid/dist/mermaid.min.js assets/mermaid.min.js
+     The ESM entry is CORS-blocked on file://, which is how a deck is opened. -->
+<script src="./assets/mermaid.min.js"></script>
+<script>
+/* MERMAID.md section 5. initialize() runs synchronously at parse time, before
+   anything can await, because Mermaid's UMD build arms a window.load handler on
+   first import and captures startOnLoad as it stands at that moment. Get this
+   wrong and Mermaid auto-renders every .mermaid node itself on load, and this
+   second pass then reads a node holding an injected <style> block as diagram
+   source. The render is registered with window.__deckDefer(), never assigned to
+   window.__deckReady: the template owns that promise. */
+(function () {
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  mermaid.initialize({
+    startOnLoad:false,
+    securityLevel:"loose",
+    theme:"base",
+    fontFamily:'Nunito, Inter, sans-serif',
+    flowchart:{htmlLabels:true,wrappingWidth:520},
+    themeVariables:{
+      background:css("--bg"), primaryColor:css("--surface"),
+      primaryTextColor:css("--text"),
+      primaryBorderColor:`rgba(${css("--ink-rgb")},.12)`, lineColor:css("--muted"),
+      mainBkg:css("--surface"),
+      nodeBorder:`rgba(${css("--ink-rgb")},.12)`, nodeTextColor:css("--text"),
+      edgeLabelBackground:css("--bg"),
+      clusterBkg:`rgba(${css("--ink-rgb")},.05)`,
+      clusterBorder:`rgba(${css("--ink-rgb")},.10)`,
+      tertiaryColor:css("--bg"), titleColor:css("--text"), textColor:css("--text"),
+      edgeLabelTextColor:css("--ink"), fontSize:"16px"
+    }
+  });
+
+  window.__deckDefer((async function () {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    var nodes = Array.prototype.slice.call(document.querySelectorAll(".mermaid"));
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i], src = node.textContent;
+      /* A node on a display:none slide measures zero width, so the slide is
+         shown for the measurement and put back. .active, never an inline
+         display:grid: the grid template lives on the .active selector. */
+      var slide = node.closest ? node.closest(".slide") : null;
+      var wasActive = slide && slide.classList.contains("active");
+      if (slide && !wasActive) slide.classList.add("active", "measuring");
+      try {
+        await mermaid.parse(src);
+        /* The THIRD ARGUMENT IS LOAD-BEARING: without a container, mermaid.render()
+           appends a measuring element to body, and this template's body is
+           display:flex, so that element shrinks to ZERO width and any type that
+           measures its own container computes 0. Passing the live node gives the
+           measurement a real box. */
+        node.innerHTML = (await mermaid.render("mmd-" + i, src, node)).svg;
+        /* Swap the class AFTER the SVG lands: .mmdwrap is display:flex, and
+           Mermaid appends its measuring element inside the given container. */
+        node.classList.remove("mermaid"), node.classList.add("mmdwrap");
+        if (node.querySelector(".error-text, .error-icon")) throw new Error("error card");
+      } catch (e) {
+        /* Never swallow this: the PDF still looks like it exported fine. */
+        node.setAttribute("data-mermaid-error", "1");
+        node.innerHTML = '<div class="mermaid-fail">' + String(e && e.message ? e.message : e) + "</div>";
+      } finally {
+        if (slide && !wasActive) slide.classList.remove("active", "measuring");
+      }
+    }
+    await new Promise(function (r) { requestAnimationFrame(function () { requestAnimationFrame(r); }); });
+    return true;
+  })());
+})();
+</script>
+</body>
+</html>
