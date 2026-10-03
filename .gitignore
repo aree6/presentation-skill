@@ -9,6 +9,11 @@ package-lock.json
 presentations/
 *-shots/
 
+# One folder per deck, inside the skill. The deck, its plan, its PDF and its
+# images are the deliverable and stay tracked; the screenshots are derived,
+# large, and one command regenerates them.
+decks/*/*-shots/
+
 # Generated browser-side icon search data. Restore with:
 #   bun cli.mjs icons build
 assets/icon-index.js

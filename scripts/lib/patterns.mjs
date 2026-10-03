@@ -107,15 +107,20 @@ export function bodyClassOf(markup) {
 }
 
 /**
- * Treatments that live only in templates/template.html, never in the
- * gallery: hero-split and bigstat lead deck 7, gridQ is deck 4, ring/vbars/
- * pillbar are deck 6/8 marks, shot frames deck 10, gapnote qualifies deck 6.
- * check-refs.mjs verifies each one is really there, so a template edit that
- * removes one fails loudly instead of silently unlisting it.
+ * Treatments that live only in templates/template.html, never in the gallery.
+ *
+ * Empty, and that is the point. The template used to demonstrate seven marks of
+ * its own — hero-split, gridQ, ring, vbars, pillbar, shot, gapnote — which made
+ * it a second catalogue beside the gallery and put a treatment's HTML in two
+ * files that could drift. Every sample slide the template ships is now copied
+ * out of templates/slides/patterns.html, so the gallery is the single source of
+ * treatment markup and this list has nothing left to guard.
+ *
+ * Kept as an empty list rather than deleted: treatmentList() appends it after
+ * the gallery classes, so a genuinely template-only treatment still has a home,
+ * and check-refs.mjs still verifies any entry really exists in the template.
  */
-export const TEMPLATE_EXTRAS = [
-  "hero-split", "gridQ", "ring", "vbars", "pillbar", "shot", "gapnote",
-];
+export const TEMPLATE_EXTRAS = [];
 
 /** Inner marks that never head a body but still anchor it visually. */
 const INNER_MARKS = ["meter", "mermaid"];

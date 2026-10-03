@@ -126,7 +126,7 @@ function parseArgv(argv) {
  *
  * 130 is the limit. A slide above it fails, with its longest blocks named so
  * the cut has a place to start: rephrase to fall back under the cap, or split
- * the slide in two. The reference deck reads median 60, so 130 is roughly twice
+ * the slide in two. The reference deck reads median 70, so 130 is roughly twice
  * the typical slide and leaves room for an honest four-card grid, while a
  * slide that has become a page cannot pass. `templates/slides/patterns.html` fails
  * several of its slides at 130, and that is the gate working rather than

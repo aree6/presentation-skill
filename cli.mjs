@@ -163,7 +163,7 @@ const OVERVIEW = [
   "File map",
   "  SKILL.md                operating instructions, the workflow above in full",
   "  content_philosophy.md     the seven rules a slide obeys, read at plan time",
-  "  templates/template.html     starter deck, 10 sample slides, what `new` copies",
+  "  templates/template.html     scaffold: 7 sample slides, all copied from the gallery",
   "  templates/slides/patterns.html a gallery of every implemented pattern, one",
   "                           per slide, each captioned with when to use it and when not",
   "                          saying when to use it and when not to. A menu, not",
@@ -223,10 +223,16 @@ const HELP_OF = {
   ].join("\n"),
 
   new: [
-    "usage: presentation-skill new <target.html> [--force]",
+    "usage: presentation-skill new <topic> | <target.html> [--force]",
     `  also: bun ${JSON.stringify(CLI_PATH)} new   (same arguments)`,
     "",
-    "  <target.html>   where to write the deck. Default ./deck.html.",
+    "  <topic>         a bare name writes decks/<topic>/<topic>.html and",
+    "                  creates the folder's images/ and images/icons/. This is",
+    "                  the default shape: one HTML, one PDF, one images folder.",
+    "                  With no argument the topic is \"deck\".",
+    "  <target.html>   an explicit path instead, for a deck that does not follow",
+    "                  the default shape. images/ and images/icons/ are still",
+    "                  created beside it.",
     "  --force         overwrite an existing file. Off by default.",
     "  --help, -h      print this and exit 0",
     "",
@@ -238,7 +244,8 @@ const HELP_OF = {
     "so a failure never leaves half a deck behind and --force cannot destroy an",
     "existing one.",
     "",
-    "The copy has 10 sample slides about a fictional company. Replace the",
+    "The copy has 7 sample slides, every one of them copied out of",
+    "templates/slides/patterns.html, which is where treatment markup lives. Replace the",
     "<section class=\"slide\"> elements with yours — never start from a blank",
     "file, which is how the grid, the rail and the readiness contract get rebuilt",
     "wrong. Keep the template's relabel()",
@@ -1219,7 +1226,29 @@ function runNew(argv) {
     );
   }
 
-  const target = path.resolve(positional[0] || "deck.html");
+  /* The target is either a path to a .html file, or a bare topic name. A bare
+     name is the documented default and it is what keeps the skill folder
+     tidy: `new jev` writes decks/jev/jev.html rather than dropping a deck, a
+     plan, a shots folder and a PDF into whatever directory the agent happened
+     to be standing in. The structure a deck ships in is defined in SKILL.md
+     under "Output structure", and this is the half of it a command can
+     enforce. */
+  const arg = positional[0];
+  const looksLikePath =
+    arg && (arg.includes("/") || arg.includes(path.sep) || /\.html?$/i.test(arg));
+  const topic = !arg || !looksLikePath ? (arg || "deck") : null;
+  if (topic && !/^[\w][\w .-]*$/.test(topic)) {
+    die(`that is not a usable topic name: ${JSON.stringify(topic)}`, cmd("new <topic>"), [
+      "a topic becomes a folder name, so it takes letters, digits, spaces, dots",
+      "and dashes. Pass an explicit path if you need anything else:",
+      cmd(`new ${JSON.stringify(path.join("decks", "my-deck", "my-deck.html"))}`),
+    ]);
+  }
+  const target = path.resolve(
+    topic
+      ? path.join(ROOT, "decks", topic, `${topic}.html`)
+      : path.join(process.cwd(), arg),
+  );
   if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
     die(`that path is a directory, not a file: ${target}`, cmd("new <target>.html"), [
       "give new a file name to write, for example:",
@@ -1239,7 +1268,22 @@ function runNew(argv) {
   }
 
   const bytes = fs.readFileSync(TEMPLATE);
+  // The deck folder is a deliverable, so `new` builds the shape SKILL.md
+  // promises rather than leaving the agent to remember it: images/ holds
+  // everything the HTML points at, and images/icons/ is where a vendored or
+  // captured image file goes. Created empty and idempotently, because a deck
+  // with no images still ships the folder and a later run must not fail on it.
   const dir = path.dirname(target);
+  const images = path.join(dir, "images");
+  for (const sub of ["", "icons"]) {
+    try {
+      fs.mkdirSync(path.join(images, sub), { recursive: true });
+    } catch (err) {
+      die(`cannot create ${path.join(images, sub)}: ${err.message}`, cmd(`new ${JSON.stringify(target)}`), [
+        "the deck folder is not writable, so it cannot hold the images/ subfolder.",
+      ]);
+    }
+  }
   if (!fs.existsSync(dir)) {
     try {
       fs.mkdirSync(dir, { recursive: true });
@@ -1298,12 +1342,17 @@ function runNew(argv) {
   );
   console.log("the sample content is yours to replace; only the skill-asset path was resolved.");
   if (force) console.log("the previous file at that path was replaced.");
+  console.log("  images/mermaid.min.js  if this deck carries a diagram");
   console.log("");
   console.log("next:");
   console.log(`  1  replace the ${slides} <section class=\"slide\"> elements with your own,`);
   console.log("     keeping relabel(), window.show(n) and the four-row grid");
   console.log(`  2  ${cmd(`check --deck ${JSON.stringify(target)}`)}`);
-  console.log(`  3  ${cmd(`pdf --deck ${JSON.stringify(target)}`)}`);
+  console.log(`  3  ${cmd(`pdf --deck ${JSON.stringify(target)} --here`)}`);
+  console.log("");
+  console.log(
+    `shipped shape: ${path.basename(target)}, ${path.basename(target, ".html")}.pdf, images/`,
+  );
   return 0;
 }
 

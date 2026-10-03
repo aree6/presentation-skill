@@ -5,7 +5,7 @@ soft pastel surfaces and rounded geometry create hierarchy: never heavy shadows,
 neon colour, sharp corners, or dense layouts.
 
 Token, type and grid values below were read out of `templates/template.html` and
-`templates/slides/patterns.html`, the 33-slide pattern gallery, which carries the
+`templates/slides/patterns.html`, the 32-slide pattern gallery, which carries the
 same token block verbatim and holds a working reference for most treatments.
 
 ## Contents
@@ -201,7 +201,7 @@ harder, both inheriting the surrounding type so they work at any size:
   most.
 - `.mark` washes the marker behind two to four words.
 
-Never both on one line. Gallery 7 washes its pull line, gallery 2 circles
+Never both on one line. Gallery 29 washes its pull line, gallery 28 circles
 its bridge word.
 
 ## Density budget
@@ -214,11 +214,11 @@ Run the gate on every deck and the three-step test on your own rendered slide.
 cli.mjs check`, which runs it fifth; `--words` overrides the cap). The count
 covers what the audience reads, headline, subline, body, takeaway and chips,
 and excludes chrome; a diagram's own labels are not slide copy. The number is
-measured, not tasted: `templates/template.html` reads median 60, worst 113 on a
-four-card grid, so 130 sits just above the densest slide the reference deck
-ships, with a copy edit of headroom. 130 is a floor, not a budget to fill.
+measured, not tasted: `templates/template.html` reads median 70, worst 109 on its
+three-step slide, so 130 sits above the densest slide the reference deck ships,
+with a copy edit of headroom. 130 is a floor, not a budget to fill.
 
-`templates/slides/patterns.html` fails 7 of 33 at 130, median 110, worst s9 at
+`templates/slides/patterns.html` fails 7 of 32 at 130, median 109, worst s24 at
 206, and that is the gate working: the gallery carries the fullest copy each
 shape can hold, so judge a deck with this, never the gallery. On a failure,
 rephrase to fall back under the cap, or split the slide in two.
@@ -340,8 +340,15 @@ Marks are rounded geometry all the way down. Nothing in this deck is a sharp
 rectangle: no square-ended bars, no angular charts, no 3D, no drop shadows on
 data. `--radius-pill: 999px` everywhere a bar or track appears.
 
-Copy the mark blocks from `templates/template.html`: `.pillbar`, `.vbars`, `.ring`
-(`--p` is a bare number there), `.chiprow`.
+Copy the mark blocks from `templates/slides/patterns.html`, which is where every
+treatment's CSS lives: `.vbars` (deck slide 3), `.pillbar`, `.ring` (`--p` is a
+bare number there), `.chiprow`, `.meter`, `.donutrow`, `.funnel`, `.dotfield`.
+
+Four of those are documented without a sample slide: `.hero-split`, `.gridQ`,
+`.ring` and `.shot` carry CSS in the gallery but no slide uses them, because
+each is a composition of containers that are demonstrated elsewhere. Take their
+markup from the gallery's extension section and compose it; there is no worked
+example to copy.
 
 `.pillbar` for counts against a maximum, `.chiprow` for labels and values, and
 the choice between `.vbars`, `.ring`, `.meter` and the rest is in the treatment
@@ -409,9 +416,9 @@ the rail already carries the position, one entry per slide, and it is clickable.
 - The rail never scrolls. It is `overflow:hidden`, vertically centred, with a
   constant full-slide height on every slide, and it steps down through **three**
   densities so every entry stays visible: `compact` past 16 main slides, and
-  `micro` past 28. Two tiers are not enough, which the 33-slide gallery proves:
+  `micro` past 28. Two tiers are not enough, which the 32-slide gallery proves:
   the compact rows push the last entry onto the footer band, so the overview the
-  rail exists to give is the thing that gets lost first. Measured, 33 entries
+  rail exists to give is the thing that gets lost first. Measured, 32 entries
   need `micro`.
 - Grid: the rail spans all rows (`grid-row:1/-1`) in column 1 so its height
   never depends on content — a rail sized by its neighbours drifts up and down
@@ -497,9 +504,10 @@ and a "lit display" for the image area at `#FAFCFC` into `#EDF3F3`. Nothing
 shadowed, nothing new in the palette, and the difference between the three is
 what the eye reads as depth.
 
-> **Implemented in `templates/template.html`, slide 10.** Copy the block from the
-> template. `templates/slides/patterns.html` carries the same classes (line 646)
-> but ships no slide that uses them.
+> **Implemented in `templates/slides/patterns.html`.** Copy the block from the
+> gallery. No slide there uses it either: the frame is the one treatment this
+> skill documents without shipping a sample of, because a screenshot is the one
+> asset a deck cannot generate for itself.
 
 The class names have no dashes: `.shotbar`, `.shotimg`, `.shotcap`, and the
 address pill is `.shotbar .addr`. Copy them exactly. Then, for the frame itself:
@@ -527,7 +535,7 @@ background answers it. It exists for one case: a long header overflowing onto
 edge decoration, which has to stay readable there and visibly shift colour.
 
 Copy `.blobstage`, `.blob` and `.bthead` from `templates/slides/patterns.html`
-(gallery 32); the rules below are why each value is what it is.
+(gallery 31); the rules below are why each value is what it is.
 
 1. **Single-colour type only.** The word is `#fff` and nothing else. A second
    colour doubles the backdrop interactions and neither can be reasoned about,
@@ -608,46 +616,45 @@ number is the slide in that file. Copy from there rather than retyping CSS.
 
 | Content shape | Treatment | Why it fits | Reference |
 |---|---|---|---|
-| Three or four equal ideas | `.grid3` / `.gridQ` | Uniform weight is the point | Deck 3, 4. Gallery 3 |
-| One item outweighs the rest | `.hero-split` + `.bigstat` | Asymmetric lead column at 560px | Deck 7 |
-| Row of small equal metrics | `.stat-rail` | Equal-weight numbers, `.hd` per tile | Deck 8. Gallery 5 |
-| One dominant number | `.bigstat` | 172px figure plus one caption line | Deck 7. Gallery 6 |
-| Ordered sequence | `.numbered` | Editorial 01/02/03 with hairline rules | Gallery 10 |
-| Phases over time, no dates | `.timeline` + `.exits` | Dots on a rail, owner and rollback each | Gallery 9 |
+| Three or four equal ideas | `.grid3` / `.gridQ` | Uniform weight is the point | Deck 5. Gallery 16 |
+| One item outweighs the rest | `.bigstat` | A figure with the room to be the slide | Gallery 15 |
+| Row of small equal metrics | `.stat-rail` | Equal-weight numbers, `.hd` per tile | Gallery 14 |
+| One dominant number | `.bigstat` | 172px figure plus one caption line | Gallery 15 |
+| Ordered sequence | `.numbered` | Editorial 01/02/03 with hairline rules | Gallery 25 |
+| Phases over time, no dates | `.timeline` + `.exits` | Dots on a rail, owner and rollback each | Gallery 24 |
 | A plan against elapsed time | Mermaid `gantt` | Durations and dependencies a row of dots cannot show | MERMAID §7.2.1 |
-| Three horizons | `.steps3` + `.glue` + `.meta` | Each step carries its exit test | Deck 5. Gallery 8 |
-| One sentence that must land | `.pull` | Centred statement, nothing competes | Deck 9. Gallery 7 |
-| A distribution of shares | `.ring` | One share against one whole | Deck 8 (rail tiles carry rings; bare-number `--p`) |
-| Categories against a value | `.vbars` | Rounded columns, labelled, no axis | Deck 6. Gallery 12 |
-| Proportional bars with end labels | `.meter` | Label, bar, value in one ruled row | Gallery 11, 15 |
-| Ordered climb with no plateaus | `.ladder` | Contiguous treads read as a stair | Gallery 18 |
-| How a start became an end | `.waterfall` | Anchors on the baseline, signed bars | Gallery 17 |
-| Stage to stage drop | `.funnel` | Honest widths, conversion per stage | Gallery 23 |
-| Many similar items, none the point | `.dotfield` | Dot carries count and state at once | Gallery 21 |
-| One share split several ways | `.donutrow` | Donut plus a legend with amounts | Gallery 22 |
-| Exact row-by-row comparison | `.dtable` | Hairline rows, right-aligned numerals | Gallery 25 |
-| Two positions on identical rows | `.compare` | The pair is the claim | Gallery 4 |
-| A change a customer can feel | `.ba` | Muted before, tinted after | Gallery 27 |
-| Qualifications or gates | `.checklist` | Every line is true or false | Gallery 26 |
-| Layered system or pipeline | `.stack` | Offset cards implying depth | Gallery 20 |
-| Mixed importance, three to five items | `.bento` | Tile sizes encode importance | Gallery 19 |
-| A pipeline or system, alone | Mermaid + `.mmdbox` | The drawing is the slide; band shaped to the drawing | Gallery 13 |
-| A pipeline plus three numbers | Mermaid + `.chartcol` | Diagram two thirds, readout names what to say | Gallery 14 |
-| A plan against elapsed time | Mermaid `gantt` + `.readout` | Durations and sequencing, anchored to a printed date | Gallery 15, MERMAID §7.2.1 |
-| A handover or integration | Mermaid `sequenceDiagram` | Drawing above, a `.bigstrip` of three numbers below, on a `hero-slide` | Gallery 16 |
-| An ordered priority, no magnitudes | `.cascade` | Full-width bars, each inset further; order is the claim | Gallery 29 |
-| A sequence to follow, four to six steps | `.zigzag` | One rail, entries alternating; halves the width each needs | Gallery 30 |
-| A long tail that arrives pre-grouped | Three cards + `.minicloud` | Each card fills with uniform pills; no rotation inside a card | Gallery 31 |
-| A long line overflowing onto decoration | `.blobstage` | One white headline, `difference`, edge blobs | Gallery 32 |
-| Positioning on two dimensions | `.mxwrap` + `.matrix` | Both axes named and scaled | Gallery 24 |
-| Four equal answers | `.gridQ` | Same anatomy on every card | Deck 4 |
-| A change of gear | `.divider` + `.ghost` | Carries the section number, nothing else | Gallery 28 |
-| Prose plus the numbers that prove it | `.tvo` | 40/60 split, never 50/50 | Gallery 11 |
-| Chart dominant with a readout | `.chartcol` + `.readout` | Chart takes two thirds | Gallery 12 |
-| Contents | `.toc` + `.ti` | Two columns, real slide numbers | Deck 2 |
-| Cover | `.cover-flow` + `.cnode` | Three nodes is the ceiling | Deck 1. Gallery 1 |
-| Screenshot or photo | `.shot` | Window frame, see above | Deck 10 |
-| A caveat made to the audience | `.gapnote` | Dashed edge, no fill, under the claim it qualifies | Deck 6. Gallery 25 |
+| Three horizons | `.steps3` + `.glue` + `.meta` | Each step carries its exit test | Deck 6. Gallery 23 |
+| One sentence that must land | `.pull` | Centred statement, nothing competes | Deck 7. Gallery 29 |
+| A distribution of shares | `.ring` | One share against one whole | Gallery only; bare-number `--p`. See also `.donutrow`, Gallery 7 |
+| Categories against a value | `.vbars` | Rounded columns, labelled, no axis | Deck 3. Gallery 6 |
+| Proportional bars with end labels | `.meter` | Label, bar, value in one ruled row | Gallery 26, 15 |
+| Ordered climb with no plateaus | `.ladder` | Contiguous treads read as a stair | Gallery 5 |
+| How a start became an end | `.waterfall` | Anchors on the baseline, signed bars | Deck 2. Gallery 4 |
+| Stage to stage drop | `.funnel` | Honest widths, conversion per stage | Gallery 8 |
+| Many similar items, none the point | `.dotfield` | Dot carries count and state at once | Gallery 9 |
+| One share split several ways | `.donutrow` | Donut plus a legend with amounts | Gallery 7 |
+| Exact row-by-row comparison | `.dtable` | Hairline rows, right-aligned numerals | Gallery 13 |
+| Two positions on identical rows | `.compare` | The pair is the claim | Gallery 17 |
+| A change a customer can feel | `.ba` | Muted before, tinted after | Gallery 20 |
+| Qualifications or gates | `.checklist` | Every line is true or false | Gallery 21 |
+| Layered system or pipeline | `.stack` | Offset cards implying depth | Gallery 22 |
+| Mixed importance, three to five items | `.bento` | Tile sizes encode importance | Gallery 18 |
+| A pipeline plus three numbers | Mermaid + `.chartcol` | Diagram two thirds, readout names what to say | Gallery 1 |
+| A plan against elapsed time | Mermaid `gantt` + `.readout` | Durations and sequencing, anchored to a printed date | Gallery 3, MERMAID §7.2.1 |
+| A handover or integration | Mermaid `sequenceDiagram` | Drawing above, a `.bigstrip` of three numbers below, on a `hero-slide` | Gallery 2 |
+| An ordered priority, no magnitudes | `.cascade` | Full-width bars, each inset further; order is the claim | Gallery 11 |
+| A sequence to follow, four to six steps | `.zigzag` | One rail, entries alternating; halves the width each needs | Gallery 12 |
+| A long tail that arrives pre-grouped | Three cards + `.minicloud` | Each card fills with uniform pills; no rotation inside a card | Gallery 19 |
+| A long line overflowing onto decoration | `.blobstage` | One white headline, `difference`, edge blobs | Gallery 31 |
+| Positioning on two dimensions | `.mxwrap` + `.matrix` | Both axes named and scaled | Gallery 10 |
+| Four equal answers | `.gridQ` | Same anatomy on every card | Gallery 16 |
+| A change of gear | `.divider` + `.ghost` | Carries the section number, nothing else | Gallery 30 |
+| Prose plus the numbers that prove it | `.tvo` | 40/60 split, never 50/50 | Gallery 26 |
+| Chart dominant with a readout | `.chartcol` + `.readout` | Chart takes two thirds | Gallery 6 |
+| Contents | `.toc` + `.ti` | Two columns, real slide numbers | Gallery only; a deck's own position list is the sidebar rail |
+| Cover | `.cover-flow` + `.cnode` | Three nodes is the ceiling | Deck 1. Gallery 27 |
+| Screenshot or photo | `.shot` | Window frame, see above | Gallery only |
+| A caveat made to the audience | `.gapnote` | Dashed edge, no fill, under the claim it qualifies | Deck 4. Gallery 13 |
 
 ### Tile counts
 
@@ -691,7 +698,7 @@ tiles, taglines on light canvas. Two card-DNA slides in any window of four is
 the smell, and the fix is never a third card treatment.
 
 Where the argument moves, prefer a bridge over another treatment. A `.ask`
-bridge (gallery 2) asks the one question the previous slide earned, before
+bridge (gallery 28) asks the one question the previous slide earned, before
 the next slide answers it — ask before you tell, since the audience doesn't
 know what's coming: one centred line in `.title-xl`, key words in accent like
 a cover title, nothing else on the slide, and `data-group="bridge"` so the
@@ -701,14 +708,14 @@ it stays.
 
 What breaks card DNA, cheapest first:
 
-- **Scale.** One figure at 172px (`.bigstat`, gallery 6) or one sentence alone
-  (`.pull`, gallery 7) resets the eye. Every deck earns at least one such
+- **Scale.** One figure at 172px (`.bigstat`, gallery 15) or one sentence alone
+  (`.pull`, gallery 29) resets the eye. Every deck earns at least one such
   slide: a deck with no oversized moment has no gear change.
 - **Density.** A sparse slide after two dense ones, or the reverse. Three dense
   slides in a row is a run regardless of treatment; split it with a pull, a
   single stat, or a section divider.
 - **Frame.** Full-bleed diagram band, `.shot` frame, blobstage display line
-  (gallery 32). Same content, different object.
+  (gallery 31). Same content, different object.
 - **Anchor.** Centered is the default; one left-anchored or asymmetric body per
   deck (hero-split, `.tvo` 40/60) breaks the mechanical down-the-middle rhythm.
 
@@ -748,17 +755,20 @@ Everything in this block exists in one of the two templates. Copy the block from
 the template rather than retyping it here, because a copy nobody can diff rots
 silently.
 
-### From `templates/template.html`
+### From `templates/template.html` (the scaffold)
 
-The **Deck** column of the treatment table above is the slide-by-slide index;
-copy from those. The template also carries the takeaway band, the token block,
-the type scale, the four-row grid, the texture, the motion block and the
-readiness contract.
+The template is scaffolding, not a catalogue. It carries the takeaway band, the
+token block, the type scale, the four-row grid, the texture, the motion block,
+the rail and the readiness contract. Its seven sample slides are **copied out of
+the gallery**, so a treatment's markup exists in exactly one file; the only CSS
+the template adds is the blocks those seven samples need (`.waterfall`,
+`.chartcol`/`.readout`, `.dtable`), copied verbatim from the gallery's `<style>`.
 
-### From `templates/slides/patterns.html` (gallery only)
+### From `templates/slides/patterns.html` (every treatment)
 
-These are the extra containers the gallery adds. They are not in
-`templates/template.html`. Each is its own `/* ---- named ---- */` block in the
+This is the single source of treatment HTML and CSS. The template's samples are
+copied from here, so when you need a treatment, take it from the gallery and not
+from the starter deck. Each is its own `/* ---- named ---- */` block in the
 gallery's `<style>`, so find it by name rather than by line number: `.panel`,
 `.own`, `.rule-fade`, `.kpi`, `.mini2`, `.meter`, `.numbered`, `.timeline`,
 `.exits`, `.compare`, `.ba`, `.checklist`, `.stack`, `.bento`, `.dotfield`,
@@ -770,19 +780,19 @@ Copy the block, or copy the whole gallery's extension section, when a deck needs
 one. `.ghost` is the one place a large figure may sit behind content, at 3.5%
 opacity, and only on a divider.
 
-**Gallery 13 to 16 are the four diagram frames**, and they are the only place in
-this skill where a Mermaid diagram appears in a working slide: 26 a `.mmdbox`
-alone in a band shaped like the drawing, 27 a diagram inside `.chartcol` beside a
-`.readout`, 28 a Gantt roadmap beside its horizons, 29 a `sequenceDiagram` above
-a `.bigstrip` of three numbers on a `hero-slide`. Copying a diagram means copying
-the **frame** as well as the source, because the frame is what makes the drawing
+**Gallery 1 to 3 are the diagram frames**, and they are the only place in
+this skill where a Mermaid diagram appears in a working slide: 1 a diagram
+inside `.chartcol` beside a `.readout`, 2 a `sequenceDiagram` above a
+`.bigstrip` of three numbers on a `hero-slide`, 3 a Gantt roadmap beside its
+horizons. Copying a diagram means copying the
+**frame** as well as the source, because the frame is what makes the drawing
 fill its band. Read `MERMAID.md` §3a first.
 
 ## Motion
 
 Every selector in the motion block is on **one line**, and that is not a
 formatting preference. Copy the block from `templates/template.html` verbatim: the
-three band delays (40ms, 100ms, 200ms), the tile cascade over the ten containers
+three band delays (40ms, 100ms, 200ms), the tile cascade over its container list
 in the one-line `:is()` list with `--d` set on the tile, and the two identical
 guards (`prefers-reduced-motion` plus `body.no-anim`). Keep every selector on
 one line: a `:not()` or `:is()` list broken across lines parses as a descendant
@@ -797,10 +807,13 @@ elements.
   on the tile, because a rule keyed on `.s-body`'s own children staggers the
   containers instead of the tiles inside them, which is the difference between a
   cascade and three cards arriving together.
-- **Only those ten containers cascade**, and `.hero-split` is one of them: a new
-  tile container will not animate until it is added to that `:is()` list, while
-  a wrapper that merely holds a tile container, such as `.chartcol` or
-  `.mxwrap`, is correctly left out so its contents never travel twice.
+- **Only the containers named in that `:is()` list cascade**: a new tile
+  container will not animate until it is added to it. The list is the one in
+  `templates/template.html`, and a wrapper that merely holds a tile container,
+  such as `.chartcol` or `.mxwrap`, is correctly left out so its contents never
+  travel twice. `.waterfall` and the `.dtable` head and body rows are in it
+  because the sample deck ships those slides; add a container when you add a
+  slide that uses it.
 - **Morph between slides (FLIP shared element):** any element tagged
   `data-morph="<name>"` glides from its position on the outgoing slide to the
   same-named element on the incoming slide (450ms,

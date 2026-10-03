@@ -59,7 +59,7 @@ The insight gets its own slide. Do not merge it into the problem slide, and do
 not let the solution arrive without it. A problem to solution deck with no
 bridge is a feature pitch.
 
-A seam may earn a smaller bridge: a single `.ask` slide (gallery 34) asking the
+A seam may earn a smaller bridge: a single `.ask` slide (gallery 28) asking the
 one question the previous slide earned, before the next slide answers it.
 Socratic order — the audience doesn't know what's coming, so the question
 opens their thinking and the answer lands. The question is unwritable unless

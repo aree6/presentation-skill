@@ -16,6 +16,7 @@ self-contained `.html` file per deck, plus scripts behind one interface
 ## Contents
 
 - [Reach for](#reach-for)
+- [Output structure](#output-structure)
 - [Workflow](#workflow)
 - [1. Plan the argument](#1-plan-the-argument)
 - [2. Cast each topic](#2-cast-each-topic)
@@ -36,6 +37,7 @@ One row per branch. Take the row whose trigger is true.
 
 | When you are | Do this |
 |---|---|
+| **starting a deck** | `bun cli.mjs new <topic>` — it makes `decks/<topic>/` with the deck and `images/`, which is the whole structure |
 | **planning** | read `content_philosophy.md` — the seven rules, before any HTML exists |
 | **choosing a treatment** | `bun cli.mjs pattern --list` for the menu, then `pattern <n>` for the markup |
 | **a shape you cannot place** | `DESIGN.md` → "Visual vocabulary" maps content shape to treatment |
@@ -43,10 +45,59 @@ One row per branch. Take the row whose trigger is true.
 | **first icon** | `bun cli.mjs icons <word>`, then copy the file it names byte for byte |
 | **first diagram** | `MERMAID.md` — §3 picks the type, §4 theming, §5 the readiness contract |
 | **checking** | `bun cli.mjs check --deck <topic>.html` |
-| **before shipping** | `bun cli.mjs shot all --deck <topic>.html`, then read every PNG |
+| **before shipping** | `bun cli.mjs shot all --deck decks/<topic>/<topic>.html`, then read every PNG |
 | **a human wants to tweak** | open the deck in a browser: Edit in the themebar edits text and swaps icons in place, with HTML/PDF export beside it (`DESIGN.md` → "Edit mode") |
 
 `bun cli.mjs --help` lists everything; every command has `--help`.
+
+## Output structure
+
+**One request, one folder. Everything about that deck lives inside it, and the
+folder lives inside this skill.** This section is the rule the commands encode;
+without it every artefact lands in the current directory and the skill root
+fills up with loose decks, plans, shot folders and PDFs.
+
+```
+decks/<topic>/
+  <topic>.html      the deck, self-contained
+  <topic>.pdf       one export, from `pdf --here`
+  plan.md           the argument, written before any HTML exists
+  images/           everything the HTML points at
+    icons/          vendored or captured image files
+    mermaid.min.js  only when the deck carries a diagram
+  <topic>-shots/    PNGs and verdicts.md, written by `shot`
+```
+
+`bun cli.mjs new <topic>` creates the folder, the deck and `images/` with
+`images/icons/` inside it, and resolves the icon modal's asset path for that
+depth. A second deck is a second folder and a second `new`, never a second
+deck in the first folder.
+
+| Artefact | Lands in | Why there |
+|---|---|---|
+| the deck | `decks/<topic>/<topic>.html` | `new <topic>` decides this; do not hand it a path unless the deck genuinely does not fit the shape |
+| the plan | `decks/<topic>/plan.md` | phase 1 output, and it must exist before the HTML so the deck is not built before it is argued |
+| vendored Mermaid | `decks/<topic>/images/mermaid.min.js` | one `cp` from `node_modules`, and the deck's only external file |
+| an image | `decks/<topic>/images/icons/` | every `<img>` and `<script src>` in the deck resolves inside `images/`, so copying the folder copies a working deck |
+| screenshots | `decks/<topic>/<topic>-shots/` | `shot` puts them beside the deck by default; that is already the right place, so pass nothing |
+| verdicts | `decks/<topic>/<topic>-shots/verdicts.md` | the observations belong with the pictures they are about |
+| the PDF | `decks/<topic>/<topic>.pdf` | `pdf --here` writes exactly one file beside the deck. Without `--here` it writes `<stem>-vNNN.pdf` and `<stem>-latest.pdf` into `./presentations`, which is a build directory, not the shipped shape |
+
+Three traps this rule exists to close:
+
+1. **Never put `mermaid.min.js` in the skill's own `assets/`.** That folder
+   holds `icon-index.js` and `icon-files/`, the generated icon search data.
+   A vendored library beside them collides with generated output, and the next
+   `icons build` has no idea which is which.
+2. **Never leave a deck, a plan or a shots folder in the skill root.** The root
+   is source: `SKILL.md`, `templates/`, `scripts/`, `icons/`.
+   `shots` run against `templates/template.html` or
+   `templates/slides/patterns.html` land in `templates/*-shots/`, which is
+   also correct; do not move those, and do not count them as a deck's output.
+3. **One PDF, not two.** `--out-dir` still works and is the right flag for a
+   one-off export somewhere else, but the deck's own folder is where the deck's
+   own PDF belongs, and a numbered copy whose number nobody reads is not part of
+   the deliverable.
 
 ## Workflow
 
@@ -66,7 +117,7 @@ Read **`content_philosophy.md`** first — a deck that breaks rule 1 (assertion 
 5. Design deviations, if any (default: `DESIGN.md` as-is).
 
 Write the plan down, get it confirmed, then build. Working solo, write it as
-`plan.md` beside the deck — the confirmation is the file existing before any
+`decks/<topic>/plan.md` beside the deck — the confirmation is the file existing before any
 HTML does, not a reply. The plan must cover everything
 in the source data — a topic the plan skips is a topic the deck never answers.
 
@@ -89,7 +140,7 @@ surface: a single oversized figure, a lone sentence, a full-bleed band
 
 ### Choose the treatment from the gallery
 
-**The gallery is a menu, not a template.** `bun cli.mjs pattern --list` prints all 33 patterns with their captions; `pattern <n>` prints one pattern's markup and caption. `pattern <n> --css` prints the gallery CSS the markup needs, ready to paste — never hand-extract a block by eye. Never ship a pattern unchanged — adapt the columns, labels, numbers, tile count and tints to your content, because a pattern that ships unchanged is a template deck with someone else's company name on it.
+**The gallery is a menu, not a template.** `bun cli.mjs pattern --list` prints all 32 patterns with their captions; `pattern <n>` prints one pattern's markup and caption. `pattern <n> --css` prints the gallery CSS the markup needs, ready to paste — never hand-extract a block by eye. Never ship a pattern unchanged — adapt the columns, labels, numbers, tile count and tints to your content, because a pattern that ships unchanged is a template deck with someone else's company name on it.
 
 Read the caption before borrowing: a caption stating a limit (a bar cap, a tile ceiling) is a real limit on the pattern. `templates/template.html` demonstrates ten treatments; the rest exist only as markup in the gallery. `DESIGN.md`'s selection table has a "Reference" column saying which is which.
 
@@ -107,7 +158,7 @@ The builder then assembles the deck from the plan plus the scout reports, runs `
 
 Every slide is art-directed on its own render, for the room it will be presented in. The bar is a person at the back, standing, reading it once. This is a template — tokens, grid and motion already decided — and the deck is yours to design past it.
 
-- **Never write a deck from scratch.** Every deck starts as a copy of the base: `bun cli.mjs new <topic>.html` copies `templates/template.html`, which carries the tokens, the grid, the rail, the motion and the readiness contract. Hand-writing the scaffolding reproduces it wrong — that is what the grid, rail and contract sections of this file exist to prevent. Build one slide at a time on top of the copy and look at each before the next — see "Look at each slide before you build the next".
+- **Never write a deck from scratch.** Every deck starts as a copy of the base: `bun cli.mjs new <topic>` copies `templates/template.html` into `decks/<topic>/<topic>.html`, which carries the tokens, the grid, the rail, the motion and the readiness contract. Hand-writing the scaffolding reproduces it wrong — that is what the grid, rail and contract sections of this file exist to prevent. Build one slide at a time on top of the copy and look at each before the next — see "Look at each slide before you build the next".
 - All CSS in `<style>`, the deck's JS in the one `<script>` the template ships, images under `./assets/`. A deck with a diagram adds a second `<script src>` for the vendored library, and nothing else moves.
 - Fixed stage `1920×1080`, scaled to viewport (see "Landed mechanics").
 - **Keep the four-row slide grid.** `nav.rail` spans rows 1/-1 in column 1; `.s-head` row 2, `.s-body` row 3, `.s-foot` row 4, all three in column 2. Centring belongs on `.s-body`, which already carries `justify-content:center`. Setting `display:flex` on `.slide.active` collapses the bands, drops the title from the top of the stage and lifts the footer off the bottom — the mark of an unbuilt deck.
@@ -125,15 +176,14 @@ Every slide is art-directed on its own render, for the room it will be presented
 
 If a slide needs a system, a flow, a lifecycle, a schedule or a topology, reach for a diagram instead of cards or a list. `MERMAID.md` has the syntax for fifteen types and the light-canvas theming.
 
-**Vendor the UMD build.** Mermaid is an npm package, not a browser feature, and the ESM entry is CORS-blocked on `file://`, which is how a deck is opened. `mermaid@12.0.0` is a pinned `devDependency` here, so after `bun install` the file is already on disk:
+**Vendor the UMD build.** Mermaid is an npm package, not a browser feature, and the ESM entry is CORS-blocked on `file://`, which is how a deck is opened. `mermaid@12.0.0` is a pinned `devDependency` here, so after `bun install` the file is already on disk. It goes in the deck's own `images/` folder, never in this skill's `assets/`, which holds generated icon search data:
 
 ```bash
-# once per deck, in the folder that holds <topic>.html
-mkdir -p assets
-cp <this-skill>/node_modules/mermaid/dist/mermaid.min.js assets/mermaid.min.js
+# once per deck, into that deck's own images folder
+cp <this-skill>/node_modules/mermaid/dist/mermaid.min.js decks/<topic>/images/mermaid.min.js
 ```
 
-Then `<script src="./assets/mermaid.min.js"></script>` in the deck. Never a CDN at render time, for the same reason icons are never a CDN.
+Then `<script src="./images/mermaid.min.js"></script>` in the deck. Never a CDN at render time, for the same reason icons are never a CDN.
 
 Then the four non-negotiables:
 
@@ -147,7 +197,7 @@ Also: ten diagram types ship with the wrong look unless per-diagram frontmatter 
 ### 5. QA, then the screenshot
 
 ```
-bun cli.mjs check --deck <topic>.html
+bun cli.mjs check --deck decks/<topic>/<topic>.html
 ```
 
 **`bun cli.mjs test` is the command: one run, one verdict.** (`test` and `check` are the same command; `bun run test` from this folder works too.) It runs all five checks, blockers first — QA, visuals, docs, density, dashes — and exits non-zero when any of them fails. `check` forwards `--deck` to all five, `--en` to dashes and `--words` to density, and expands `--md` into the file list docs reads. Each step also runs on its own through the same front door (`bun cli.mjs qa --deck <topic>.html`, `bun cli.mjs visuals --deck <topic>.html`), and every one has `--help`.
@@ -172,7 +222,7 @@ It also fails on any `pageerror` the deck throws, and advances with `ArrowRight`
 Build one slide, then look at it. Not at the end — at every slide, while it is still the only thing you can change.
 
 ```
-bun cli.mjs shot 7 --deck <topic>.html
+bun cli.mjs shot 7 --deck decks/<topic>/<topic>.html
 ```
 
 One command, one PNG. Add `--no-qa` to skip the whole-deck QA pass that otherwise runs beside every capture; the loop does not need it. Add `--context` to capture the neighbours into a side-by-side page plus the live rhythm line — repetition is a property of the sequence, and the single-PNG loop cannot see it.
@@ -212,7 +262,7 @@ Items 4 and 7 are the only cross-slide judgements here, and the per-slide loop c
 `shot` prints one absolute path per line precisely so the reviewer can walk them in order, and the integration pass in "Splitting the work across agents" re-runs this deck pass after assembly, because two correct halves can still collide at the boundary.
 
 ```
-bun cli.mjs pdf --deck <topic>.html --out-dir ./presentations
+bun cli.mjs pdf --deck decks/<topic>/<topic>.html --here
 ```
 
 **Done means:** exit 0, `wrote <stem>-vNNN.pdf ... N pages` where N equals the slide count, and **no** `PAGEERROR` line — plus a `verdicts.md` with a closed block for every slide and no open defect anywhere in the deck pass. A non-zero exit with page errors means the deck threw JavaScript and the PDF may be missing content: fix the deck and re-export rather than shipping it.

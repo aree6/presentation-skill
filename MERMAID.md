@@ -59,14 +59,13 @@ covered and what it did not.
   been blocked by CORS policy`
 
 ```bash
-# from the folder that holds your deck
+# into that deck's own images folder, per SKILL.md "Output structure"
 npm i -D --save-exact mermaid@12.0.0
-mkdir -p assets
-cp node_modules/mermaid/dist/mermaid.min.js assets/mermaid.min.js
+cp node_modules/mermaid/dist/mermaid.min.js decks/<topic>/images/mermaid.min.js
 ```
 
 ```html
-<script src="./assets/mermaid.min.js"></script>
+<script src="./images/mermaid.min.js"></script>
 ```
 
 Vendoring rather than hotlinking a CDN is the point: a deck has to render with the network
@@ -262,7 +261,7 @@ and fails with `Parse error on line 1: ---config: look: ^ Expecting 'NEWLINE', '
 'GRAPH', got 'LINK'`.
 
 ```html
-<script src="./assets/mermaid.min.js"></script>
+<script src="./images/mermaid.min.js"></script>
 <script>
 (function () {
   // 1. Synchronous, at parse time, before anything can await.

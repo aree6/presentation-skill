@@ -121,18 +121,21 @@ function parseArgv(argv) {
 }
 
 const HELP = [
-  "usage: bun scripts/export-pdf.mjs [--deck <file>] [--out-dir <dir>] [--wait <ms>]",
+  "usage: bun scripts/export-pdf.mjs [--deck <file>] [--out-dir <dir>] [--here] [--wait <ms>]",
   "",
   "  --deck <file>     deck to export; also --deck=<file>. Defaults to the one",
   "                    .html file in process.cwd(); several is a usage error.",
   "  --out-dir <dir>   where to write; also --out-dir=<dir>. Defaults to",
-  "                    process.cwd()/presentations.",
+  "                    process.cwd()/presentations. Wins over --here.",
+  "  --here            write ONE file, <deck-dir>/<deck-stem>.pdf, and no",
+  "                    versioned copy. This is what a deck folder wants: the",
+  "                    shipped structure is one HTML, one PDF and images/.",
   "  --wait <ms>       settle time after each show(n); also --wait=<ms>. Default 500.",
   "  --help, -h        print this and exit 0",
   "",
-  "Writes <deck-stem>-vNNN.pdf and <deck-stem>-latest.pdf. Waits on",
-  "window.__deckReady and document.fonts.ready before capturing, and reports",
-  "any Mermaid error card as a failure.",
+  "Without --here it writes <deck-stem>-vNNN.pdf and <deck-stem>-latest.pdf.",
+  "Waits on window.__deckReady and document.fonts.ready before capturing, and",
+  "reports any Mermaid error card as a failure.",
   "",
   "Exit 0 ok, 1 the deck threw a page error or drew a diagram error card,",
   "2 usage error.",
@@ -179,7 +182,18 @@ const pickDeck = () => {
 
 const DECK = pickDeck();
 const STEM = path.basename(DECK, ".html");
-const OUT_DIR = path.resolve(opts.take("out-dir") || path.join(CWD, "presentations"));
+/* --here is the single-file mode, and it exists because the deck folder is a
+   deliverable rather than a build directory: the structure a deck ships in is
+   one HTML, one PDF and images/, so a run that writes <stem>-vNNN.pdf *and*
+   <stem>-latest.pdf leaves two PDFs where the structure says one, plus a
+   version number nobody reads. --here writes exactly <deck-dir>/<stem>.pdf and
+   nothing else, which is the shape the folder promises. An explicit --out-dir
+   still wins over --here, because a destination the caller typed is a stronger
+   signal than a flag that only picks a default. */
+const HERE = opts.on("here") && !opts.take("out-dir");
+const OUT_DIR = HERE
+  ? path.dirname(DECK)
+  : path.resolve(opts.take("out-dir") || path.join(CWD, "presentations"));
 const WAIT_RAW = opts.take("wait") || "500";
 const WAIT = Number(WAIT_RAW);
 const W = 1920;
@@ -221,11 +235,14 @@ function nextVersion() {
   return String((versions.length ? Math.max(...versions) : 0) + 1).padStart(3, "0");
 }
 
-// Resolve the output name BEFORE rendering.
-const version = nextVersion();
-const versioned = path.join(OUT_DIR, `${STEM}-v${version}.pdf`);
-const latest = path.join(OUT_DIR, `${STEM}-latest.pdf`);
-if (fs.existsSync(versioned)) {
+// Resolve the output name BEFORE rendering. Under --here there is no version to
+// resolve and no directory to create: the deck folder already exists and the one
+// file it gets is <stem>.pdf, written unconditionally so a rebuild of the same
+// deck overwrites its own PDF rather than accumulating numbered copies beside it.
+const version = HERE ? "" : nextVersion();
+const versioned = HERE ? "" : path.join(OUT_DIR, `${STEM}-v${version}.pdf`);
+const latest = HERE ? "" : path.join(OUT_DIR, `${STEM}-latest.pdf`);
+if (versioned && fs.existsSync(versioned)) {
   console.error(`export-pdf: refusing to overwrite ${versioned}`);
   process.exit(2);
 }
@@ -363,6 +380,19 @@ merged.setCreationDate(stamp);
 merged.setModificationDate(stamp);
 
 const bytes = await merged.save();
+if (HERE) {
+  const single = path.join(OUT_DIR, `${STEM}.pdf`);
+  fs.writeFileSync(single, bytes);
+  await browser.close();
+  const checkHere = await PDFDocument.load(bytes);
+  console.log(`wrote ${single} (${(bytes.length / 1024).toFixed(0)} KB, ${checkHere.getPageCount()} pages)`);
+  if (pageErrors.length) {
+    console.error(`\n${pageErrors.length} page error(s) in the deck; the PDF may be missing content:`);
+    for (const e of pageErrors) console.error(`  PAGEERROR: ${e}`);
+    process.exit(1);
+  }
+  process.exit(0);
+}
 fs.writeFileSync(versioned, bytes);
 fs.writeFileSync(latest, bytes);
 await browser.close();

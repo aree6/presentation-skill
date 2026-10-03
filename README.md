@@ -24,12 +24,15 @@ bun install && bunx playwright install chromium
 `SKILL.md` is the operating instruction. The short version:
 
 ```
-bun cli.mjs new topic.html      # copy the template
-bun cli.mjs shot 1 --deck topic.html --no-qa   # look at slide 1 before writing slide 2
-bun cli.mjs check --deck topic.html
-bun cli.mjs shot all --deck topic.html
-bun cli.mjs pdf --deck topic.html --out-dir ./presentations
+bun cli.mjs new my-topic         # decks/my-topic/my-topic.html + images/
+bun cli.mjs shot 1 --deck decks/my-topic/my-topic.html --no-qa  # look before slide 2
+bun cli.mjs check --deck decks/my-topic/my-topic.html
+bun cli.mjs shot all --deck decks/my-topic/my-topic.html
+bun cli.mjs pdf --deck decks/my-topic/my-topic.html --here
 ```
+
+One request, one folder: `decks/<topic>/` holds the deck, one PDF, `plan.md`,
+`images/` and the screenshots. `SKILL.md` → "Output structure" is the rule.
 
 ## The rules that matter most
 
