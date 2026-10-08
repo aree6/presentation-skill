@@ -54,13 +54,15 @@ const SCRIPT_OF = {
   docs: "check-docs.mjs",
   shot: "shot.mjs",
   visuals: "check-visuals.mjs",
+  motion: "verify-motion.mjs",
+  frames: "motion-frames.mjs",
   icons: "find-icon.mjs",
   pattern: "get-pattern.mjs",
   doc: "get-doc.mjs",
   refs: "check-refs.mjs",
 };
 
-const SUBCOMMANDS = ["check", "test", "new", "qa", "dashes", "density", "docs", "pdf", "shot", "visuals", "icons", "pattern", "doc", "refs"];
+const SUBCOMMANDS = ["check", "test", "new", "qa", "dashes", "ste", "density", "docs", "pdf", "shot", "visuals", "motion", "frames", "icons", "pattern", "doc", "refs"];
 
 /** One line each, for the overview and for the unknown-command error. */
 const SUMMARY_OF = {
@@ -69,12 +71,16 @@ const SUMMARY_OF = {
   new: "copy templates/template.html to a target and print the next command",
   qa: "per slide, per viewport: stage scaled, nothing clipped, diagrams legible",
   dashes: "em dash report, with the one safe rewrite behind --fix",
+  ste: "ASD-STE100 structural lint over markdown, advisory, and never a gate on a deck",
   density: "word budget per slide, naming the longest paragraphs when over",
   docs: "every markdown file has a Contents list that matches its headings",
   pdf: "versioned PDF: <stem>-vNNN.pdf plus a <stem>-latest.pdf",
   shot: "screenshot slide n, range a-b, or all, plus the QA verdict per slide",
   visuals: "icons in every zone with provenance, no emoji, mermaid vendored and registered, plus a per-slide visual audit",
-  icons: "search the vendored icon library by keyword, with the file and data-icon to use",
+  motion: "auto-animate pairs, per-line code boxes, fragments, and what a capture sees",
+  frames: "capture each auto-animate transition mid-flight and each fragment step, so the motion can be looked at",
+
+  icons: "search the vendored icon library by keyword, with the file and data-icon to use",  icons: "search the vendored icon library by keyword, with the file and data-icon to use",
   pattern: "one gallery pattern's markup with its caption, or the whole menu",
   doc: "one section of a reference file, heading-first",
   refs: "verify the prose claims about the environment still hold",
@@ -95,8 +101,15 @@ const VALUE_FLAGS_OF = {
   "check-visuals.mjs": new Set(["deck"]),
 };
 
-/** Directories that never hold a markdown file a person maintains by hand. */
-const SKIP_DIRS = new Set(["node_modules", "dist", "build", "out", "coverage"]);
+/**
+ * Directories that never hold a markdown file a person maintains by hand.
+ *
+ * `skills` holds vendored third-party skills, byte for byte from upstream, so it
+ * is skipped for the same reason check-docs skips it: their prose is not ours to
+ * fix. Keep this list identical to the one in scripts/check-docs.mjs, because the
+ * comment on markdownUnder below promises the two agree.
+ */
+const SKIP_DIRS = new Set(["node_modules", "dist", "build", "out", "coverage", "skills"]);
 
 /* ------------------------------------------------------------------ output -- */
 
@@ -141,7 +154,7 @@ const OVERVIEW = [
   `  cd ${ROOT} && bun install && bunx playwright install chromium`,
   "",
   "The workflow, in order",
-  "  1  new <topic>.html          copy the template, then write your slides",
+  "  1  new <topic>               copy the template, then write your slides",
   "  2  read SKILL.md, then content_philosophy.md at plan time, then DESIGN.md",
   "  3  write ONE slide, then look at it before writing the next:",
   "     presentation-skill shot <n> --deck <topic>.html --no-qa",
@@ -149,10 +162,10 @@ const OVERVIEW = [
   "     defect with a measurement, the fix), re-shoot, then move on. The",
   "     first look is never the last: a deck written without looking at each",
   "     slide is the template with different words in it.",
-  "  4  check --deck <topic>.html   all five checks, one verdict; rerun until green",
+  "  4  check --deck <topic>.html   all six checks, one verdict; rerun until green",
   "  5  shot all --deck <topic>.html   then read every PNG: the deck pass, for",
   "     the cross-slide judgements no single slide can make",
-  "  6  pdf --deck <topic>.html     versioned PDF into ./presentations",
+  "  6  pdf --deck <topic>.html --here   the shipped PDF beside the deck",
   "     No script can see a stranded icon or an invisible brand mark; only",
   "     looking finds those. shot is for humans, so it is not part of check,",
   "     which stays non-interactive and fast.",
@@ -162,7 +175,7 @@ const OVERVIEW = [
   "",
   "File map",
   "  SKILL.md                operating instructions, the workflow above in full",
-  "  content_philosophy.md     the seven rules a slide obeys, read at plan time",
+  "  content_philosophy.md     the eight rules a slide obeys, read at plan time",
   "  templates/template.html     scaffold: 7 sample slides, all copied from the gallery",
   "  templates/slides/patterns.html a gallery of every implemented pattern, one",
   "                           per slide, each captioned with when to use it and when not",
@@ -173,6 +186,9 @@ const OVERVIEW = [
   "  MERMAID.md              vendored Mermaid: CSS patch, readiness, legibility",
   "  icons/index.tsv         the icon tag index, read by the icons command",
   "  scripts/                each check also runs standalone, each with --help",
+  "  skills/asd-ste100/     vendored ASD-STE100 sub-skill for sentence-level copy,",
+  "                         byte for byte from danyuchn/asd-ste100-skill. Rule 8 of",
+  "                         content_philosophy.md says where it applies. Not edited.",
   "",
   "Commands",
   ...SUBCOMMANDS.map((k) => `  ${k.padEnd(8)} ${SUMMARY_OF[k]}`),
@@ -193,33 +209,42 @@ const HELP_OF = {
     "  --deck <file>    deck to check; also --deck=<file>. Default $DECK, then",
     "                   this skill's templates/template.html. The choice is printed.",
     "  --md <path>      markdown the docs step reads; repeatable, and a directory",
-    "                   is walked recursively. Default: the .md files sitting next",
-    "                   to the deck, not its subfolders, so a deck in a folder of",
-    "                   unrelated work is not failed by a stranger's markdown.",
+    "                   is walked recursively. Default: nothing, and the step says",
+    "                   so, because a deck's folder is the caller's and a gate that",
+    "                   fails on a stranger's speaker-notes.md is a gate people",
+    "                   switch off. To read the markdown beside the deck:",
+    "                     check --deck d.html --md \"$(dirname d.html)\"",
+    "                   That step is the DECK's markdown. This skill's own markdown",
+    "                   is the `docs` command, which walks the whole folder.",
+    "",
     "  --words <n>      density cap in words per slide, forwarded as is.",
     "  --en             also flag en dashes. Off by default.",
     "  --help, -h       print this and exit 0",
     "",
-    "Five steps, blockers first, then one verdict:",
+    "Six steps, blockers first, then one verdict:",
     "  1  qa       every slide at four viewports: stage scaled, nothing clipped by",
     "              the stage, every diagram over 14px projected. Chromium. If the",
     "              deck does not render, nothing below matters.",
     "  2  visuals  icons in every zone with provenance, no emoji, and the",
     "              Mermaid vendoring contract when a diagram is present. Text only.",
-    "  3  docs     every markdown file in scope has a Contents list matching its",
+    "  3  motion   drives the deck with the keyboard and show(n): every auto-animate",
+    "              pair ran and settled, every code block split into per-line boxes,",
+    "              no unchanged line reprinted, one press per fragment, and a",
+    "              capture that sees every fragment. Chromium.",
+    "  4  docs     every markdown file in scope has a Contents list matching its",
     "              headings. Text only; skipped unless --md names files.",
-    "  4  density  every slide within the word cap, and the longest paragraphs",
+    "  5  density  every slide within the word cap, and the longest paragraphs",
     "              named when a slide is over. Chromium. A judgement call.",
-    "  5  dashes   no em dashes in the deck. Text only. Cosmetic, so last: a deck",
+    "  6  dashes   no em dashes in the deck. Text only. Cosmetic, so last: a deck",
     "              with a broken slide should not wait on punctuation to hear it.",
     "",
-    "All five run even after one fails. None of them reads another's result, so",
+    "All six run even after one fails. None of them reads another's result, so",
     "stopping early would hide findings rather than fix them.",
     "",
     "check writes nothing, and does not check this skill's own markdown. To do",
     "that: presentation-skill docs",
     "",
-    "Exit 0 all five clean, 1 a step found problems, 2 a step could not run.",
+    "Exit 0 all six clean, 1 a step found problems, 2 a step could not run.",
   ].join("\n"),
 
   new: [
@@ -251,7 +276,43 @@ const HELP_OF = {
     "wrong. Keep the template's relabel()",
     "and window.show(n), then run the check command printed at the end.",
     "",
+    "Every word of copy in those sample slides is fictional, about an invented",
+    "clinic called Meridian, with invented figures and an invented speaker. It is",
+    "here to show the treatments. Replace all of it; a deck that ships one",
+    "surviving sample name is a deck about a company that does not exist.",
+    "",
+    "The copy carries data-diagrams=\"none\" on <body>, which waives the",
+    "zero-diagram gate while the sample slides are still the scaffold's own",
+    "treatments. The waiver is printed on every check. Delete both attributes once",
+    "your deck carries a real diagram, or the gate keeps passing a deck it never",
+    "judged.",
+    "",
     "Exit 0 written, 2 refused or the template is missing.",
+  ].join("\n"),
+
+  motion: [
+    "usage: presentation-skill motion [<deck.html>] [--deck <file>]",
+    `  also: bun ${JSON.stringify(CLI_PATH)} motion   (same arguments)`,
+    "",
+    "Drives the deck and reads what its motion did, because every failure it",
+    "looks for is silent: a screenshot, a PDF and a word count all look fine when",
+    "the morph does not run. Prints each finding whether or not it passed.",
+    "",
+    "A deck with no data-auto-animate and no .fragment says so and passes.",
+    "",
+    "Exit 0 clean, 1 findings, 2 usage error.",
+  ].join("\n"),
+
+  frames: [
+    "usage: presentation-skill frames [<deck.html>] [--deck <file>]",
+    `  also: bun ${JSON.stringify(CLI_PATH)} frames   (same arguments)`,
+    "",
+    "Writes <deck-dir>/<stem>-motion/: the outgoing slide, the incoming slide at",
+    "rest, the same transition caught at 40/150/280/420ms, and one frame per",
+    "fragment step. A morph that measures correctly and looks wrong is still",
+    "wrong, and no assertion can see that.",
+    "",
+    "Exit 0 clean, 2 usage error.",
   ].join("\n"),
 
   qa: [
@@ -288,6 +349,46 @@ const HELP_OF = {
     "Exit 0 clean, 1 violations, 2 usage error or a file that is not UTF-8.",
   ].join("\n"),
 
+  ste: [
+    "usage: presentation-skill ste <file.md>... [--baseline <n>] [--disable <rules>] [--json]",
+    "       presentation-skill ste --selftest",
+    `  also: bun ${JSON.stringify(CLI_PATH)} ste   (same arguments)`,
+    "",
+    "Runs the vendored ASD-STE100 linter over markdown. It reports semicolons,",
+    "sentence length, a short list of soft phrasal verbs, nominalisation,",
+    "marketing adjectives, synonym rotation, dangling conjunctions in list items,",
+    "passive voice and compound tenses.",
+    "",
+    "This is NOT one of the six steps in check, on purpose. check's contract is",
+    "Bun and Playwright, and this command is the only thing here that needs an",
+    "interpreter outside Bun. It is also a judgement, not a measurement: the same",
+    "sentence can be right for a caption and flat for a title, which is why",
+    "content_philosophy.md rule 8 scopes it per text rather than across the deck.",
+    "",
+    "It never flags a hedge, because a hedge is content, and it never claims",
+    "compliance with ASD's official word dictionary, which the standard does not",
+    "permit redistributing. Read its findings and decide.",
+    "",
+    "Expect findings if you point this at the skill's own prose. The rule tables",
+    "quote the patterns they forbid, so 'spin up', 'seamless' and 'has paid' all",
+    "report, and a regex linter cannot tell a quoted example from a live one. The",
+    "vendored skill says the same about its own README. Read those as evidence",
+    "the rules work, not as defects.",
+    "",
+    "  --baseline <n>   pass unless hard findings exceed n, for adopting on prose",
+    "                   that already exists",
+    "  --disable <list> silence named rules, comma separated",
+    "  --json           structured output",
+    "  --selftest       assert the linter itself still works, no file needed",
+    "",
+    "Forwarded to skills/asd-ste100/scripts/ste-lint.py, which has the full list:",
+    "  python3 skills/asd-ste100/scripts/ste-lint.py --help",
+    "",
+    "Exit 0 clean, 1 hard findings, 2 usage error, unreadable input, or no python3.",
+    "Nothing here is a gate on the deck: read the report, then change the copy or",
+    "keep it and say why.",
+  ].join("\n"),
+
   density: [
     "usage: presentation-skill density [<deck.html>] [--words <n>] [--json]",
     `  also: bun ${JSON.stringify(CLI_PATH)} density   (same arguments)`,
@@ -317,7 +418,9 @@ const HELP_OF = {
     "resolving to a real heading. Headings inside fenced code blocks are ignored.",
     "",
     "With no path given, every .md in this skill folder is checked, recursively,",
-    "skipping node_modules, dist, build, out, coverage and dot directories.",
+    "skipping node_modules, dist, build, out, coverage, skills and dot directories.",
+    "skills is skipped because it holds vendored third-party skills whose prose is",
+    "not this skill's to fix.",
     "",
     "Forwarded to scripts/check-docs.mjs, which has the full details:",
     "  presentation-skill docs --help",
@@ -350,6 +453,9 @@ const HELP_OF = {
     `  also: bun ${JSON.stringify(CLI_PATH)} shot   (same arguments)`,
     "",
     "Captures slide n, slides a through b, or every slide as PNGs at 1920x1080.",
+    "The deck path resolves from the current directory, so from the skill root",
+    "name it whole: shot all --deck decks/<topic>/<topic>.html. A bare",
+    "shot all --deck <topic>.html only works with the deck folder as cwd.",
     "Waits on window.__deckReady exactly like qa, hides .edge/.nav chrome",
     "exactly like pdf, and prints one absolute path per line plus the QA",
     "verdict for each captured slide. PNGs land in <deck-dir>/<stem>-shots.",
@@ -390,7 +496,7 @@ const HELP_OF = {
   ].join("\n"),
 
   icons: [
-    "usage: presentation-skill icons <word>... [--limit <n>]",
+    "usage: presentation-skill icons <word>... [--limit <n>] [--emit]",
     "       presentation-skill icons build",
     `  also: bun ${JSON.stringify(CLI_PATH)} icons   (same arguments)`,
     "",
@@ -398,12 +504,17 @@ const HELP_OF = {
     "copy plus the data-icon value, with the ICONS.md variant rule applied.",
     "Every word must match somewhere in the name, title or tags.",
     "",
+    "  --emit         print the finished <svg> markup for each match, ready to",
+    "                 paste, instead of the file path. Use it: check-visuals.mjs",
+    "                 compares a deck's inline glyph with the library byte for",
+    "                 byte and fails a redrawn one.",
+    "",
     "`icons build` regenerates the browser-side search data the in-deck icon",
     "modal reads (assets/icon-index.js plus assets/icon-files/). Run it again",
     "after adding icons; both are generated, never committed.",
     "",
-    "Forwarded to scripts/find-icon.mjs, which has the full flag list:",
-    "  presentation-skill icons --help",
+    "Forwarded to scripts/find-icon.mjs, which documents any further flags:",
+    "  bun scripts/find-icon.mjs --help",
     "",
     "Exit 0 (even when nothing matches), 2 usage error.",
   ].join("\n"),
@@ -737,6 +848,115 @@ function passthrough(key, argv) {
   process.exit(runScript(script, out).code);
 }
 
+/* --------------------------------------------------------------------- ste -- */
+
+/**
+ * The vendored ASD-STE100 linter, behind the same front door as everything else.
+ *
+ * Deliberately not one of the six steps in check, for two reasons that both
+ * matter. check's contract is Bun and Playwright, and a checker needing something
+ * the reader may not have installed is a checker that does not run. And ste-lint
+ * judges structure, where a deck's copy is a judgement: the same sentence can be
+ * correct for a caption and flat for an assertion title, which is exactly why
+ * content_philosophy.md rule 8 scopes this per text instead of across the deck.
+ *
+ * So this reports and never gates, and it says so in its own output rather than
+ * leaving the caller to assume it is one of the gates. A missing python3 exits 2
+ * rather than 0: exiting clean here would report a deck that nothing ever read.
+ */
+function runSte(argv) {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(HELP_OF.ste);
+    return 0;
+  }
+
+  const LINTER = path.join(ROOT, "skills", "asd-ste100", "scripts", "ste-lint.py");
+  if (!fs.existsSync(LINTER)) {
+    die(`the vendored linter is missing: ${LINTER}`, "git clone https://github.com/danyuchn/asd-ste100-skill", [
+      "skills/asd-ste100/ is a byte-for-byte copy of that repository's tracked",
+      "files. Replacing the folder with a fresh clone restores the linter.",
+    ]);
+  }
+
+  // Probed before anything is parsed or run, so the interpreter question is
+  // answered before the caller starts fixing findings that were never measured.
+  const py = ["python3", "python"].find((bin) => {
+    const probe = spawnSync(bin, ["--version"], { stdio: "ignore" });
+    return !probe.error && probe.status === 0;
+  });
+  if (!py) {
+    die("no python3 on PATH, so nothing was linted", `python3 ${printable(LINTER)} <file.md>`, [
+      "this is the only command in the skill that needs an interpreter outside Bun,",
+      "which is why it is not one of the six steps in check.",
+      "Install python3, or read the rules instead:",
+      `  ${cmd("doc content_philosophy.md 'Sentence-Level Clarity'")}`,
+    ]);
+  }
+
+  // ste-lint.py reads a flag value as the token after it, so a value flag has to
+  // claim that token here too or a path-shaped number would be read as a file.
+  const VALUE_FLAGS = new Set(["--baseline", "--disable"]);
+  const forward = [];
+  const files = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--") {
+      die("ste takes nothing after --", cmd("ste --help"), [
+        "every flag this command understands is listed there.",
+      ]);
+    }
+    if (a.startsWith("--") && a.length > 2) {
+      forward.push(a);
+      if (VALUE_FLAGS.has(a) && !a.includes("=")) {
+        const next = argv[i + 1];
+        if (next === undefined || next.startsWith("--")) {
+          die(`${a} needs a value and got none`, cmd(`ste <file.md> ${a} <value>`));
+        }
+        forward.push(next);
+        i++;
+      }
+      continue;
+    }
+    const full = path.resolve(a);
+    if (!fs.existsSync(full)) {
+      die(`no such file to lint: ${full}`, cmd(`ste ${JSON.stringify(printable(full))}`), [
+        "ste reads markdown. The usual first target is a deck's plan:",
+        "  presentation-skill ste decks/<topic>/plan.md",
+      ]);
+    }
+    if (!isReadableFile(full)) {
+      die(`not a readable file: ${full}`, cmd("ste <file.md>..."), [
+        "a directory is not markdown. Point at the files inside it instead.",
+      ]);
+    }
+    files.push(full);
+  }
+
+  if (!files.length && !forward.includes("--selftest")) {
+    die("ste needs at least one file, and got none", cmd(`ste ${JSON.stringify(printable(path.join("decks", "<topic>", "plan.md")))}`), [
+      "there is no default scope on purpose: linting every markdown file in this",
+      "skill would report hundreds of findings in prose that is not a deck's, and",
+      "linting the whole folder would drag in the vendored sub-skills.",
+      "To check this skill's own markdown contents instead:",
+      cmd("docs"),
+    ]);
+  }
+
+  console.log("ste: structural findings only. It never flags a hedge, because a hedge is content.");
+  console.log("ste: advisory. Not one of the six steps in check. Read it and decide.\n");
+
+  const res = spawnSync(py, [LINTER, ...forward, ...files], { stdio: "inherit" });
+  if (res.error) {
+    die(`could not start ${py}: ${res.error.message}`, cmd("ste <file.md>..."), [
+      `run it by hand to see the same thing: ${py} ${printable(LINTER)} <file.md>`,
+    ]);
+  }
+  if (res.signal) {
+    die(`the linter was killed by ${res.signal}`, cmd("ste <file.md>..."));
+  }
+  return typeof res.status === "number" ? res.status : 1;
+}
+
 /* ------------------------------------------------------------------- shot -- */
 
 /**
@@ -988,14 +1208,24 @@ function runCheck(argv) {
 
   const deck = requireDeck(o.deck || undefined);
 
-  // The docs step reads the markdown that belongs to the deck, not this skill's
-  // own documentation, because the skill's own markdown is not the caller's deck
-  // and a gate that cannot be fixed by editing the deck is a gate people switch
-  // off. The default scope is the deck's own directory and no deeper: recursion
-  // would fail a deck because of a broken note three folders down in
-  // an unrelated tree, which is not a finding about the deck. An explicit --md
-  // replaces that scope and does recurse, because the caller asked for it, and an
-  // explicit scope with no markdown in it is a usage error, not a silent pass.
+  // The docs step inside `check` reads the markdown that belongs to the deck, not
+  // this skill's own documentation, because the skill's own markdown is not the
+  // caller's deck and a gate that cannot be fixed by editing the deck is a gate
+  // people switch off.
+  //
+  // It reads NOTHING unless asked. An earlier version of this comment claimed the
+  // scope was the deck's own directory by default, which was never true, and a
+  // `--md` error message told the caller to drop `--md` to get that behaviour.
+  // Three descriptions of one default, none of them matching the code, is how a
+  // reader ends up convinced the step ran when it did not. So: --md names the
+  // scope and recurses, because the caller asked for it; without --md the step
+  // prints "not applicable" and the verdict says so. An explicit scope with no
+  // markdown in it is a usage error, not a silent pass.
+  //
+  // To read the markdown beside the deck, name it:
+  //   check --deck d.html --md "$(dirname d.html)"
+  // and for this skill's own markdown, that is the `docs` command, which walks
+  // the whole skill folder by default. Two commands, two scopes, named apart.
   let mdScope = [];
   if (o.md.length) {
     for (const m of o.md) {
@@ -1015,9 +1245,11 @@ function runCheck(argv) {
         cmd("docs"),
         [
           "check refuses to pass a docs step that could not read anything, because",
-          "that is indistinguishable from a checker that never ran.",
-          "or drop the --md flags to check the markdown next to the deck instead:",
+          "that is indistinguishable from a checker that never ran. Name a scope",
+          "that holds markdown, or drop --md and read the step as not applicable:",
           cmd("check --deck deck.html"),
+          "for this skill's own markdown, use the docs command instead:",
+          cmd("docs"),
         ],
       );
     }
@@ -1063,6 +1295,21 @@ function runCheck(argv) {
       ],
     },
     {
+      key: "motion",
+      cost: "Chromium, 1 viewport, only the slides that carry the features",
+      note: null,
+      args: ["--deck", deck],
+      why: () =>
+        "an auto-animate pair that never ran, a code block that was never split into per-line boxes, a line that stayed put being reprinted instead of held, or a fragment that is invisible to a capture",
+      fix: (d) => [
+        "the report names the pair, the slide and the count. Motion is template",
+        "behaviour, so a failure here is a template or an attribute problem, not",
+        "a styling one. Check the section carries data-auto-animate, that both",
+        "sides of a pair carry it, and that the deck's show(n) is the template's.",
+        `Then:  ${cmd(`motion --deck ${JSON.stringify(d)}`)}`,
+      ],
+    },
+    {
       key: "docs",
       cost: "text only",
       note: null,
@@ -1072,7 +1319,7 @@ function runCheck(argv) {
       why: () =>
         mdScope.length
           ? `no Contents section, a heading missing from it, or a dead anchor in ${mdScope.length} file(s)`
-          : "not run: check only reads markdown you name with --md, because a deck's folder is the caller's and not the skill's",
+          : "skipped by design, not a failure: check reads only markdown you name with --md, because a deck's folder is the caller's and not the skill's",
       fix: (d) => [
         "add the missing heading to that file's ## Contents list, then rerun:",
         `  ${cmd(`check --deck ${JSON.stringify(d)} --md <that file>`)}`,
@@ -1381,6 +1628,8 @@ function main() {
   if (first === "new") return runNew(argv.slice(1));
 
   if (first === "shot") return runShot(argv.slice(1));
+
+  if (first === "ste") return runSte(argv.slice(1));
 
   if (first === "icons") {
     const rest = argv.slice(1);

@@ -5,7 +5,7 @@ soft pastel surfaces and rounded geometry create hierarchy: never heavy shadows,
 neon colour, sharp corners, or dense layouts.
 
 Token, type and grid values below were read out of `templates/template.html` and
-`templates/slides/patterns.html`, the 32-slide pattern gallery, which carries the
+`templates/slides/patterns.html`, the 33-slide pattern gallery, which carries the
 same token block verbatim and holds a working reference for most treatments.
 
 ## Contents
@@ -38,9 +38,12 @@ same token block verbatim and holds a working reference for most treatments.
     - [The variety rule](#the-variety-rule)
     - [Tables always highlight](#tables-always-highlight)
   - [Reference implementations](#reference-implementations)
-    - [From `templates/template.html`](#from-templatestemplatehtml)
-    - [From `templates/slides/patterns.html` (gallery only)](#from-templatesslidespatternshtml-gallery-only)
+    - [From `templates/template.html` (the scaffold)](#from-templatestemplatehtml-the-scaffold)
+    - [From `templates/slides/patterns.html` (every treatment)](#from-templatesslidespatternshtml-every-treatment)
   - [Motion](#motion)
+    - [Auto-animate: the change between two slides](#auto-animate-the-change-between-two-slides)
+    - [The code frame, and why it is a treatment](#the-code-frame-and-why-it-is-a-treatment)
+    - [Fragments: one slide, stepped through](#fragments-one-slide-stepped-through)
   - [Accessibility and robustness](#accessibility-and-robustness)
     - [Edit mode (presenter edits in the browser)](#edit-mode-presenter-edits-in-the-browser)
     - [The readiness contract](#the-readiness-contract)
@@ -250,7 +253,7 @@ Run it on your own rendered slide, in this order.
 | Zone | Rule |
 |---|---|
 | Slide headline | An assertion, sayable in one breath. About 12 seconds. |
-| Prose blocks | At most one per slide, cut past about 35 words: `content_philosophy.md` rule 4. |
+| Prose blocks | At most one per slide, cut past about 25 words: `content_philosophy.md` rule 4. |
 | Card copy | One claim plus its evidence. Card copy is not a place to put a paragraph. |
 | Stat tile | A number, plus at most 8 words. |
 | Bullets on a slide | 3, and the third has to earn its place. |
@@ -416,7 +419,7 @@ the rail already carries the position, one entry per slide, and it is clickable.
 - The rail never scrolls. It is `overflow:hidden`, vertically centred, with a
   constant full-slide height on every slide, and it steps down through **three**
   densities so every entry stays visible: `compact` past 16 main slides, and
-  `micro` past 28. Two tiers are not enough, which the 32-slide gallery proves:
+  `micro` past 28. Two tiers are not enough, which the 33-slide gallery proves:
   the compact rows push the last entry onto the footer band, so the overview the
   rail exists to give is the thing that gets lost first. Measured, 32 entries
   need `micro`.
@@ -434,7 +437,7 @@ Every one of these carries an icon, always, no exceptions: every card
 `.tagline`, every stat tile `.hd`, every `.takeaway`, and every rail entry (via
 its slide's `data-rail` icon).
 
-A zone without a glyph fails `bun cli.mjs check`: the visuals gate names the slide and the naked zone. Beyond the zones, **no slide body ships text-only**: each `.s-body` carries at least one icon tile, data mark, diagram, or framed image. The only bodies allowed to be pure words are the pull close and the section divider, and both still carry icon chrome.
+A zone without a glyph fails `bun cli.mjs check`: the visuals gate names the slide and the naked zone. Beyond the zones, **no slide body ships text-only**: each `.s-body` carries at least one icon tile, data mark, diagram, code frame, or framed image. The only bodies allowed to be pure words are the pull close and the section divider, and both still carry icon chrome.
 
 Every glyph is copied byte for byte from `icons/` and tagged `data-icon` with its source path, so provenance is machine-checked: bold Phosphor for UI, colored theSVG for anything technical. Hand-drawn approximations, duotone or regular weights, and guessed brand marks never ship. Inline SVG only, per `ICONS.md`.
 
@@ -505,9 +508,11 @@ shadowed, nothing new in the palette, and the difference between the three is
 what the eye reads as depth.
 
 > **Implemented in `templates/slides/patterns.html`.** Copy the block from the
-> gallery. No slide there uses it either: the frame is the one treatment this
+> gallery: search `.shotbar`, the only rules naming it (~15 lines, bar through
+> caption). No slide there uses it either: the frame is the one treatment this
 > skill documents without shipping a sample of, because a screenshot is the one
-> asset a deck cannot generate for itself.
+> asset a deck cannot generate for itself. The absence of a sample is not the
+> absence of the treatment — the rules are the treatment.
 
 The class names have no dashes: `.shotbar`, `.shotimg`, `.shotcap`, and the
 address pill is `.shotbar .addr`. Copy them exactly. Then, for the frame itself:
@@ -577,7 +582,7 @@ belongs in a diagram, not in cards and not in a list. `MERMAID.md` is the
 reference: Mermaid 12.0.0 syntax for fifteen diagram types, the light-canvas
 theming workarounds, and the sizing recipes. Vendoring is a step, not optional:
 `mermaid@12.0.0` is a pinned devDependency, so `bun install` here plus one copy
-of the UMD build into the deck's own `assets/` (never a CDN; the ESM entry is
+of the UMD build into the deck's own `images/` folder (never a CDN; the ESM entry is
 CORS-blocked on `file://`). See `MERMAID.md` §1 for the copy, §5 for the
 readiness contract, and §4 for the theming that keeps a diagram from reading as
 a screenshot pasted in from another product.
@@ -704,7 +709,10 @@ know what's coming: one centred line in `.title-xl`, key words in accent like
 a cover title, nothing else on the slide, and `data-group="bridge"` so the
 rail skips it. It earns its place when the next slide is the only answer:
 cover everything after the question, and if it still asks for the next slide,
-it stays.
+it stays. A bridge still moves: it rides the auto-animate chain into its
+neighbours (or carries one fragment on the question line) — "nothing else on
+the slide" describes its content, not a motion exemption, and the motion gate
+fails a bridge that neither steps nor pairs like any other static slide.
 
 What breaks card DNA, cheapest first:
 
@@ -761,8 +769,18 @@ The template is scaffolding, not a catalogue. It carries the takeaway band, the
 token block, the type scale, the four-row grid, the texture, the motion block,
 the rail and the readiness contract. Its seven sample slides are **copied out of
 the gallery**, so a treatment's markup exists in exactly one file; the only CSS
-the template adds is the blocks those seven samples need (`.waterfall`,
+the template adds is the blocks those samples need (`.waterfall`,
 `.chartcol`/`.readout`, `.dtable`), copied verbatim from the gallery's `<style>`.
+
+Its `<body>` also carries `data-diagrams="none"` with a
+`data-diagram-reason`. Without it, every deck copied from this template would
+fail the zero-diagram gate in `check-visuals.mjs` before its author wrote a
+slide, because the sample slides are the scaffold's treatments and none of them
+is a Mermaid diagram. The exemption the checker applies to files under
+`templates/` is a path test, so it does not travel with a copy. Keep both
+attributes until the deck carries real content, then delete them: the reason is
+printed on every run as `diagram gate waived: ...`, so a waiver that outlives
+the scaffold is visible rather than silent.
 
 ### From `templates/slides/patterns.html` (every treatment)
 
@@ -773,7 +791,8 @@ gallery's `<style>`, so find it by name rather than by line number: `.panel`,
 `.own`, `.rule-fade`, `.kpi`, `.mini2`, `.meter`, `.numbered`, `.timeline`,
 `.exits`, `.compare`, `.ba`, `.checklist`, `.stack`, `.bento`, `.dotfield`,
 `.ladder`, `.waterfall`, `.funnel`, `.donutrow`, `.dtable`, `.mxwrap`/`.matrix`,
-`.tvo`, `.chartcol`/`.readout`, `.divider`/`.ghost`, `.bigstrip`, `.cascade`,
+`.tvo`, `.codeframe`/`.code`/`.cl`, `.chartcol`/`.readout`, `.divider`/`.ghost`,
+`.bigstrip`, `.cascade`,
 `.zigzag`, `.minicloud`, `.blobstage` and the `.shot` frame.
 
 Copy the block, or copy the whole gallery's extension section, when a deck needs
@@ -839,6 +858,186 @@ elements.
 - `window.__noMorph` sets `body.no-anim`, which kills the CSS animation, the
   staged entrance and the FLIP together. A PDF can otherwise capture a tile
   mid flight.
+- **Two more motions exist and neither is the entrance**: a morph between two
+  slides that share their content, and a step-through inside one slide. Both
+  are opt-in, both are dead on a capture, and both are the subject of the three
+  subsections below.
+- **Two more motions exist and neither is the entrance**: a morph between two
+  slides that share their content, and a step-through inside one slide. Both
+  are opt-in, both are dead on a capture, and both are the subject of the three
+  subsections below.
+
+### Auto-animate: the change between two slides
+
+**Put `data-auto-animate` on two adjacent sections and the content that persists
+glides to its new place instead of cross-fading.** 1s, `ease`, on both axes —
+reveal.js's own defaults, because the morph is the one motion that floats rather
+than snaps. This is reveal.js's auto-animate
+ported; the port and its six differences are in `research/AUTO-ANIMATE.md`.
+
+It is the mechanism for a slide that is *the previous slide plus one thing*: a
+code block that grew, three cards that changed order, a chart that lost a bar. It
+is not a transition effect to sprinkle on unrelated slides. Two adjacent slides
+with nothing in common have no pairs, so nothing travels and the pair is only a
+faster slide change. And pairing is positional, not intentional: any two
+adjacent sections that both carry the attribute become a pair whether you meant
+it or not, so a bare chain links the whole deck and `data-auto-animate-id`
+scopes a pair to its two slides.
+
+- **Matching is the feature.** Four passes, in this order, first match wins per
+  incoming element:
+  1. `data-anim="<name>"` (reveal's `data-id` is accepted for porting) is the
+     explicit name, and it always beats an accidental match;
+  2. `h1`-`h6`, `p` and `li` by node name plus exact text;
+  3. `img`, `video` and `iframe` by `src`;
+  4. `pre` by its own text, and then its **lines** by text with the same index
+     winning.
+- **A pair's transform is its own delta minus its ancestors' deltas.** Both are
+  measured against the slide, so a card that moves 968px right carries its
+  heading 968px; if the heading animated its own 968px as well it would land
+  968px past the card. Subtraction is what makes a heading ride its card and a
+  code line *not* ride its `<pre>`: the pre has no delta when the block grew
+  downwards and re-centred, so the line's own delta is the whole of its travel.
+- **New content fades in late and quietly**, 20% of the duration in and 80% of
+  it fading, and only inside `.s-body`. The rail, the head and the foot are
+  chrome, they are on every slide, and a fade on each of them is a blink in the
+  corner of the eye on every transition. `data-auto-animate-unmatched="false"`
+  turns the fade off.
+- **The slide's own entrance is cancelled, never suppressed.** The staged
+  entrance and the tile cascade are two CSS animations switched off with a class
+  and switched on again when the morph lands, and a CSS animation that comes back
+  restarts from zero: the body rose a second time, 40% faded and 10px low, as the
+  morph ended. `show()` calls `.cancel()` on the section's own fade and on
+  everything inside `.s-body`, and `.animating` is left as a marker with no rule
+  of its own, because a class that no animation rule mentions cannot restart
+  anything when it comes off. The head and the foot keep their entrance, since
+  they are chrome.
+- **A transition pressed while the outgoing slide is still moving plays no
+  morph.** `show()` skips the plan when the outgoing slide has an animation in
+  flight, because measuring through a moving element would glide it from a place
+  it was never at. `bun cli.mjs motion` waits for the slide to settle before it
+  drives a pair, so a healthy deck is never reported as a dead one.
+- **An element carries one mechanism, not two.** `data-morph` on the takeaway is
+  chrome and travels vertically; `data-anim` on body content travels on both
+  axes. Tagging one element with both moves it twice.
+- **Move one thing per transition.** Two cards that swap columns cross, and text
+  passes over text for half a second. That is what a swap looks like, but a
+  reader following three crossings at once is doing arithmetic.
+
+Attributes, all optional:
+
+| Attribute | On | Default | Meaning |
+|---|---|---|---|
+| `data-auto-animate` | section | absent | this slide takes part in the morph with its neighbour |
+| `data-auto-animate-id="x"` | section | absent | only morph with a neighbour carrying the same id; a mismatch silently disables the pair (`animPlan` returns null), so the gate reports shared-but-unpaired code instead of a broken morph |
+| `data-auto-animate-restart` | section | absent | break with the previous slide, in either direction |
+| `data-auto-animate-duration` | section, element | `1` | seconds |
+| `data-auto-animate-easing` | section, element | `ease` | any CSS easing |
+| `data-auto-animate-delay` | element | `0` | seconds, so a pair can be staggered by hand |
+| `data-auto-animate-unmatched="false"` | section | absent | new content appears instead of fading |
+
+The properties that travel are reveal's list unchanged: `opacity`, `color`,
+`background-color`, `padding`, `font-size`, `line-height`, `letter-spacing`,
+`border-width`, `border-color`, `border-radius`, `outline`, `outline-offset`. A
+property outside it is a property that jumps. A text node is never scaled, since
+its properties are transitioned one at a time and scaling type re-renders it
+soft, and `line-height` is read as a ratio so an animating `font-size` carries it.
+
+### The code frame, and why it is a treatment
+
+`.codeframe` wraps `.codehead` (one glyph and the language) around
+`<pre class="code">`, and the boot script splits every `<pre><code>` into one
+`<span class="cl">` per line before the first `show()`. **That split is the whole
+reason a code slide can animate a line at a time**, and three things about it are
+not optional:
+
+- **A line is a block box with a `min-height`, not an inline span.** A blank line
+  that collapses shifts every line below it, and a diff-shaped animation cannot
+  survive a shifting baseline.
+- **A hand-written token span survives the split.** The splitter walks nodes
+  rather than text, and a token that wraps a newline is closed at the newline and
+  reopened on the next line, because one node cannot sit in two line boxes.
+- **Nothing wraps.** 24px mono in the 1180px frame is **78 characters**; a longer
+  line is clipped by the frame and caught by qa-matrix's stage-clip check. Shorten
+  the code, not the rule. Count by eye before you check: the gate catches the
+  clip after the fact, it does not count for you.
+- **Escape the code before it enters the HTML.** `<button>`, `<{count}>` and `&&`
+  inside `<code>` are markup to the parser, not text to the audience: an
+  unescaped `<` opens a tag the deck never closes, and the slide silently loses
+  everything after it. `&lt;`, `&gt;`, `&amp;` — every time, including inside
+  hand-written token spans, which the splitter walks as nodes.
+
+`data-lineno` numbers the lines. `data-anim="src"` on the `<pre>` names it for the
+pair above, and the name is required: two code blocks that differ share no
+character, so nothing else would pair them.
+
+Hand colouring uses five token classes and no others — they are the complete
+palette, defined on `.code` in the template, so a token guessed from another
+product is an unstyled span:
+
+| Class | For | Paint |
+|---|---|---|
+| `tok-k` | keywords (`const`, `return`, `function`) | `#7C3AED`, bold |
+| `tok-f` | function names | `--accent`, semibold |
+| `tok-s` | strings | `--pos` |
+| `tok-n` | numbers | `--neg` |
+| `tok-c` | comments | `--muted`, italic |
+
+**Code that persists across a slide boundary is always a pair.** A block that
+grows slide to slide is the base the next slide builds on, and reprinting it
+static flashes new code under the reader. This is the default for technical
+topics, not an opt-in: adjacent code slides that share lines carry
+`data-auto-animate` on both sections, or one side is rewritten to share nothing.
+`bun cli.mjs motion` fails shared-but-unpaired code outright (three shared
+lines and 40% of the smaller block — coincidence cannot clear both bars).
+
+### Fragments: one slide, stepped through
+
+**Any element carrying `.fragment` is one step, and the arrow key walks the steps
+before it walks the slides.** A fragment starts hidden and ends visible, on the
+same easing and the same 18px rise as the staged entrance, so the two motions are
+one vocabulary.
+
+- **A slide that argues in steps must be a fragment slide or half of an
+  auto-animate pair.** The test is the presenter's hand: if they would point at
+  parts of the slide in sequence — first this row, then that one; first the
+  call, then the render — those parts are steps. A technical slide that builds
+  and steps nothing reads its conclusion before its argument. Name the mechanism
+  in the plan (`SKILL.md` §1), not after the slide exists.
+
+- **Arriving at a slide resets its steps to hidden**, which is what makes the
+  sequence repeatable: a rail jump lands on step zero, and a walk that comes back
+  replays from the same place. `show(n)` is a jump, so it never leaves a slide
+  half-revealed.
+- **A hidden fragment still holds its box.** That is the one rule that decides
+  where a fragment goes: **reserve the layout**, which in practice means a row
+  (`.steps3`, `.grid3`) rather than a column. A vertical list re-centres on every
+  reveal, so everything already on screen jumps each time a step lands.
+- **The tile cascade skips a fragment.** Every cascade rule carries
+  `:not(.fragment)`, and it is load-bearing: a CSS animation beats a normal
+  declaration, so a fragment inside `.steps3` would be pinned visible by the
+  `rise` fill and its own hidden state would never apply.
+- **Only new content may be a fragment.** A fragment is not a way to hold back the
+  title, the takeaway, or the number the slide is about. Those are the slide.
+- **The effects that exist** are `.fade-up`, `.fade-down`, `.fade-left`,
+  `.fade-right`, `.fade-out`, `.semi-fade-out`, `.strike`, `.current-visible`
+  (on screen only while it is the current step), `.highlight-current` (a wash
+  while it is current), `.disabled` (always shown, never stepped) and `.custom`,
+  which drops the default hidden state so a deck can write its own pair. A new
+  effect is two rules and one name, beside these.
+- **Order is `data-fragment-index` where it is written and document order where it
+  is not**, and every fragment gets an index written back at boot. The current
+  index is also written to the section as `data-fragment`, so CSS, a capture and a
+  test can all read how far into the slide the presenter is.
+- **A capture must see every fragment.** `body.no-anim`, which is what
+  `__noMorph` sets, reveals all of them, and so does `@media print`. Without that,
+  a screenshot, a PDF and a word count all describe a slide with its own argument
+  missing. `qa-matrix.mjs` reveals them itself, because it walks with the keyboard
+  on purpose.
+- **The live region names the step**, not only the slide, because a live region
+  that says "slide 7 of 19" every time has told a screen reader nothing about the
+  thing that just appeared. `data-frag-label="<short phrase>"` overrides what is
+  read out for a fragment whose own text is long.
 
 ## Accessibility and robustness
 

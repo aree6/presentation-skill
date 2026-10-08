@@ -40,7 +40,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { markList, treatmentOf, CARD_DNA, HERO } from "./lib/patterns.mjs";
+import { markList, treatmentOf, treatmentList, CARD_DNA, HERO } from "./lib/patterns.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(HERE);
@@ -198,6 +198,13 @@ function main() {
     registry[m[1]] = m[2];
   }
   const audits = [];
+  /* A brand advisory fires once per deck, not once per slide. The subject of
+     the deck is named on every slide by definition — a deck about React names
+     React throughout — so repeating the same advisory after it is read and
+     deliberately left open is a nag, and a nag trains authors to stop reading
+     the audit. The first occurrence carries the signal; the rest would only
+     repeat the decision. */
+  const brandSaid = new Set();
 
   // Treatment per slide, for the rhythm readout. Read off the gallery by
   // lib/patterns.mjs: first distinctive body class wins, specific before
@@ -378,9 +385,11 @@ function main() {
     if (!textOnly && bodyWords >= 70 && !diagram && marks.length === 0) {
       upgrades.push(`approx ${bodyWords} body words with no visual anchor: split the slide or promote its shape to a diagram`);
     }
-    if (brandHits.length) {
-      const shown = brandHits.slice(0, 3).join(", ");
-      upgrades.push(`names ${shown} with no colored mark: run bun cli.mjs icons ${brandHits[0]} and inline the logo beside the name`);
+    const freshBrands = brandHits.filter((b) => !brandSaid.has(b));
+    for (const b of brandHits) brandSaid.add(b);
+    if (freshBrands.length) {
+      const shown = freshBrands.slice(0, 3).join(", ");
+      upgrades.push(`names ${shown} with no colored mark: run bun cli.mjs icons ${freshBrands[0]} and inline the logo beside the name`);
     }
     if (topRepeat) {
       upgrades.push(`glyph ${topRepeat[0]} appears ${topRepeat[1]}x on one slide: fine if one concept repeats, otherwise vary (ICONS.md optical sizes)`);
@@ -415,6 +424,41 @@ function main() {
     waived.push(`diagram gate waived: ${diagramReason}`);
   }
 
+  /* A pair that rebuilds a diagram does not morph it. Two adjacent sections
+     that will pair (both carry data-auto-animate, ids agree, no restart) and
+     render DIFFERENT diagram sources produce the silent failure MERMAID.md §5a
+     measured: labels glide without their boxes, edges fly origin-relative,
+     and the SVG looks clean while the motion lies. Identical sources hold
+     still and are fine. Sources compare normalized (whitespace-collapsed), so
+     reformatting alone never fires this. */
+  const mmdOf = (sec) =>
+    [...sec.matchAll(/<pre[^>]*class="[^"]*\bmermaid\b[^"]*"[^>]*>([\s\S]*?)<\/pre>/g)]
+      .map((m) => m[1].replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n---\n");
+  const aaOf = (sec) => {
+    const tag = (sec.match(/^<section[^>]*>/) || [""])[0];
+    if (!/\bdata-auto-animate\b/.test(tag)) return null;
+    return {
+      id: (tag.match(/\bdata-auto-animate-id="([^"]*)"/) || [])[1] || "",
+      restart: /\bdata-auto-animate-restart\b/.test(tag),
+    };
+  };
+  sections.forEach((sec, i) => {
+    if (i === 0) return;
+    const a = aaOf(sections[i - 1]);
+    const b = aaOf(sec);
+    if (!a || !b || a.restart || b.restart || a.id !== b.id) return;
+    const sa = mmdOf(sections[i - 1]);
+    const sb = mmdOf(sec);
+    if (sa && sb && sa !== sb) {
+      const name = (sec.match(/data-name="([^"]*)"/) || [])[1] || `slide ${i + 1}`;
+      findings.push(
+        `s${i}→s${i + 1} (${name}): paired sections render different diagrams, which morphs shared nodes incorrectly (labels glide without boxes, edges fly origin-relative) — drop data-auto-animate from one side for a clean cut, or render the identical source on both (MERMAID.md §5a)`,
+      );
+    }
+  });
+
   sections.forEach((sec, i) => {
     const name = (sec.match(/data-name="([^"]*)"/) || [])[1] || `slide ${i + 1}`;
     const label = `s${i + 1} (${name})`;
@@ -433,9 +477,114 @@ function main() {
     }
   });
 
+  /* The scaffold check. `bun cli.mjs new` copies templates/template.html whole,
+   * and every gate in this skill passes on that copy: it has its icons, its rail,
+   * its treatments and its word counts. So a deck that was scaffolded and never
+   * replaced ships as a deck about an invented clinic, and nothing says so.
+
+     It is checked by content, not by a marker: the strings below are the
+     scaffold's own copy, and the one thing an author cannot do by accident is
+     keep all of them. Comments are stripped first: an author who replaced every
+     slide but left a scaffold comment behind has still replaced every slide,
+     and failing them for a comment teaches surgery on the file instead of
+     replacement of the content. */
+  const SCAFFOLD_COPY = [
+    "Meridian",
+    "Maria Santos",
+    "Pantry Director",
+    "neighbors home",
+  ];
+  const decommented = html.replace(/<!--[\s\S]*?-->/g, " ");
+  const scaffoldHits = SCAFFOLD_COPY.filter((t) => decommented.includes(t));
+  // The scaffold is not a finding against itself. templates/template.html is the
+  // sample content BY DEFINITION and templates/slides/*.html are the gallery's own
+  // dummy copy, so the check is scoped to a deck an author is shipping. This
+  // skill's own default `check` runs against templates/template.html, and a gate
+  // that fails the folder's own starting point teaches people to skip it.
+  const inTemplates = /(^|[\\/])templates[\\/]/.test(deck);
+  if (inTemplates && scaffoldHits.length) {
+    waived.push(`scaffold check skipped: ${path.basename(deck)} is the scaffold itself, not a deck`);
+  } else if (scaffoldHits.length) {
+    findings.push(
+      `still the scaffold: ${scaffoldHits.length} of ${SCAFFOLD_COPY.length} sample strings survive (${scaffoldHits.join(", ")}) — ` +
+        "`bun cli.mjs new` copies the template whole and every other gate passes on it, so the only thing that catches " +
+        "an unreplaced deck is this. Replace the sample slides with your own (SKILL.md section 3), or delete them",
+    );
+  }
+  // The template's own waiver text is the same fact in another form: a deck that
+  // still carries it has not touched its body tag.
+  if (!inTemplates && /data-diagram-reason="untouched templates\/template\.html/.test(html)) {
+    findings.push(
+      "still the scaffold: <body> carries the template's diagram waiver (\"untouched templates/template.html sample slides\") — " +
+        "you have not edited this deck's body tag",
+    );
+  }
+
+  /* A treatment without its CSS. `templates/template.html` ships CSS for
+     eleven of the thirty gallery treatments, so the other nineteen live only
+     in templates/slides/patterns.html. Nothing said so out loud, and nothing
+     failed when the CSS stayed behind: a `.checklist` with no `.checklist` rule
+     still renders, as a stack of left-aligned divs, and every gate is green
+     because nothing about it is an error. The only way it becomes visible is to
+     look at the slide, which is the same answer to every silent fault.
+
+     So it is checked here, by asking the deck's own stylesheet whether it knows
+     the class. The fix is one command, which is why the message names it. */
+  const deckCss = (html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [])
+    .map((m) => m.replace(/<style[^>]*>/i, "").replace(/<\/style>/i, ""))
+    .join("\n")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+  const deckSelectors = [...deckCss.matchAll(/(?:^|[{};])\s*([^{}@]{2,600}?)\s*\{/g)]
+    .map((m) => m[1])
+    .join(" ");
+  /* `meter` and `mermaid` are inner marks, not treatments: a diagram is drawn by
+     Mermaid and styled through its wrapper, so no deck defines a `.mermaid` rule
+     and a check that demanded one would fail every deck with a diagram in it. */
+  const STYLE_CLS = treatmentList().filter((t) => t !== "meter" && t !== "mermaid");
+  const usedTreatments = new Set();
+  for (const m of html.matchAll(/class="([^"]*)"/g)) {
+    const cls = m[1].split(/\s+/).filter(Boolean);
+    const hit = STYLE_CLS.find((t) => cls.includes(t));
+    if (hit) usedTreatments.add(hit);
+  }
+  // Which treatments the template itself carries, so the message names a real
+  // count instead of one that drifts the day a treatment moves into the template.
+  const TEMPLATE_CSS = (fs.readFileSync(path.join(HERE, "..", "templates", "template.html"), "utf8")
+    .match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [])
+    .map((m) => m.replace(/<style[^>]*>/i, "").replace(/<\/style>/i, ""))
+    .join("\n")
+    .replace(/\/\*[\s\S]*?\*\//g, "");
+  const inTemplate = new Set(
+    STYLE_CLS.filter((t) => new RegExp(`\\.${t}(?![\\w-])`).test(TEMPLATE_CSS)),
+  );
+  const missing = [...usedTreatments].filter(
+    (t) => !new RegExp(`\\.${t}(?![\\w-])`).test(deckSelectors),
+  );
+  if (missing.length) {
+    const only = STYLE_CLS.filter((t) => !inTemplate.has(t));
+    findings.push(
+      `treatment CSS missing: this deck uses ${missing.map((t) => "." + t).join(", ")} but its <style> has no rule that mentions ${missing.length > 1 ? "them" : "it"}, so ${missing.length > 1 ? "those slides render" : "that slide renders"} unstyled (a table that is not a table).\n    The template carries CSS for ${inTemplate.size} of ${STYLE_CLS.length} treatments; the other ${only.length} live only in templates/slides/patterns.html. Bring the CSS across with:\n    bun cli.mjs pattern <n> --css\n  where <n> is the pattern for ${missing.length > 1 ? "each class above, run it once per class," : "the class above,"} from bun cli.mjs pattern --list`,
+    );
+  }
+
   const usesMermaid = /class="mermaid"|mermaid\.initialize|mermaid\.render|mermaid\.min\.js/i.test(html);
   if (!/nav\.rail[\s{]/.test(html) || !/mountRail\(\)/.test(html)) {
     findings.push("sidebar rail missing: every slide must carry the position chrome as its first grid column (nav.rail built by mountRail) — a fixed overlay or no rail fails the rail's whole point");
+  }
+  /* A <script> inside an HTML comment never runs and never errors: an insert
+     anchored on a comment-interior line lands the whole render block in the
+     dark, and every gate stays green around it because there is nothing to
+     fail — only the screenshot catches it. So the comment bodies are read as
+     code here, once, for exactly that tag. */
+  for (const m of html.matchAll(/<!--([\s\S]*?)-->/g)) {
+    const sm = /<script(?=[\s>/])/.exec(m[1]);
+    if (sm) {
+      const line = html.slice(0, m.index).split("\n").length + m[1].slice(0, sm.index).split("\n").length - 1;
+      findings.push(
+        `commented-out <script> at line ${line}: a script tag inside an HTML comment never runs and never errors — the diagram it was meant to render stays an empty container with green gates. Uncomment it or delete it`,
+      );
+      break;
+    }
   }
   if (usesMermaid) {
     const cdn = html.match(/https?:\/\/[^\s"']*mermaid[^\s"']*/i);
@@ -456,6 +605,25 @@ function main() {
     if (!/(?<!function )defer\(/.test(html)) findings.push("diagram render not registered with defer(): the export may capture an empty container");
     if (!/mmdwrap/.test(html) || !/overflow\s*:\s*visible/.test(html)) {
       findings.push("the .mmdwrap theming patch is missing (anchor on .mmdwrap, overflow:visible): labels can slice mid-word with no page error");
+    }
+    /* The theme-proof half of the §4 patch. Mermaid injects an ID-scoped
+       stylesheet with the light tokens baked at render time, and nothing
+       re-renders on a theme switch — the presenter switches to dark on the
+       cover, one click away on every deck. Without these rules dark mode shows
+       light pills on edges, invisible actor boxes and dark-on-dark message
+       text, all with green gates in light mode. Each requirement is typed to
+       the diagrams the deck actually carries, so a flowchart-only deck is not
+       failed for missing sequence rules. */
+    const mermaidSrc = [...html.matchAll(/<pre[^>]*class="[^"]*\bmermaid\b[^"]*"[^>]*>([\s\S]*?)<\/pre>/g)].map((m) => m[1]).join("\n");
+    const hasDiagram = (name) => new RegExp(`(^|[^A-Za-z])${name}([^A-Za-z]|$)`).test(mermaidSrc);
+    if (!/\.labelBkg/.test(deckSelectors)) {
+      findings.push("mermaid theme-proof missing: no .labelBkg rule in this deck's <style>, so edge labels render as light pills in dark mode (MERMAID.md §4 theme-proof block)");
+    }
+    if (!/\.actor-box|\.actor-top/.test(deckSelectors) && hasDiagram("sequenceDiagram")) {
+      findings.push("mermaid theme-proof missing: this deck draws a sequenceDiagram but its <style> names no .actor rule, so actor boxes and their labels keep the baked light paint in dark mode (MERMAID.md §4 theme-proof block)");
+    }
+    if (!/statediagram-state/.test(deckSelectors) && (hasDiagram("stateDiagram") || /stateDiagram-v2/.test(mermaidSrc))) {
+      findings.push("mermaid theme-proof missing: this deck draws a state diagram but its <style> names no .statediagram-state rule, so state boxes keep the baked light paint in dark mode (MERMAID.md §4 theme-proof block)");
     }
   }
 

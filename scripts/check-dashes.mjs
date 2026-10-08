@@ -124,6 +124,29 @@ for (const f of paths) {
 const RANGE_RE = /\b\d+\s*[-–—]\s*\d+\b/g;
 const SLASH_PAIR_RE = /\b\d+\s*\/\s*\d+\b/g;
 
+/**
+ * A `//` comment is masked only when it OPENS A LINE. That is the narrow reading
+ * and it is the right one: a `//` in the middle of a line is far more often the
+ * second slash of a URL than the start of a comment, and masking `https://x//y`
+ * plus everything after it hides the very sentence this gate exists to find.
+ * A trailing comment after code on one line is left in scope, which costs a
+ * finding the author can see is inside code.
+ *
+ * Comments are masked out before anything is scanned.
+ *
+ * A deck copies treatment CSS out of templates/slides/patterns.html verbatim,
+ * and that file annotates its own rules with em dashes. Following the skill
+ * literally therefore produced a deck that failed the skill's own gate on a
+ * sentence no audience will ever read, and `--fix` cannot rewrite it either: it
+ * refuses to touch code. A comment is not prose on a slide, so it is not prose
+ * this gate is about.
+ *
+ * All four comment syntaxes are covered, because a deck is HTML with a <style>
+ * and a <script> inside it and an author writes whichever comes to hand.
+ */
+const COMMENTS_RE = /<!--[\s\S]*?-->|\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT_RE = /^[ \t]*\/\/[^\n]*/gm;
+
 /** Machine-generated indexes whose separator is fixed by the format itself. */
 const FORMAT_FILES = new Set([
   "index.tsv",
@@ -183,6 +206,8 @@ function safeFix(line) {
 
 function scan(src, includeEn) {
   const masked = src
+    .replace(COMMENTS_RE, (m) => m.replace(/[^\n]/g, " "))
+    .replace(LINE_COMMENT_RE, (m) => m.replace(/[^\n]/g, " "))
     .replace(RANGE_RE, (m) => " ".repeat(m.length))
     .replace(SLASH_PAIR_RE, (m) => " ".repeat(m.length));
   const hits = [];

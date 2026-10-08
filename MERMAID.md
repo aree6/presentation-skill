@@ -11,6 +11,7 @@ presentation-skill deck. `DESIGN.md` holds the tokens and the native treatments.
 - [3a. Shape the drawing to the band](#3a-shape-the-drawing-to-the-band)
 - [4. The light-canvas theming block](#4-the-light-canvas-theming-block)
 - [5. Integrating into a deck](#5-integrating-into-a-deck)
+- [5a. Stepping through a diagram](#5a-stepping-through-a-diagram)
 - [6. Diagrams are not only for technical slides](#6-diagrams-are-not-only-for-technical-slides)
 - [7. Worked examples](#7-worked-examples)
   - [7.1 Flow and lifecycle](#71-flow-and-lifecycle)
@@ -139,7 +140,7 @@ keeps them reads as a screenshot pasted in from another product. Never ship one 
    declaration. Section 4 gives the reason for each. Edge stroke-width is the
    one property CSS cannot reach, and the rule below says why.
    --------------------------------------------------------------------------- */
-.mmdbwrap,.mmdwrap .node rect,.mmdwrap .node circle,.mmdwrap .node ellipse,
+.mmdwrap .node rect,.mmdwrap .node circle,.mmdwrap .node ellipse,
 .mmdwrap .node polygon,.mmdwrap .node path{
   fill:var(--surface) !important;
   stroke:rgba(var(--ink-rgb),.12) !important;
@@ -172,7 +173,60 @@ keeps them reads as a screenshot pasted in from another product. Never ship one 
 }
 .mmdwrap .edge-thickness-invisible{stroke-width:0 !important;fill:none !important}
 .mmdwrap foreignObject{overflow:visible !important}
-.mmdwrap svg{max-width:100% !important;height:auto !important}
+/* Sizing lives in section 8, not here: forcing the SVG to the band
+   (width and height 100%, both max constraints cleared) is the only recipe §8
+   measured that both fills and never overflows. An earlier revision of this
+   block read max-width:100% with height:auto, which §8 shows overflowing 5 of
+   8 cases because height:auto drops the height cap. */
+/* --- theme-proof: the presenter switches to dark on the cover --------- */
+/* Mermaid injects its own ID-scoped stylesheet with the LIGHT tokens baked at
+   render time, and nothing re-renders on a theme switch: the §5 script runs
+   once. Every declaration below beats the injected rule with !important and
+   reads a live token, so the switch moves the diagram with no second pass.
+   Without these, dark mode shows light pills on edges, invisible actor boxes,
+   dark-on-dark message text and black arrowheads. Measured on mermaid 12,
+   classic look, in Chromium: these are the classes it actually emits. */
+.mmdwrap .labelBkg{background-color:transparent !important}
+.mmdwrap text{fill:var(--text) !important}
+/* Labels arrive as <tspan> inside <text>, and the injected rule paints the
+   tspan directly (#seqx text.actor>tspan{fill:#333}), so inheriting the text
+   fill is the only route: a fill on <text> never reaches a tspan that names
+   its own. Without this, sequence actor names stay dark-on-dark. */
+.mmdwrap text tspan{fill:inherit !important}
+.mmdwrap .actor,.mmdwrap .actor-top,.mmdwrap .actor-bottom{
+  fill:var(--surface) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+  stroke-width:1.5px !important;
+}
+.mmdwrap .actor-box{fill:var(--text) !important}
+.mmdwrap .actor-line{stroke:rgba(var(--ink-rgb),.12) !important}
+.mmdwrap path[class*="messageLine"],.mmdwrap line[class*="messageLine"]{
+  stroke:var(--muted) !important;fill:none !important;
+}
+.mmdwrap .messageText{fill:var(--ink) !important}
+.mmdwrap .labelBox{
+  fill:var(--surface) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+}
+.mmdwrap .labelText,.mmdwrap .loopText{fill:var(--text) !important}
+.mmdwrap .loopLine{stroke:var(--muted) !important}
+.mmdwrap .note{
+  fill:var(--surface) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+}
+.mmdwrap .noteText{fill:var(--text) !important}
+.mmdwrap .activation0,.mmdwrap .activation1,.mmdwrap .activation2{
+  fill:rgba(var(--ink-rgb),.08) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+}
+.mmdwrap defs marker path{fill:var(--muted) !important;stroke:none !important}
+.mmdwrap .statediagram-state rect{
+  fill:var(--surface) !important;
+  stroke:rgba(var(--ink-rgb),.12) !important;
+  stroke-width:1.5px !important;
+}
+.mmdwrap .state-start,.mmdwrap .state-end{fill:var(--ink) !important;stroke:none !important}
+.mmdwrap path.transition{stroke:var(--muted) !important}
 ```
 
 Four rules make it work:
@@ -195,15 +249,23 @@ Four rules make it work:
    to the deck's rounded corners; `@{ shape: rounded, label: "..." }` and
    `state: { radius: 5 }` are the alternatives. `filter:none` drops the `feDropShadow` the
    default look paints under every node.
+5. **The theme-proof half is not optional.** The block ends with the rules that
+   survive a dark-mode switch: `.labelBkg`, SVG `text` ink, the sequence
+   actor/message/loop/note classes, and the state classes. SVG `<text>` reads
+   `fill`, never `color`, so a `color` rule leaves every sequence label painted
+   in the baked light token. The failure is silent in light mode and total in
+   dark: invisible actors, dark-on-dark messages, light pills on edges.
 
 Then call `initialize()` reading the same tokens out of the live page, so anything
-CSS cannot reach agrees — and so a palette or dark-mode switch moves the diagram
-with the deck instead of leaving it painted in the default tokens:
+CSS cannot reach agrees with the tokens on screen rather than with the values
+that happened to be default when the deck was written. It runs once: nothing
+re-renders on a palette or dark-mode switch, which is why the theme-proof half
+of the block above reads live tokens instead of baked ones.
 
 ```js
-/* Read once, before initialize(). A palette switch re-runs the render, so the
-   diagram always agrees with the tokens on screen rather than with the values
-   that happened to be default when the deck was written. */
+/* Read once, before initialize(). themeVariables cover only what CSS cannot
+   reach (edge width is ID-scoped !important inside the SVG); everything else
+   follows the switch live through the block above, with no second pass. */
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 mermaid.initialize({
   startOnLoad:false,          /* MUST be set before window load, see below */
@@ -268,10 +330,15 @@ and fails with `Parse error on line 1: ---config: look: ^ Expecting 'NEWLINE', '
   mermaid.initialize({ /* the block in section 4 */ });
 
   // 2. Register the work, never assign the promise: the template owns
-  //    window.__deckReady. From a separate script, call window.__deckDefer(...)
-  //    after the template's own script, the last one in the document. (The
-  //    gallery's boot script calls bare defer() for the same work: same
-  //    function, visible under that name only inside its own script scope.)
+  //    window.__deckReady. From a separate script — which is where a deck's
+  //    script always is — call window.__deckDefer(...) after the template's
+  //    own script, the last one in the document. (The gallery's boot script
+  //    calls bare defer() for the same work: same function, visible under
+  //    that name only inside its own script scope. In a deck, bare defer()
+  //    is undefined: always use the window.__deckDefer form here.) Register once: a second
+  //    copy of this block renders the same nodes twice under colliding ids,
+  //    and the failure reads as a Mermaid error rather than a duplicated
+  //    script.
   window.__deckDefer((async function () {
     // 3. Webfonts first: Mermaid measures label boxes with the live face.
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -333,6 +400,73 @@ and fails with `Parse error on line 1: ---config: look: ^ Expecting 'NEWLINE', '
 `scripts/export-pdf.mjs` and `scripts/qa-matrix.mjs` await that promise on `load`, then
 await fonts, then fail on `data-mermaid-error` and `svg[aria-roledescription="error"]`.
 No timeout and no `networkidle` guess: a diagram renders in about 16 ms.
+
+**First diagram: copy this starter, change only the source.** The four pieces
+live in four places because each has its own owner, and the three questionnaire
+rounds all ended in the same assembly loop. In order: (1) the markup — a diagram
+pattern from `bun cli.mjs pattern --list`, whose `<pre class="mermaid">` carries
+per-diagram frontmatter from a §7 example of the same type; (2) the CSS —
+`bun cli.mjs pattern <n> --css`, which prints the gallery's own mermaid CSS
+verbatim, theming through sizing through the type addendum; (3) the script tag
+below, vendored per SKILL.md section 4; (4) the §5 render script above, once,
+with the source swapped. A diagram assembled any other way — §4 without the
+theme-proof half, sizing from memory, two copies of the render — is the defect
+list of every round so far.
+
+```html
+<div class="mmdbox mid">
+<pre class="mermaid">---
+config: {look: classic, fontFamily: 'Nunito, Inter, sans-serif'}
+---
+flowchart LR
+    A[First thing] --> B[Second thing]</pre>
+</div>
+```
+
+`.mmdbox` sets the band height (`mid` here; `tall` and `short` exist): §3a picks
+it by the drawing's shape, and the QA step fails the slide below 25% fill, so a
+starter that fits is a starter the gate keeps.
+
+## 5a. Stepping through a diagram
+
+A diagram that builds node by node is fragments, not morph: tag the parts after
+the §5 render resolves (node identities like `mmd-<k>-flowchart-<NODE>-<n>` only
+exist then), in reading order — nodes, then edges, then edge labels — with bare
+`.fragment` and a dense `data-fragment-index`:
+
+```js
+// inside the §5 defer(), after node.classList.add("mmdwrap"):
+let fi = 0;
+const step = (sel) => node.querySelectorAll("svg " + sel).forEach((el) => {
+  el.classList.add("fragment");
+  el.setAttribute("data-fragment-index", String(fi++));
+});
+step(".node");
+step(".edgePath, .flowchart-link, .actor-line, .loopLine");
+step(".edgeLabel, .label");
+```
+
+Measured on a five-node flowchart: hidden rects bit-identical to shown ones,
+layout reserved, `body.no-anim` reveals all of them, and stepping composes with
+a morph into the slide (the glide runs invisibly inside `visibility:hidden`).
+
+**Bare `.fragment` only — never a directional or custom one.** Mermaid positions nodes
+with the SVG `transform` *attribute*, and a CSS `transform` property *replaces*
+the attribute instead of composing with it. `.fade-up` (and down/left/right)
+on a node piles every node off-screen, including under `body.no-anim` and
+`@media print`, so captures photograph the wreckage — as does any `.custom`
+rule that moves the node. The motion gate fails exactly those classes inside
+`.mmdwrap`. When the narration allows it, prefer ordinary HTML callouts
+beside a static diagram: zero SVG risk, same stepping.
+
+**Do not morph between two different diagrams.** Shared nodes do not glide:
+labels pair by text without their boxes, edges pair through Mermaid's own
+`data-id`s and fly origin-relative, and identical viewBoxes fix nothing —
+identity granularity is the problem, not geometry. Leave `data-auto-animate`
+off diagram-build pairs (clean cut plus staged entrance) or keep it only where
+both slides render the identical source. Differing paired sources fail the
+visuals gate. True node morph needs attribute-aware engine work; until then it
+is declared unsupported, not attempted.
 
 ## 6. Diagrams are not only for technical slides
 
@@ -1030,6 +1164,7 @@ closes it and awaiting fonts first removes the ordinary cause. Do both.
 | `got 'ARROW_DELIMITER'` in an xychart | A categorical y-axis. | `y-axis "Low" --> "High"` is not allowed. Use `y-axis title min --> max`. |
 | An xychart's bars are invisible | The first default series colour is `#FFF4DD`, which is 1.01:1 against this canvas. | `themeVariables.xyChart.plotColorPalette` in a directive or in `initialize()`. |
 | `got 'ARROW_DELIMITER'` in a treemap | An unquoted section or leaf name, or a missing or negative value, which drops the leaf silently. | Quote every label, give every leaf a positive number, and recount the total. |
+| `Parse error ... got 'CLICK'` (or any keyword) on a line shaped exactly like the working sample | A node id that is a Mermaid interaction keyword: `click`, `class`, `classDef`, `style`, `linkStyle`, `direction`, `subgraph`, `end`. The lexer reads the word before the shape does. | Rename the id (`click` to `press`, `end` to `done`); labels stay as they are. |
 | `Expecting token of type ':'` in an architecture diagram | `service` is a mandatory keyword, so `gw[API gateway]` fails although the line looks complete. | `service gw[API gateway] in edge`. |
 | A `?` glyph inside an architecture or tree view icon | Icon packs are not bundled, and an unregistered name falls back to a pack that is not there. | Omit the `(icon)` entirely, and leave `showIcons: false`. |
 | `Expecting token of type COLON` or `include relationship requires use-case endpoints` in a usecase | `..>` takes a colon and the keyword before the target, `include` and `extend` need a use case at both ends, and the boundary is closed by its own `end`, so a second one is a syntax error. | `A ..> : include B`, attach actors with `--`, and use one `end` per `systemBoundary`. |
@@ -1066,3 +1201,9 @@ closes it and awaiting fonts first removes the ordinary cause. Do both.
    `initialize()` runs with `startOnLoad:false`, every source is parsed before render, and
    the render is registered with `defer()`. A deck that reaches a CDN, or that renders
    without registering, fails before any browser starts.
+3. If a flowchart should show direction of travel, its `<pre>` carries `flow`
+   and the deck's stylesheet carries the `.mmdwrap.flow` block from the gallery
+   (moving dashes, Flowey trace idiom, deck-native). The three kill-switches
+   govern it untouched, and the motion gate ignores infinite animations when
+   judging settle — but a flowing diagram beside an auto-animate pair still
+   costs attention on every pass, so one flow per deck.

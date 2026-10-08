@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- STARTER DECK TEMPLATE. Copy it with `bun cli.mjs new <topic>.html` (which resolves
-     the skill-asset path for the icon modal) and replace the ten sample slides.
+     the skill-asset path for the icon modal) and replace the seven sample slides.
      One self-contained file: inline SVG, vendored Mermaid beside the deck, light by
      default with a presenter switcher for dark and palettes on the cover. Type over
      Google Fonts with system fallbacks. The samples show anatomy and treatments
@@ -174,7 +174,7 @@ body.tex-grid .slide::before{
    preference. A list broken across lines is a descendant combinator, so keep
    the :is() list on one line when you add a container to it. */
 @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.slide.active>.s-head,.slide.active>.s-body,.slide.active>.s-foot{animation:rise .45s cubic-bezier(.22,.8,.24,1) both}
+.slide.active>.s-head:not(.fragment),.slide.active>.s-body:not(.fragment),.slide.active>.s-foot:not(.fragment){animation:rise .45s cubic-bezier(.22,.8,.24,1) both}
 .slide.active>.s-head{animation-delay:.04s}
 .slide.active>.s-body{animation-delay:.10s}
 .slide.active>.s-foot{animation-delay:.20s}
@@ -183,17 +183,21 @@ body.tex-grid .slide::before{
    tile containers are listed. A bare .s-body > * would hand an animation to every
    inline child of every text block, and one emphasised word would drop in on its
    own. Tiles inside every container stagger, including .hero-split,
-   so their contents never travel twice. */
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*{animation:rise .5s cubic-bezier(.22,.8,.24,1) both;animation-delay:var(--d,0s)}
+   so their contents never travel twice.
+   :not(.fragment) on every tile, and it is load-bearing: a CSS animation beats
+   a normal declaration, so a fragment inside a cascade container would be
+   pinned visible by the `rise` fill and the fragment's own hidden state would
+   never apply. A fragment slide needs the cascade to step aside for it. */
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment){animation:rise .5s cubic-bezier(.22,.8,.24,1) both;animation-delay:var(--d,0s)}
 /* The stagger lives in a custom property, so the five rules below are the only
    place a number appears. A tile's delay has to be set on the tile: a rule keyed
    on .s-body's own children staggers the containers, not the tiles inside them,
    which is the difference between a cascade and three cards arriving together. */
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:nth-child(1){--d:.18s}
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:nth-child(2){--d:.26s}
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:nth-child(3){--d:.34s}
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:nth-child(4){--d:.42s}
-.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:nth-child(n+5){--d:.50s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment):nth-child(1){--d:.18s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment):nth-child(2){--d:.26s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment):nth-child(3){--d:.34s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment):nth-child(4){--d:.42s}
+.slide.active>.s-body>:is(.gridQ,.grid3,.steps3,.stat-rail,.toc,.vbars,.cover-flow,.chiprow,.pull,.hero-split,.waterfall,.chartcol,.dtable thead,.dtable tbody)>*:not(.fragment):nth-child(n+5){--d:.50s}
 /* Two guards, identical, so a PDF looks exactly like the reduced motion deck.
    Both need the universal `*`, because `> *` reaches only direct children and a
    capture can still land on a tile mid flight. The slide is named on its own
@@ -205,6 +209,107 @@ body.no-anim .slide.active,body.no-anim .slide.active *,body.no-anim .edge,body.
    place the element is about to land in. show() adds and removes this inside a
    single task, so it is never painted. */
 .slide.measuring,.slide.measuring *{animation:none !important}
+/* .animating marks a slide that is mid-morph. It deliberately carries NO rule of
+   its own, and that is the whole lesson of the first version of this block.
+
+   It used to be `.slide.animating>.s-body, ... {animation:none!important}`, which
+   suppressed the staged entrance for the length of the morph and looked correct
+   in every frame captured inside it. It was not correct: a suppressed CSS
+   animation is not stopped, it is removed, and removing the class re-creates it
+   from zero. So the body rose a second time as the morph landed, 40% faded and
+   10px low, and the slide blinked at the end of every auto-animate transition.
+
+   show() CANCELS those animations instead. A cancelled animation stays cancelled,
+   and a marker that no animation rule mentions cannot restart anything when it
+   comes off. That is also why `.no-fade` is gone: the section's own 0.2s fade is
+   cancelled the same way rather than shortened, so nothing on the slide needs a
+   class that has to be added and removed around one transition. */
+
+/* ---- fragments: one slide, stepped through one element at a time ----------
+   Any element carrying .fragment is a step. The arrow key reveals it, and a
+   fragment starts hidden and ends visible, which is the same direction of
+   travel as the staged entrance, so both use the same easing and the same
+   18px rise. show() resets a slide's fragments when it arrives at it, so
+   stepping always starts from the same place, and rail jumps replay the steps.
+
+   `custom` is the escape hatch: it drops the default hidden state so the deck
+   can write its own .fragment.custom and .fragment.custom.visible pair.
+
+   There is no `.fragment` variant here that reveal.js has and this deck wants:
+   the set below is the one the motion vocabulary can pay for. A new effect is
+   two rules and one name, and it belongs beside these. */
+.fragment{transition:opacity .4s cubic-bezier(.22,.8,.24,1),transform .4s cubic-bezier(.22,.8,.24,1),color .3s ease,background-color .3s ease}
+.fragment:not(.custom){opacity:0;visibility:hidden;will-change:opacity,transform}
+.fragment.visible{opacity:1;visibility:inherit}
+.fragment.fade-up{transform:translateY(18px)}
+.fragment.fade-down{transform:translateY(-18px)}
+.fragment.fade-left{transform:translateX(18px)}
+.fragment.fade-right{transform:translateX(-18px)}
+.fragment.fade-up.visible,.fragment.fade-down.visible,.fragment.fade-left.visible,.fragment.fade-right.visible{transform:none}
+/* The three that are on screen before their step and off it after, which is how
+   one line of a list stays the only line under discussion. */
+.fragment.fade-out,.fragment.semi-fade-out,.fragment.strike{opacity:1;visibility:inherit}
+.fragment.fade-out.visible{opacity:0;visibility:hidden}
+.fragment.semi-fade-out.visible{opacity:.42;visibility:inherit}
+.fragment.strike.visible{text-decoration:line-through;text-decoration-thickness:2px}
+/* current-visible is the one fragment that is visible only while it is the step
+   being shown, and highlight-current holds its wash only while it is. */
+.fragment.current-visible{opacity:0;visibility:hidden}
+.fragment.current-visible.current-fragment{opacity:1;visibility:inherit}
+.fragment.highlight-current{border-radius:.4em;padding:.04em .16em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.fragment.highlight-current.current-fragment{background:var(--p1);color:var(--accent)}
+.fragment.disabled{transition:none}
+.fragment.disabled:not(.custom){opacity:1;visibility:inherit}
+/* The capture guard, and it is load-bearing. A fragment that has not been
+   stepped to is INVISIBLE, not absent, so a screenshot, a PDF or a density
+   reading that caught one would photograph a slide with its own argument
+   missing and then report the slide as short. Capture is the settled slide:
+   body.no-anim (which is what __noMorph sets) turns every fragment on, and the
+   print block below does the same for Ctrl-P. */
+@media (prefers-reduced-motion:reduce){.fragment{transition:none !important}}
+body.no-anim .fragment{opacity:1 !important;visibility:inherit !important;transform:none !important;transition:none !important}
+
+/* ---- code: the one slide where the type IS the artefact -------------------
+   `.code` is a pre the boot script splits into one `.cl` span per line, which
+   is what lets two code slides animate line by line instead of cross-fading as
+   a block (see the auto-animate block in the script). A line is a block box,
+   not an inline span, and `min-height` is what keeps a BLANK line a line: a
+   blank line that collapses shifts every line below it, and a diff-shaped
+   animation cannot survive a shifting baseline.
+
+   24px monospace in the default 1180px frame is 78 characters. Nothing wraps
+   (`white-space:pre`) and the frame clips, which is deliberate: a wrapped line
+   is two line boxes in one span, and the per-line FLIP would animate a box that
+   is not a line. A line over the budget is caught by qa-matrix's stage-clip
+   check, so shorten the code rather than the rule. */
+.codeframe{background:var(--surface);border:var(--border);border-radius:var(--radius-lg);
+           overflow:hidden;display:flex;flex-direction:column;
+           width:min(1180px,100%);margin-inline:auto}
+.codehead{display:flex;align-items:center;gap:10px;padding:13px 22px;
+          border-bottom:1.5px solid rgba(var(--ink-rgb),.08);font-size:17px;
+          font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:var(--muted)}
+.codehead .ph{width:20px;height:20px;color:var(--accent)}
+.codehead .cstep{margin-left:auto;letter-spacing:.03em;text-transform:none;
+                 font-weight:700;color:var(--accent);background:var(--p1);
+                 border-radius:var(--radius-pill);padding:4px 13px}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;
+      line-height:1.52;color:var(--text);background:none;border:0;margin:0;
+      padding:20px 26px;overflow:hidden;tab-size:2;white-space:pre}
+.code code{font:inherit;color:inherit;letter-spacing:0;display:block}
+.code .cl{display:block;min-height:1.52em}
+/* A .w is a word the morph can hold: inline-block, because an inline box cannot
+   carry a transform and a word that cannot transform cannot glide. */
+.w{display:inline-block}
+.code .cln{display:inline-block;width:2.1em;margin-right:1.2em;text-align:right;
+           color:var(--muted);font-variant-numeric:tabular-nums;user-select:none}
+/* Five token classes and no highlighter: the deck ships no syntax library, so a
+   token is a span the author wrote. Colour never carries meaning on its own
+   here, so every class also changes weight or style. */
+.code .tok-k{color:#7C3AED;font-weight:700}
+.code .tok-f{color:var(--accent);font-weight:600}
+.code .tok-s{color:var(--pos)}
+.code .tok-n{color:var(--neg)}
+.code .tok-c{color:var(--muted);font-style:italic}
 
 /* ---- chrome: constant across every slide --------------------------------- */
 
@@ -464,6 +569,10 @@ nav.rail.compact .rail-ic svg{width:13px;height:13px}
          break-after:page;page-break-after:always}
   .slide:last-of-type{break-after:auto;page-break-after:auto}
   .slide,.slide *{animation:none !important;transition:none !important}
+  /* Every slide prints at once and none of them was stepped through, so every
+     fragment prints too. Without this a stepped slide prints with its own
+     argument missing. Same rule as body.no-anim above, same reason. */
+  .fragment{opacity:1 !important;visibility:inherit !important;transform:none !important}
 }
 /* ==========================================================================
    THEMEBAR: a presenter's switcher, not deck content.
@@ -586,13 +695,30 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 <!-- Background texture: ONE per deck, chosen here on <body> and never changed.
      tex-dots below is a soft field, right for rounded marks and circles.
      tex-grid is a ruled sheet, right for tables, matrices and timelines. -->
-<body class="tex-dots">
+<!-- data-diagrams="none": these seven sample slides are the scaffold's own treatments,
+     not content, so the zero-diagram gate in check-visuals.mjs is waived until you
+     replace them. The reason is required and is printed on every run as
+     "diagram gate waived: ...". DELETE BOTH ATTRIBUTES once your deck carries a
+     real diagram, so the gate starts judging your content instead of the
+     template's samples. A deck that keeps this after it has real content will
+     pass the diagram check without ever satisfying it. -->
+<body class="tex-dots" data-diagrams="none" data-diagram-reason="untouched templates/template.html sample slides: these treatments are the scaffold, not content. Remove this once your deck has its own diagram.">
 <!--
-  Ten sample slides, each a DIFFERENT treatment, so the variety rule is visible
-  in the scaffold: cover flow, contents, three up card grid, two by two grid,
-  three steps, standing pill bars, hero split, share rings, pull close, and the
+  Seven sample slides, each a DIFFERENT treatment, so the variety rule is visible
+  in the scaffold: cover flow, waterfall bridge, chart-dominant columns, data
+  table, three-up card grid, process steps, and pull quote. Anything else lives
+  in the gallery. Every slide below carries the
   screenshot frame. Chrome carries icons on every slide except slide 4, which
   shows the badge for a review date. Light only.
+
+  EVERY WORD OF COPY IN ALL SEVEN SLIDES IS FICTIONAL SAMPLE TEXT, and none of it
+  is a claim about anything. It is about an invented clinic called Meridian, with
+  invented figures (1,400 patients a day, 38 min waits, +$410K pledges) and an
+  invented speaker (Maria Santos, Pantry Director). It exists to show the
+  treatments, nothing else. Replace all of it before you export. A deck that
+  reaches a reader with one surviving sample name is a deck about a company that
+  does not exist, which is the same failure as shipping a placeholder and the
+  reason check-visuals fails emoji and rule 6.1 refuses placeholders.
 
   No slide states its own position in this file. relabel() writes the aria-label,
   the aria-label from the real slide count, so
@@ -602,16 +728,16 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 -->
 
 <!-- 1. Cover. Gallery pattern 27: three nodes is the ceiling. -->
-<section class="slide hero-slide" data-toc="Cover" data-name="Cover flow" data-rail="phosphor/megaphone">
+<section class="slide hero-slide" data-toc="Cover" data-name="Cover flow" data-auto-animate data-rail="phosphor/megaphone">
 <header class="s-head ctr"><h1 class="title-xl">Meridian<br><span>Q3 Care Review</span></h1></header>
 <div class="s-body">
 <p class="subc">Three steps: how the season opened, what changed, and what we must approve</p>
 <div class="cover-flow" style="margin-top:46px">
-<div class="cnode"><div class="circ" style="background:var(--p1)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div class="lbl">Arrive</div><div class="sub">1,400 patients a day, steady</div></div>
+<div class="cnode fragment fade-up"><div class="circ" style="background:var(--p1)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div class="lbl">Arrive</div><div class="sub">1,400 patients a day, steady</div></div>
 <div class="glue">›</div>
-<div class="cnode"><div class="circ" style="background:var(--p4)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightbulb"><path d="M180,232a12,12,0,0,1-12,12H88a12,12,0,0,1,0-24h80A12,12,0,0,1,180,232Zm40-128a91.51,91.51,0,0,1-35.17,72.35A12.26,12.26,0,0,0,180,186v2a20,20,0,0,1-20,20H96a20,20,0,0,1-20-20v-2a12,12,0,0,0-4.7-9.51A91.57,91.57,0,0,1,36,104.52C35.73,54.69,76,13.2,125.79,12A92,92,0,0,1,220,104Zm-24,0a68,68,0,0,0-69.65-68C89.56,36.88,59.8,67.55,60,104.38a67.71,67.71,0,0,0,26.1,53.19A35.87,35.87,0,0,1,100,184h56.1A36.13,36.13,0,0,1,170,157.49,67.68,67.68,0,0,0,196,104Zm-20.07-5.32a48.5,48.5,0,0,0-31.91-40,12,12,0,0,0-8,22.62,24.31,24.31,0,0,1,16.09,20,12,12,0,0,0,23.86-2.64Z"/></svg></div><div class="lbl">Recover</div><div class="sub">38 min waits, from 94 min</div></div>
+<div class="cnode fragment fade-up"><div class="circ" style="background:var(--p4)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightbulb"><path d="M180,232a12,12,0,0,1-12,12H88a12,12,0,0,1,0-24h80A12,12,0,0,1,180,232Zm40-128a91.51,91.51,0,0,1-35.17,72.35A12.26,12.26,0,0,0,180,186v2a20,20,0,0,1-20,20H96a20,20,0,0,1-20-20v-2a12,12,0,0,0-4.7-9.51A91.57,91.57,0,0,1,36,104.52C35.73,54.69,76,13.2,125.79,12A92,92,0,0,1,220,104Zm-24,0a68,68,0,0,0-69.65-68C89.56,36.88,59.8,67.55,60,104.38a67.71,67.71,0,0,0,26.1,53.19A35.87,35.87,0,0,1,100,184h56.1A36.13,36.13,0,0,1,170,157.49,67.68,67.68,0,0,0,196,104Zm-20.07-5.32a48.5,48.5,0,0,0-31.91-40,12,12,0,0,0-8,22.62,24.31,24.31,0,0,1,16.09,20,12,12,0,0,0,23.86-2.64Z"/></svg></div><div class="lbl">Recover</div><div class="sub">38 min waits, from 94 min</div></div>
 <div class="glue">›</div>
-<div class="cnode"><div class="circ" style="background:var(--p3)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/target"><path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/></svg></div><div class="lbl">Fund</div><div class="sub">+$410K pledges this fall</div></div>
+<div class="cnode fragment fade-up"><div class="circ" style="background:var(--p3)"><svg class="ph xl" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/target"><path d="M229.26,90.4a108,108,0,0,1-177.63,114A108,108,0,0,1,195.41,43.63l20.1-20.11a12,12,0,0,1,17,17l-96,96a12,12,0,1,1-17-17l24-24a36,36,0,1,0,19.76,39.65,12,12,0,0,1,23.53,4.74,60,60,0,1,1-25.73-62L178.3,60.74a84,84,0,1,0,28.46,38,12,12,0,1,1,22.5-8.35Z"/></svg></div><div class="lbl">Fund</div><div class="sub">+$410K pledges this fall</div></div>
 </div>
 <div class="rule-fade" style="width:940px;margin:46px auto 0"></div>
 
@@ -620,7 +746,7 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 </section>
 
 <!-- 2. Waterfall bridge. Gallery pattern 4. -->
-<section class="slide" data-toc="Waterfall" data-name="Waterfall bridge" data-rail="phosphor/chart-line">
+<section class="slide" data-toc="Waterfall" data-name="Waterfall bridge" data-auto-animate data-rail="phosphor/chart-line">
 <header class="s-head"><h2 class="head">We closed the drive up $140K on two gifts</h2><p class="sub">Two large gifts carried the drive. Three costs took most of it back.</p></header>
 <div class="s-body">
 <div class="waterfall">
@@ -656,25 +782,25 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 </section>
 
 <!-- 3. Chart-dominant columns. Gallery pattern 6. -->
-<section class="slide" data-toc="Chart" data-name="Chart-dominant columns" data-rail="phosphor/chart-bar">
+<section class="slide" data-toc="Chart" data-name="Chart-dominant columns" data-auto-animate data-rail="phosphor/chart-bar">
 <div class="badge">Q3 actuals</div>
 <header class="s-head"><h2 class="head">Two thirds of baskets now carry a store brand</h2><p class="sub">The mark carries the slide, so the side column only reads it out.</p></header>
 <div class="s-body">
 <div class="chartcol">
 <div class="viz">
 <div class="vbars">
-<div class="vb"><span class="vv">100%</span><div class="col"><i style="height:100%"></i></div><span class="lb">Fresh produce</span></div>
-<div class="vb"><span class="vv">74%</span><div class="col"><i style="height:74%"></i></div><span class="lb">Dairy</span></div>
-<div class="vb"><span class="vv">51%</span><div class="col"><i style="height:51%"></i></div><span class="lb">Bakery</span></div>
-<div class="vb"><span class="vv">33%</span><div class="col"><i class="hot" style="height:33%"></i></div><span class="lb">Frozen</span></div>
-<div class="vb"><span class="vv">12%</span><div class="col"><i style="height:12%"></i></div><span class="lb">Made to order</span></div>
+<div class="vb fragment fade-up"><span class="vv">100%</span><div class="col"><i style="height:100%"></i></div><span class="lb">Fresh produce</span></div>
+<div class="vb fragment fade-up"><span class="vv">74%</span><div class="col"><i style="height:74%"></i></div><span class="lb">Dairy</span></div>
+<div class="vb fragment fade-up"><span class="vv">51%</span><div class="col"><i style="height:51%"></i></div><span class="lb">Bakery</span></div>
+<div class="vb fragment fade-up"><span class="vv">33%</span><div class="col"><i class="hot" style="height:33%"></i></div><span class="lb">Frozen</span></div>
+<div class="vb fragment fade-up"><span class="vv">12%</span><div class="col"><i style="height:12%"></i></div><span class="lb">Made to order</span></div>
 </div>
 <div class="chiprow" style="margin-top:28px"><span class="chip">share of baskets, 30 day mean</span><span class="chip">store brand lines only</span><span class="chip">one store, five departments</span></div>
 </div>
 <div class="readout">
-<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/graph"><path d="M200,152a35.77,35.77,0,0,0-16.46,4l-21.39-16.64A35.49,35.49,0,0,0,164,128.65l10.35-3.44A36,36,0,1,0,164,100c0,1.11.06,2.21.16,3.3l-7.78,2.59A36,36,0,0,0,128,92c-1,0-1.88,0-2.81.12l-4.45-10A36,36,0,1,0,96,92c1,0,1.88,0,2.81-.12l4.45,10a35.91,35.91,0,0,0-8.59,39.7L73.39,160.49a36,36,0,1,0,15.94,17.93l21.28-18.91a35.91,35.91,0,0,0,36.8-1.21L167,173.56A36,36,0,1,0,200,152Zm0-64a12,12,0,1,1-12,12A12,12,0,0,1,200,88ZM84,56A12,12,0,1,1,96,68,12,12,0,0,1,84,56ZM56,204a12,12,0,1,1,12-12A12,12,0,0,1,56,204Zm60-76a12,12,0,1,1,12,12A12,12,0,0,1,116,128Zm84,72a12,12,0,1,1,12-12A12,12,0,0,1,200,200Z"/></svg>The shape</div><div class="n">4.2×</div><div class="t">Items sold per delivery run, versus spring.</div></div>
-<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/trend-up"><path d="M244,56v64a12,12,0,0,1-24,0V85l-75.51,75.52a12,12,0,0,1-17,0L96,129,32.49,192.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0L136,135l67-67H168a12,12,0,0,1,0-24h64A12,12,0,0,1,244,56Z"/></svg>The outlier</div><div class="n">12%</div><div class="t">Made to order is the one share that keeps growing.</div></div>
-<div class="ro"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm68-84a12,12,0,0,1-12,12H128a12,12,0,0,1-12-12V72a12,12,0,0,1,24,0v44h44A12,12,0,0,1,196,128Z"/></svg>The cost</div><div class="n">$33.8K</div><div class="t">Monthly store cost, flat against flat footfall.</div></div>
+<div class="ro fragment fade-up"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/graph"><path d="M200,152a35.77,35.77,0,0,0-16.46,4l-21.39-16.64A35.49,35.49,0,0,0,164,128.65l10.35-3.44A36,36,0,1,0,164,100c0,1.11.06,2.21.16,3.3l-7.78,2.59A36,36,0,0,0,128,92c-1,0-1.88,0-2.81.12l-4.45-10A36,36,0,1,0,96,92c1,0,1.88,0,2.81-.12l4.45,10a35.91,35.91,0,0,0-8.59,39.7L73.39,160.49a36,36,0,1,0,15.94,17.93l21.28-18.91a35.91,35.91,0,0,0,36.8-1.21L167,173.56A36,36,0,1,0,200,152Zm0-64a12,12,0,1,1-12,12A12,12,0,0,1,200,88ZM84,56A12,12,0,1,1,96,68,12,12,0,0,1,84,56ZM56,204a12,12,0,1,1,12-12A12,12,0,0,1,56,204Zm60-76a12,12,0,1,1,12,12A12,12,0,0,1,116,128Zm84,72a12,12,0,1,1,12-12A12,12,0,0,1,200,200Z"/></svg>The shape</div><div class="n">4.2×</div><div class="t">Items sold per delivery run, versus spring.</div></div>
+<div class="ro fragment fade-up"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/trend-up"><path d="M244,56v64a12,12,0,0,1-24,0V85l-75.51,75.52a12,12,0,0,1-17,0L96,129,32.49,192.49a12,12,0,0,1-17-17l72-72a12,12,0,0,1,17,0L136,135l67-67H168a12,12,0,0,1,0-24h64A12,12,0,0,1,244,56Z"/></svg>The outlier</div><div class="n">12%</div><div class="t">Made to order is the one share that keeps growing.</div></div>
+<div class="ro fragment fade-up"><div class="h"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm68-84a12,12,0,0,1-12,12H128a12,12,0,0,1-12-12V72a12,12,0,0,1,24,0v44h44A12,12,0,0,1,196,128Z"/></svg>The cost</div><div class="n">$33.8K</div><div class="t">Monthly store cost, flat against flat footfall.</div></div>
 </div>
 </div>
 </div>
@@ -683,7 +809,7 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 </section>
 
 <!-- 4. Data table. Gallery pattern 13: a tinted hero row, a signed delta and a threshold note. -->
-<section class="slide" data-toc="Table" data-name="Data table" data-rail="phosphor/table">
+<section class="slide" data-toc="Table" data-name="Data table" data-auto-animate data-rail="phosphor/table">
 <header class="s-head"><h2 class="head">Seven line items decide the garage budget</h2><p class="sub">One row grew. It is the row we are being asked about.</p></header>
 <div class="s-body">
 <table class="dtable">
@@ -713,13 +839,13 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
      exceed it and this file is not. No element was removed, so the
      treatment is still the gallery's. -->
 
-<section class="slide" data-toc="Cards" data-name="Three-up card grid" data-rail="phosphor/database">
+<section class="slide" data-toc="Cards" data-name="Three-up card grid" data-auto-animate data-rail="phosphor/database">
 <header class="s-head"><h2 class="head">Every harvest week maps to one of three jobs</h2><p class="sub">Uniform weight is the point, so nothing on this slide outranks anything else.</p></header>
 <div class="s-body">
 <div class="grid3 tall">
-<div class="card"><div class="qhead"><div class="qicon"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Field</div><h3>Yield held steady</h3></div></div><p class="desc">1,900 crates a day for three seasons, carried by a wash line halved in March.</p><div class="kpi"><b>1,900</b><span>crates a day, unchanged</span></div><div class="meta"><b>Key point:</b> growth now costs nothing beyond seed</div></div>
-<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightbulb"><path d="M180,232a12,12,0,0,1-12,12H88a12,12,0,0,1,0-24h80A12,12,0,0,1,180,232Zm40-128a91.51,91.51,0,0,1-35.17,72.35A12.26,12.26,0,0,0,180,186v2a20,20,0,0,1-20,20H96a20,20,0,0,1-20-20v-2a12,12,0,0,0-4.7-9.51A91.57,91.57,0,0,1,36,104.52C35.73,54.69,76,13.2,125.79,12A92,92,0,0,1,220,104Zm-24,0a68,68,0,0,0-69.65-68C89.56,36.88,59.8,67.55,60,104.38a67.71,67.71,0,0,0,26.1,53.19A35.87,35.87,0,0,1,100,184h56.1A36.13,36.13,0,0,1,170,157.49,67.68,67.68,0,0,0,196,104Zm-20.07-5.32a48.5,48.5,0,0,0-31.91-40,12,12,0,0,0-8,22.62,24.31,24.31,0,0,1,16.09,20,12,12,0,0,0,23.86-2.64Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Water</div><h3>Water use fell tenfold</h3></div></div><p class="desc">412 gallons per acre in June, 38 now, metered every morning in a wet spring and a dry one.</p><div class="kpi"><b>38 gal</b><span>per acre, down from 412</span></div><div class="meta"><b>Key point:</b> the saving came from one change</div></div>
-<div class="card"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/seal-check"><path d="M228.75,100.05c-3.52-3.67-7.15-7.46-8.34-10.33-1.06-2.56-1.14-7.83-1.21-12.47-.15-10-.34-22.44-9.18-31.27s-21.27-9-31.27-9.18c-4.64-.07-9.91-.15-12.47-1.21-2.87-1.19-6.66-4.82-10.33-8.34C148.87,20.46,140.05,12,128,12s-20.87,8.46-27.95,15.25c-3.67,3.52-7.46,7.15-10.33,8.34-2.56,1.06-7.83,1.14-12.47,1.21C67.25,37,54.81,37.14,46,46S37,67.25,36.8,77.25c-.07,4.64-.15,9.91-1.21,12.47-1.19,2.87-4.82,6.66-8.34,10.33C20.46,107.13,12,116,12,128S20.46,148.87,27.25,156c3.52,3.67,7.15,7.46,8.34,10.33,1.06,2.56,1.14,7.83,1.21,12.47.15,10,.34,22.44,9.18,31.27s21.27,9,31.27,9.18c4.64.07,9.91.15,12.47,1.21,2.87,1.19,6.66,4.82,10.33,8.34C107.13,235.54,116,244,128,244s20.87-8.46,27.95-15.25c3.67-3.52,7.46-7.15,10.33-8.34,2.56-1.06,7.83-1.14,12.47-1.21,10-.15,22.44-.34,31.27-9.18s9-21.27,9.18-31.27c.07-4.64.15-9.91,1.21-12.47,1.19-2.87,4.82-6.66,8.34-10.33C235.54,148.87,244,140.05,244,128S235.54,107.13,228.75,100.05Zm-17.32,39.29c-4.82,5-10.28,10.72-13.19,17.76-2.82,6.8-2.93,14.16-3,21.29-.08,5.36-.19,12.71-2.15,14.66s-9.3,2.07-14.66,2.15c-7.13.11-14.49.22-21.29,3-7,2.91-12.73,8.37-17.76,13.19C135.78,214.84,130.4,220,128,220s-7.78-5.16-11.34-8.57c-5-4.82-10.72-10.28-17.76-13.19-6.8-2.82-14.16-2.93-21.29-3-5.36-.08-12.71-.19-14.66-2.15s-2.07-9.3-2.15-14.66c-.11-7.13-.22-14.49-3-21.29-2.91-7-8.37-12.73-13.19-17.76C41.16,135.78,36,130.4,36,128s5.16-7.78,8.57-11.34c4.82-5,10.28-10.72,13.19-17.76,2.82-6.8,2.93-14.16,3-21.29C60.88,72.25,61,64.9,63,63s9.3-2.07,14.66-2.15c7.13-.11,14.49-.22,21.29-3,7-2.91,12.73-8.37,17.76-13.19C120.22,41.16,125.6,36,128,36s7.78,5.16,11.34,8.57c5,4.82,10.72,10.28,17.76,13.19,6.8,2.82,14.16,2.93,21.29,3,5.36.08,12.71.19,14.66,2.15s2.07,9.3,2.15,14.66c.11,7.13.22,14.49,3,21.29,2.91,7,8.37,12.73,13.19,17.76,3.41,3.56,8.57,8.94,8.57,11.34S214.84,135.78,211.43,139.34ZM176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Stand</div><h3>Records beat memory</h3></div></div><p class="desc">Seven of our ten buyers now reorder from a list, not by walking the rows.</p><div class="kpi"><b>7 / 10</b><span>top buyers reorder from a list</span></div><div class="meta"><b>Key point:</b> we are the list buyers keep</div></div>
+<div class="card fragment fade-up"><div class="qhead"><div class="qicon"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/database"><path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Field</div><h3>Yield held steady</h3></div></div><p class="desc">1,900 crates a day for three seasons, carried by a wash line halved in March.</p><div class="kpi"><b>1,900</b><span>crates a day, unchanged</span></div><div class="meta"><b>Key point:</b> growth now costs nothing beyond seed</div></div>
+<div class="card fragment fade-up"><div class="qhead"><div class="qicon" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/lightbulb"><path d="M180,232a12,12,0,0,1-12,12H88a12,12,0,0,1,0-24h80A12,12,0,0,1,180,232Zm40-128a91.51,91.51,0,0,1-35.17,72.35A12.26,12.26,0,0,0,180,186v2a20,20,0,0,1-20,20H96a20,20,0,0,1-20-20v-2a12,12,0,0,0-4.7-9.51A91.57,91.57,0,0,1,36,104.52C35.73,54.69,76,13.2,125.79,12A92,92,0,0,1,220,104Zm-24,0a68,68,0,0,0-69.65-68C89.56,36.88,59.8,67.55,60,104.38a67.71,67.71,0,0,0,26.1,53.19A35.87,35.87,0,0,1,100,184h56.1A36.13,36.13,0,0,1,170,157.49,67.68,67.68,0,0,0,196,104Zm-20.07-5.32a48.5,48.5,0,0,0-31.91-40,12,12,0,0,0-8,22.62,24.31,24.31,0,0,1,16.09,20,12,12,0,0,0,23.86-2.64Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Water</div><h3>Water use fell tenfold</h3></div></div><p class="desc">412 gallons per acre in June, 38 now, metered every morning in a wet spring and a dry one.</p><div class="kpi"><b>38 gal</b><span>per acre, down from 412</span></div><div class="meta"><b>Key point:</b> the saving came from one change</div></div>
+<div class="card fragment fade-up"><div class="qhead"><div class="qicon" style="background:var(--p3)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/seal-check"><path d="M228.75,100.05c-3.52-3.67-7.15-7.46-8.34-10.33-1.06-2.56-1.14-7.83-1.21-12.47-.15-10-.34-22.44-9.18-31.27s-21.27-9-31.27-9.18c-4.64-.07-9.91-.15-12.47-1.21-2.87-1.19-6.66-4.82-10.33-8.34C148.87,20.46,140.05,12,128,12s-20.87,8.46-27.95,15.25c-3.67,3.52-7.46,7.15-10.33,8.34-2.56,1.06-7.83,1.14-12.47,1.21C67.25,37,54.81,37.14,46,46S37,67.25,36.8,77.25c-.07,4.64-.15,9.91-1.21,12.47-1.19,2.87-4.82,6.66-8.34,10.33C20.46,107.13,12,116,12,128S20.46,148.87,27.25,156c3.52,3.67,7.15,7.46,8.34,10.33,1.06,2.56,1.14,7.83,1.21,12.47.15,10,.34,22.44,9.18,31.27s21.27,9,31.27,9.18c4.64.07,9.91.15,12.47,1.21,2.87,1.19,6.66,4.82,10.33,8.34C107.13,235.54,116,244,128,244s20.87-8.46,27.95-15.25c3.67-3.52,7.46-7.15,10.33-8.34,2.56-1.06,7.83-1.14,12.47-1.21,10-.15,22.44-.34,31.27-9.18s9-21.27,9.18-31.27c.07-4.64.15-9.91,1.21-12.47,1.19-2.87,4.82-6.66,8.34-10.33C235.54,148.87,244,140.05,244,128S235.54,107.13,228.75,100.05Zm-17.32,39.29c-4.82,5-10.28,10.72-13.19,17.76-2.82,6.8-2.93,14.16-3,21.29-.08,5.36-.19,12.71-2.15,14.66s-9.3,2.07-14.66,2.15c-7.13.11-14.49.22-21.29,3-7,2.91-12.73,8.37-17.76,13.19C135.78,214.84,130.4,220,128,220s-7.78-5.16-11.34-8.57c-5-4.82-10.72-10.28-17.76-13.19-6.8-2.82-14.16-2.93-21.29-3-5.36-.08-12.71-.19-14.66-2.15s-2.07-9.3-2.15-14.66c-.11-7.13-.22-14.49-3-21.29-2.91-7-8.37-12.73-13.19-17.76C41.16,135.78,36,130.4,36,128s5.16-7.78,8.57-11.34c4.82-5,10.28-10.72,13.19-17.76,2.82-6.8,2.93-14.16,3-21.29C60.88,72.25,61,64.9,63,63s9.3-2.07,14.66-2.15c7.13-.11,14.49-.22,21.29-3,7-2.91,12.73-8.37,17.76-13.19C120.22,41.16,125.6,36,128,36s7.78,5.16,11.34,8.57c5,4.82,10.72,10.28,17.76,13.19,6.8,2.82,14.16,2.93,21.29,3,5.36.08,12.71.19,14.66,2.15s2.07,9.3,2.15,14.66c.11,7.13.22,14.49,3,21.29,2.91,7,8.37,12.73,13.19,17.76,3.41,3.56,8.57,8.94,8.57,11.34S214.84,135.78,211.43,139.34ZM176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51Z"/></svg></div><div><div class="tagline"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/cube"><path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,128,115.4,56,76ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l72-39.4v76.65Z"/></svg>Stand</div><h3>Records beat memory</h3></div></div><p class="desc">Seven of our ten buyers now reorder from a list, not by walking the rows.</p><div class="kpi"><b>7 / 10</b><span>top buyers reorder from a list</span></div><div class="meta"><b>Key point:</b> we are the list buyers keep</div></div>
 </div>
 
 </div>
@@ -730,15 +856,15 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 <!-- 6. Process steps. Gallery pattern 23, copied. Same trim as slide 5:
      copy shortened, nothing structural removed. -->
 
-<section class="slide" data-toc="Steps" data-name="Process steps" data-rail="phosphor/check-circle">
+<section class="slide" data-toc="Steps" data-name="Process steps" data-auto-animate data-rail="phosphor/check-circle">
 <header class="s-head"><h2 class="head">Three steps, and the middle one is where openings stall</h2><p class="sub">Each step carries the test that ends it.</p></header>
 <div class="s-body">
 <div class="steps3">
-<div class="step"><div class="qicon sm"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/bell"><path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/></svg></div><h4>Freeze the formulary</h4><p>No new form, no new fee, no new referral. A room that opens with the building.</p><div class="meta"><b>Exit test:</b> signs and fees are already posted</div></div>
+<div class="step fragment fade-up"><div class="qicon sm"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/bell"><path d="M225.29,165.93C216.61,151,212,129.57,212,104a84,84,0,0,0-168,0c0,25.58-4.59,47-13.27,61.93A20.08,20.08,0,0,0,30.66,186,19.77,19.77,0,0,0,48,196H84.18a44,44,0,0,0,87.64,0H208a19.77,19.77,0,0,0,17.31-10A20.08,20.08,0,0,0,225.29,165.93ZM128,212a20,20,0,0,1-19.6-16h39.2A20,20,0,0,1,128,212ZM54.66,172C63.51,154,68,131.14,68,104a60,60,0,0,1,120,0c0,27.13,4.48,50,13.33,68Z"/></svg></div><h4>Freeze the formulary</h4><p>No new form, no new fee, no new referral. A room that opens with the building.</p><div class="meta"><b>Exit test:</b> signs and fees are already posted</div></div>
 <div class="glue">›</div>
-<div class="step"><div class="qicon sm" style="background:var(--p5)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm68-84a12,12,0,0,1-12,12H128a12,12,0,0,1-12-12V72a12,12,0,0,1,24,0v44h44A12,12,0,0,1,196,128Z"/></svg></div><h4>Ten percent for a week</h4><p>One ward, one shift. Nurses and drivers see it before the public does.</p><div class="meta"><b>Exit test:</b> waits and incidents both flat</div></div>
+<div class="step fragment fade-up"><div class="qicon sm" style="background:var(--p5)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/clock"><path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Zm68-84a12,12,0,0,1-12,12H128a12,12,0,0,1-12-12V72a12,12,0,0,1,24,0v44h44A12,12,0,0,1,196,128Z"/></svg></div><h4>Ten percent for a week</h4><p>One ward, one shift. Nurses and drivers see it before the public does.</p><div class="meta"><b>Exit test:</b> waits and incidents both flat</div></div>
 <div class="glue">›</div>
-<div class="step"><div class="qicon sm" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-line"><path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/></svg></div><h4>Everyone, no ceremony</h4><p>A hundred percent on a Tuesday, notice that afternoon, old rota one call away.</p><div class="meta"><b>Exit test:</b> two weeks without a revert</div></div>
+<div class="step fragment fade-up"><div class="qicon sm" style="background:var(--p4)"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/chart-line"><path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/></svg></div><h4>Everyone, no ceremony</h4><p>A hundred percent on a Tuesday, notice that afternoon, old rota one call away.</p><div class="meta"><b>Exit test:</b> two weeks without a revert</div></div>
 </div>
 <div class="panel" style="margin-top:32px"><div class="pt"><svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="phosphor/layout"><path d="M216,36H40A20,20,0,0,0,20,56V200a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A20,20,0,0,0,216,36Zm-4,24V92H44V60ZM44,116H92v80H44Zm72,80V116h96v80Z"/></svg>What the three steps buy</div><div class="chiprow"><span class="chip">a rota change, not a new service</span><span class="chip">nothing new for a patient to learn</span><span class="chip">reversible at each of the three steps</span></div></div>
 </div>
@@ -747,7 +873,7 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 </section>
 
 <!-- 7. Pull quote. Gallery pattern 29. -->
-<section class="slide hero-slide" data-toc="Quote" data-name="Pull quote" data-rail="phosphor/quotes">
+<section class="slide hero-slide" data-toc="Quote" data-name="Pull quote" data-auto-animate data-rail="phosphor/quotes">
 <header class="s-head ctr"><h2 class="head sm ctr">The line worth repeating after the meeting</h2></header>
 <div class="s-body">
 <div class="pull">
@@ -755,9 +881,9 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 <p class="by">Maria Santos · Pantry Director, Meridian · volunteer night, 12 November 2026</p>
 <div class="rule-fade" style="width:900px;margin-top:40px"></div>
 <div class="bigstrip" style="margin-top:36px">
-<div class="cell"><div class="n">7 of 10</div><div class="t">kitchens reorder from the pantry list</div></div>
-<div class="cell"><div class="n">3 months</div><div class="t">since pantry lists opened</div></div>
-<div class="cell"><div class="n">0 slips</div><div class="t">paper lists since August</div></div>
+<div class="cell fragment fade-up"><div class="n">7 of 10</div><div class="t">kitchens reorder from the pantry list</div></div>
+<div class="cell fragment fade-up"><div class="n">3 months</div><div class="t">since pantry lists opened</div></div>
+<div class="cell fragment fade-up"><div class="n">0 slips</div><div class="t">paper lists since August</div></div>
 </div>
 <p class="meta" style="margin-top:30px;font-size:18px">Said at the September volunteer night, unchanged since, and the line we open every pantry meeting with.</p>
 </div>
@@ -775,7 +901,12 @@ body.editing svg[data-icon]:hover{outline:2px solid var(--accent);outline-offset
 let i=-1;const s=[...document.querySelectorAll('.slide')];
 const edgeL=document.getElementById('edgeL'),edgeR=document.getElementById('edgeR');
 const live=document.getElementById('live');
-const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* The OS motion preference, read once for the boot class and re-read on every
+   slide change, because a presenter can turn it on mid-talk and a deck that only
+   asked at load keeps animating for the rest of the session. */
+const motionQuery=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)');
+const reduceMotion=!!(motionQuery&&motionQuery.matches);
+if(motionQuery&&motionQuery.addEventListener)motionQuery.addEventListener('change',e=>document.body.classList.toggle('no-anim',e.matches));
 /* Deferred rendering. The deck owns the work; the template owns the promise.
    A deck that draws itself asynchronously (a diagram library, a chart, an image
    decode) passes its promise to defer(), which bumps a counter; __deckReady
@@ -836,18 +967,471 @@ function relabel(){
     /* No topbar, no page numbers: position lives in the rail. */
   });
 }
+/* ---- fragments: the step inside one slide ---------------------------------
+   Any element carrying .fragment is one step, and the arrow key walks the
+   steps before it walks the slides. Arriving at a slide resets its steps to
+   hidden, which is the rule that makes the sequence repeatable: a rail jump
+   lands on step zero, and a walk that comes back replays from the same place.
+
+   Order is data-fragment-index where it is written and document order where it
+   is not, and every fragment gets an index written back at boot. The index is
+   not a sort detail: it is what a deck's own CSS and a capture both read, so it
+   has to exist in the DOM rather than inside a function's head. */
+function sortFrags(list){
+  const byIndex=[],inDomOrder=[];
+  for(const f of list){
+    const raw=f.getAttribute('data-fragment-index');
+    const k=raw===null?NaN:parseInt(raw,10);
+    if(Number.isFinite(k))(byIndex[k]=byIndex[k]||[]).push(f);else inDomOrder.push([f]);
+  }
+  const sorted=[];let n=0;
+  for(const group of byIndex.filter(Boolean).concat(inDomOrder)){
+    for(const f of group){f.setAttribute('data-fragment-index',n);sorted.push(f);n++}
+  }
+  return sorted;
+}
+function fragList(slide){return sortFrags([...slide.querySelectorAll('.fragment')])}
+const fragAt=new Map();
+function setFrags(slide,at){
+  const list=fragList(slide);
+  for(const f of list)f.classList.remove('visible','current-fragment');
+  if(at>=0)for(const f of list){
+    const k=+f.getAttribute('data-fragment-index');
+    if(k<=at)f.classList.add('visible');
+    if(k===at)f.classList.add('current-fragment');
+  }
+  // The step index lands on the section, so one attribute answers "how far into
+  // this slide is the presenter" for CSS, for a capture and for a test.
+  slide.setAttribute('data-fragment',list.length?at:-1);
+  fragAt.set(slide,list.length?at:-1);
+  return list.length>0;
+}
+function stepFrag(d){
+  const sl=s[i];
+  if(!sl)return false;
+  const list=fragList(sl);
+  const at=fragAt.has(sl)?fragAt.get(sl):-1;
+  const next=at+d;
+  if(!list.length||next<0||next>list.length-1)return false;
+  setFrags(sl,next);
+  // The announcement names the step, not only the slide. A live region that
+  // says "slide 7 of 19" every time has told a screen reader nothing about the
+  // thing that just appeared, and a fragment slide is mostly appearance.
+  const f=list.find(x=>+x.getAttribute('data-fragment-index')===next);
+  const said=((f&&(f.getAttribute('data-frag-label')||f.textContent))||'').replace(/\s+/g,' ').trim().slice(0,140);
+  live.textContent=said||labelOf(sl,i);
+  return true;
+}
+/* ---- code lines: one .cl per source line ---------------------------------
+   This is the splitter that makes a code block animatable a line at a time. It
+   walks nodes rather than text, so a hand-written token span survives the split,
+   and a token that wraps a newline is closed at the newline and reopened on the
+   next line, because one node cannot sit in two line boxes.
+
+   A blank line keeps its span, because CSS gives it a min-height: a blank line
+   that collapsed would shift every line below it and the morph would animate
+   against a moving baseline. One trailing newline does not invent a last line.
+
+   It runs once at boot, before the first show(). A deck that injects code later
+   calls window.__deckSplitCode(el) on the container it injected into. */
+function splitCode(root){
+  const blocks=[...root.querySelectorAll('pre > code')].filter(c=>!c.querySelector('.cl')&&!c.closest('[data-noline]'));
+  for(const code of blocks){
+    const frag=document.createDocumentFragment();
+    let n=0;
+    const nextLine=()=>{n++;const s=document.createElement('span');s.className='cl';s.dataset.n=String(n);frag.appendChild(s);return s};
+    let cur=nextLine();
+    const emit=(node,host)=>{
+      if(node.nodeType===3){
+        const parts=node.textContent.split('\n');
+        for(let k=0;k<parts.length;k++){
+          if(k)cur=nextLine();
+          if(parts[k])host().appendChild(document.createTextNode(parts[k]));
+        }
+        return;
+      }
+      if(node.nodeType!==1)return;
+      host();
+      for(const kid of [...node.childNodes])emit(kid,host);
+    };
+    for(const node of [...code.childNodes]){
+      if(node.nodeType===3){emit(node,()=>cur);continue}
+      if(node.nodeType!==1)continue;
+      // One clone per line this element spans: the clone is reopened whenever the
+      // line moves on, which is what keeps a wrapped token from straddling two.
+      let open=null,on=null;
+      emit(node,()=>{
+        if(on!==cur){open=node.cloneNode(false);on=cur;cur.appendChild(open)}
+        return open;
+      });
+    }
+    if(!cur.firstChild&&n>1)frag.removeChild(cur);
+    const numbered=code.dataset.lineno!==undefined||code.parentElement.dataset.lineno!==undefined;
+    if(numbered)for(const line of frag.querySelectorAll('.cl')){
+      const num=document.createElement('i');
+      num.className='cln';num.textContent=line.dataset.n;
+      line.insertBefore(num,line.firstChild);
+    }
+    code.textContent='';
+    code.appendChild(frag);
+  }
+  return blocks.length;
+}
+window.__deckSplitCode=splitCode;
+/* ---- words: one .w per word, for sentences that compound -----------------
+   The line splitter's sibling for prose: an element carrying data-words gets
+   every word wrapped in an inline-block span at boot, so a sentence that gains
+   a word morphs word by word instead of fading whole. "My name is Areeb" into
+   "My name is Mohammad Areeb" holds four words still and fades one in. Spaces
+   stay bare text nodes between the spans, so wrapping reads exactly as before;
+   inline-block is what makes a word transformable at all. data-words goes on
+   BOTH sides of the pair: with splits on one side only there is nothing to
+   pair with, and the block fades whole like any other unmatched element. */
+function splitWords(root){
+  const els=[...root.querySelectorAll('[data-words]')].filter(e=>!e.querySelector('.w'));
+  for(const el of els){
+    const walk=(node)=>{
+      for(const kid of [...node.childNodes]){
+        if(kid.nodeType===3){
+          for(const part of kid.textContent.split(/(\s+)/)){
+            if(!part)continue;
+            if(/^\s+$/.test(part)){node.insertBefore(document.createTextNode(part),kid);continue}
+            const s=document.createElement('span');s.className='w';s.textContent=part;node.insertBefore(s,kid);
+          }
+          node.removeChild(kid);
+        }else if(kid.nodeType===1&&kid.tagName!=='SCRIPT'&&kid.tagName!=='STYLE'&&!kid.classList.contains('w')){walk(kid)}
+      }
+    };
+    walk(el);
+  }
+  return els.length;
+}
+window.__deckSplitWords=splitWords;
+/* ---- auto-animate: the reveal.js morph, scoped to this deck ----------------
+   Two adjacent sections that both carry data-auto-animate glide their matching
+   elements into place instead of cross-fading. Matching is the whole feature and
+   it is four passes, in this order:
+     1  data-anim (or reveal's data-id): the explicit name, and it always wins;
+     2  h1-h6, p and li, by node name plus exact text;
+     3  img, video and iframe, by src;
+     4  pre, by its own text with line numbers stripped, and then its LINES by
+        text with the same index winning.
+   Pass 4 is what the code slides live on: line 7 does not move, the lines under
+   it slide down, and the lines that are new fade in, so a growing block reads as
+   a diff rather than as a swap.
+
+   Why this is not data-morph, twenty lines below: data-morph is CHROME and
+   travels vertically only, because this deck navigates up and down as well as
+   left and right and sideways chrome read as a carousel. auto-animate is
+   CONTENT, and content moving from column one to column three has to travel
+   sideways to say so. Two mechanisms, two rules, neither reachable from the
+   other. */
+const ANIM_EASING='ease';
+const ANIM_DURATION=1;
+/* The pair duration and easing are reveal.js's own defaults (autoAnimateDuration
+   1.0, autoAnimateEasing 'ease' in js/config.ts): the morph is the one motion in
+   the deck that floats rather than snaps, and matching the official timing is
+   what makes it read as the same feature. The staged entrance and the fragments
+   stay on the deck's own snap; the morph belongs to reveal. */
+/* The properties that travel, which is reveal's autoAnimateStyles list unchanged:
+   a ported deck that sets one of these on a data-anim element animates it, and a
+   property outside the list is a property that jumps. */
+const ANIM_STYLES=['opacity','color','background-color','padding','font-size','line-height','letter-spacing','border-width','border-color','border-radius','outline','outline-offset'];
+const camel=p=>p.replace(/-([a-z])/g,(m,c)=>c.toUpperCase());
+const r3=v=>Math.round(v*1000)/1000;
+const num=(v,d)=>{const n=parseFloat(v);return Number.isFinite(n)?n:d};
+function animOpts(el,base){
+  const o={dur:base.dur,ease:base.ease,delay:base.delay||0};
+  // Inherit through paired ancestors, outermost first so the nearest wins:
+  // a duration set on the block reaches its lines, the way reveal.js inherits
+  // through ancestor targets. Unpaired ancestors are styling, not timing.
+  const chain=[];
+  for(let n=el;n;n=n.parentElement)chain.unshift(n);
+  for(const a of chain){
+    if(a===el||a.hasAttribute('data-anim-target')){
+      if(a.dataset.autoAnimateDuration!==undefined)o.dur=num(a.dataset.autoAnimateDuration,o.dur);
+      if(a.dataset.autoAnimateEasing)o.ease=a.dataset.autoAnimateEasing;
+      if(a.dataset.autoAnimateDelay!==undefined)o.delay=num(a.dataset.autoAnimateDelay,o.delay);
+    }
+  }
+  return o;
+}
+function animStyles(el,list){
+  const cs=getComputedStyle(el),o={};
+  for(const prop of list){
+    let v=cs[prop];
+    // A px line-height does not follow an animating font-size, so it is read as
+    // the ratio the author set. Same reason reveal.js converts it.
+    if(prop==='line-height'){const r=num(cs['line-height'],NaN)/num(cs['font-size'],NaN);if(Number.isFinite(r))v=String(r)}
+    if(v!==''&&v!==undefined)o[prop]=v;
+  }
+  return o;
+}
+/* One match pass: same key at the same position wins, so a list that grows at
+   the end pairs entry for entry, and the nearest unused key wins otherwise, so a
+   duplicated key cannot pair with the same element twice. */
+function matchInto(pairs,fromScope,toScope,sel,key,opt){
+  const from=new Map(),to=new Map();
+  const add=(node,k,into)=>{if(!k)return;if(!into.has(k))into.set(k,[]);into.get(k).push(node)};
+  for(const e of fromScope.querySelectorAll(sel))add(e,key(e),from);
+  for(const e of toScope.querySelectorAll(sel)){
+    const k=key(e);
+    if(!k)continue;
+    add(e,k,to);
+    const src=from.get(k);
+    if(!src)continue;
+    const here=to.get(k).length-1,there=src.length-1;
+    let match=null;
+    if(src[here]){match=src[here];src[here]=null}
+    else if(src[there]){match=src[there];src[there]=null}
+    if(match)pairs.push({a:match,b:e,opt:opt||{}});
+  }
+}
+function animPlan(from,to){
+  if(!from||!to)return null;
+  if(!from.hasAttribute('data-auto-animate')||!to.hasAttribute('data-auto-animate'))return null;
+  if((from.dataset.autoAnimateId||'')!==(to.dataset.autoAnimateId||''))return null;
+  // restart breaks the pair whichever way the deck is travelling. This deck
+  // navigates up and down as well as left and right, so "the later slide" is a
+  // direction rather than a position, and honouring it one way only would leave
+  // a half-broken pair behind on the way back.
+  if(from.hasAttribute('data-auto-animate-restart')||to.hasAttribute('data-auto-animate-restart'))return null;
+  const pairs=[];
+  matchInto(pairs,from,to,'[data-anim],[data-id]',e=>e.tagName+'::'+((e.dataset.anim||e.dataset.id||'').trim()));
+  matchInto(pairs,from,to,'h1,h2,h3,h4,h5,h6,p,li',e=>e.tagName+'::'+e.textContent.trim(),{scale:false});
+  matchInto(pairs,from,to,'img,video,iframe',e=>e.tagName+'::'+(e.getAttribute('src')||e.getAttribute('data-src')||''));
+  matchInto(pairs,from,to,'pre',e=>{
+    // Line numbers are layout, not content: the splitter bakes a .cln into
+    // every line, so keying on raw textContent renumbers the whole block on
+    // any insertion and the pair — and with it every line glide — never
+    // happens. Strip the numbers the same way the line pass below does, which
+    // is also why reveal.js pairs .hljs-ln-code text that excludes its number
+    // cells. Unsplit blocks (no .cl yet) fall back to raw text.
+    const cls=[...e.querySelectorAll('.cl')];
+    const t=cls.length?cls.map(l=>{const n=l.querySelector(':scope > .cln');const x=n?n.textContent:'';return l.textContent.slice(x.length)}).join('\n'):e.textContent;
+    return e.tagName+'::'+t.trim();
+  },{scale:false,styles:[]});
+  // One pair per incoming element, first match wins, and the explicit pass ran
+  // first: data-anim beats an accidental text match on the same element.
+  const taken=new Set();
+  const kept=pairs.filter(p=>{if(taken.has(p.b))return false;taken.add(p.b);return true});
+  const base=animOpts(to,{dur:ANIM_DURATION,ease:ANIM_EASING});
+  const all=[];
+  const framed=new Set();
+  /* Indexed, not for-of: a PRE pair appends its frame pair to kept below, and
+     the appended pair still needs its rect, styles and from-reads from the
+     same body. Frame pairs never append further (DIV, not PRE), so this ends. */
+  for(let qi=0;qi<kept.length;qi++){const p=kept[qi];
+    /* A code block never scales, whichever pass matched it, so the rule is
+       applied here rather than in either matcher: a scale squashes the type
+       the animation exists to preserve. The block's own box tweens width and
+       height instead — reveal.js's {scale:false, styles:['width','height']} —
+       but on the FRAME, not the pre: .codeframe clips, so a height animating
+       inside a frame that has already snapped clips the lines still moving.
+       The frame grows and the lines glide inside the growing frame, and the
+       line remains the unit. It travels by translate and it keeps its size. */
+    if(p.a.tagName==='PRE')p.opt={scale:false,styles:[]};
+    if(p.a.tagName==='PRE'&&p.a.closest&&p.b.closest){
+      const fa=p.a.closest('.codeframe'),fb=p.b.closest('.codeframe');
+      if(fa&&fb&&!framed.has(fb)){framed.add(fb);kept.push({a:fa,b:fb,opt:{scale:false,styles:['width','height']}});}
+    }
+    // Both sides are read before .active moves. .slide is display:none, so the
+    // moment the outgoing slide loses it every rect inside it reads zero, and a
+    // computed style read through display:none is not the same declaration.
+    p.rect=p.a.getBoundingClientRect();
+    // opacity is dropped for a fragment: the fragment owns its own opacity, and
+    // two of them on one element is one of them winning.
+    p.styles=(p.opt.styles||ANIM_STYLES).filter(x=>!(x==='opacity'&&p.b.classList.contains('fragment')));
+    p.from=animStyles(p.a,p.styles);
+    all.push(p);
+  }
+  /* Lines pair by TEXT, with the same index winning when there is one. That is
+     what makes a diff read as a diff: a line that stayed in the source keeps its
+     identity and glides to its new place, and only the lines that are genuinely
+     new fade in. Pairing on index alone would re-identify every line below a
+     mid-block insertion, so the eye would watch its text change under a line that
+     only moved. */
+  for(const p of all.slice()){
+    if(p.a.tagName!=='PRE'||p.b.tagName!=='PRE')continue;
+    const lines=[];
+    matchInto(lines,p.a,p.b,'.cl',e=>{
+      const num=e.querySelector(':scope > .cln');
+      const text=num?e.textContent.slice(num.textContent.length):e.textContent;
+      // A blank line is a real line and must pair: an empty key would skip it and
+      // hand it to the unmatched fade, which is a fade on a line with no ink.
+      return text.length?text:' ';
+    },{line:true});
+    for(const line of lines){
+      line.rect=line.a.getBoundingClientRect();
+      line.styles=null;
+      line.from=null;
+      all.push(line);
+    }
+  }
+  /* Words compound the way lines do, for prose that grows a word at a time.
+     The block pairs by name or by exact text first; then, where either side
+     carries data-words, its .w spans pair by exact text with the same
+     same-index-wins rule as lines. Shared words hold (and glide if the line
+     reflowed under them); new words fade in one by one through the unmatched
+     walk below, which descends into the block because the paired words are
+     targets. Like lines, words travel translate-only: type never scales. */
+  for(const p of all.slice()){
+    if(p.a.tagName==='PRE'||p.b.tagName==='PRE')continue;
+    if(!p.a.hasAttribute('data-words')&&!p.b.hasAttribute('data-words'))continue;
+    const words=[];
+    matchInto(words,p.a,p.b,'.w',e=>e.textContent,{line:true});
+    for(const word of words){
+      word.rect=word.a.getBoundingClientRect();
+      word.styles=null;
+      word.from=null;
+      all.push(word);
+    }
+  }
+  for(const p of all)p.b.setAttribute('data-anim-target','');
+  /* Unmatched means: content that is not a target and holds no target.
+     Everything else is already travelling, and fading a parent of a travelling
+     element would fade the travel with it.
+
+     The walk covers the head, the body and the foot, and skips the rail. That
+     scope is the whole of the port's one deliberate difference from reveal.js,
+     which fades every unmatched direct child: the rail is on every slide, so a
+     fade on it would blink in the corner of the eye on every change, while the
+     head, the sub and the takeaway are the slide and must arrive the way the
+     official site arrives them — floating in, late and quiet, never cut.
+     A fragment is never unmatched: it owns its own opacity, and a morph that
+     fades one in would flash a hidden step visible and snap it back at the end. */
+  const unmatched=[];
+  const head=to.querySelector(':scope > header');
+  if(head&&!head.hasAttribute('data-anim-target')&&!head.querySelector('[data-anim-target]'))unmatched.push(head);
+  const foot=to.querySelector(':scope > footer');
+  if(foot&&!foot.hasAttribute('data-anim-target')&&!foot.querySelector('[data-anim-target]'))unmatched.push(foot);
+  const content=to.querySelector('.s-body');
+  if(content)(function walk(node){
+    for(const el of node.children){
+      if(el.classList.contains('fragment'))continue;
+      const inside=el.querySelector('[data-anim-target]');
+      if(!el.hasAttribute('data-anim-target')&&!inside)unmatched.push(el);
+      if(inside)walk(el);
+    }
+  })(content);
+  for(const p of all)p.b.removeAttribute('data-anim-target');
+  return {all,unmatched,base,byEl:new Map(all.map(p=>[p.b,p])),fade:to.dataset.autoAnimateUnmatched!=='false'};
+}
+function playAnim(plan){
+  const sc=stageScale(),running=[];
+  // Pass one: measure. Every rect is a viewport rect, so it already carries the
+  // stage's scale, and the delta has to be divided back out by it or a pair lands
+  // short at any viewport that is not exactly 1920x1080.
+  for(const p of plan.all){
+    const r=p.b.getBoundingClientRect();
+    p.dx=r3((p.rect.left-r.left)/sc);
+    p.dy=r3((p.rect.top-r.top)/sc);
+    p.sx=r.width?r3(p.rect.width/r.width):1;
+    p.sy=r.height?r3(p.rect.height/r.height):1;
+  }
+  /* Pass two: a pair's own travel is its delta MINUS the travel its ancestor
+     targets are already applying. Both numbers are measured against the slide, so
+     a card that moves 968px right would carry its heading 968px and the heading
+     would add another 968px on top, and the heading would land 968px past the
+     card. Subtracting is what makes the composition correct rather than doubled:
+
+       a heading inside a card that changed column: 968 - 968 = 0, so the heading
+         has no transform of its own and simply rides the card;
+       a code line under a <pre> that moved up 36px because the block got taller
+         and re-centred: 36 - 36 = 0, and the line rides the block;
+       the same line one row lower, pushed down by an insertion above it:
+         -36 - 36 = -72, so it travels 72px inside a block that moved up 36, which
+         is the 36px down the source asked for.
+
+     Resolution is recursive with a guard, so the order pairs were found in never
+     decides the answer: a descendant whose ancestor pair is measured later still
+     gets the right number. */
+  const resolved=(p)=>{
+    if(p.owned)return;
+    p.owned=true;
+    let ax=0,ay=0;
+    for(let n=p.b.parentElement;n;n=n.parentElement){
+      const owner=plan.byEl.get(n);
+      if(!owner)continue;
+      if(!owner.owned)resolved(owner);
+      ax+=owner.odx;
+      ay+=owner.ody;
+    }
+    p.odx=r3(p.dx-ax);
+    p.ody=r3(p.dy-ay);
+  };
+  for(const p of plan.all)resolved(p);
+  for(const p of plan.all){
+    const tf=[];
+    if(p.odx||p.ody)tf.push(`translate(${p.odx}px, ${p.ody}px)`);
+    // A text node is never scaled: its properties are transitioned one by one
+    // instead, because scaling type re-renders it at a fractional size and the
+    // result is soft. Same reason reveal.js sets scale:false on text pairs.
+    if(!p.line&&p.opt.scale!==false&&(p.sx!==1||p.sy!==1))tf.push(`scale(${p.sx}, ${p.sy})`);
+    p.tf=tf;
+  }
+  // Pass three: build the animations. `all` holds the plain style properties and
+  // the transform together in one keyframe pair, so a card that changes both its
+  // colour and its column moves and tints in the same 1s.
+  for(const p of plan.all){
+    const from={},to={};
+    if(p.tf.length){from.transform=p.tf.join(' ');to.transform='none';from.transformOrigin='top left';to.transformOrigin='top left'}
+    if(p.from){
+      const now=animStyles(p.b,p.styles);
+      for(const prop of p.styles){
+        const a=p.from[prop],b=now[prop];
+        if(a===undefined||b===undefined||a===b)continue;
+        from[camel(prop)]=a;to[camel(prop)]=b;
+      }
+    }
+    // Nothing changed on either side, so there is nothing to animate. Animating
+    // anyway re-fades content that never moved, which is most of the deck.
+    if(!Object.keys(from).length&&!Object.keys(to).length)continue;
+    const o=animOpts(p.b,plan.base);
+    // fill:'backwards' is the whole fix for the arrival blink: with a delay
+    // and the default fill, the element paints its natural state until the
+    // delay elapses, then snaps to the from-state when the animation starts —
+    // every unmatched element visibly jumps 200ms after landing. Backwards
+    // fill holds the from-state through the delay, so the slide arrives dark
+    // and floats in instead of flashing.
+    running.push(p.b.animate([from,to],{duration:o.dur*1000,easing:o.ease,delay:o.delay*1000,fill:'backwards'}));
+  }
+  if(plan.fade)for(const el of plan.unmatched){
+    const o=animOpts(el,plan.base);
+    // New content arrives late and quietly: 20% of the duration in, 80% of it
+    // fading. A slide where everything appears at once has no emphasis left.
+    // Same backwards fill as above: without it the element sits at full
+    // opacity for the 200ms delay, then snaps to transparent when its fade
+    // starts — the arrival blink.
+    running.push(el.animate([{opacity:0},{opacity:1}],{duration:o.dur*800,delay:o.dur*200,easing:'ease',fill:'backwards'}));
+  }
+  return running;
+}
+function animDone(to,running){
+  const done=()=>to.classList.remove('animating');
+  if(!running.length){done();return}
+  // A cancelled animation never settles, so the timeout is the belt to the
+  // promise's braces: without it an interrupted transition leaves .animating on
+  // and that slide never plays its entrance again.
+  Promise.allSettled(running.map(a=>a.finished)).then(done,done);
+  setTimeout(done,ANIM_DURATION*1000+800);
+}
 function show(n,instant){
   n=Math.max(0,Math.min(s.length-1,n));
-  if(n===i){stage();return;}
+  /* no-anim first, before the same-slide early return: shot and pdf capture
+     the cover by re-showing slide 0, which early-returns, so a flag applied
+     after it never lands and cover fragments photograph hidden. The class is
+     only ever added under __noMorph, so normal navigation is untouched. */
   if(window.__noMorph)document.body.classList.add('no-anim');
+  if(n===i){stage();return;}
   const from=i>=0?s[i]:null,to=s[n];
   const sc=stageScale();
   // Motion off means motion off, whatever turned it off: the OS setting, the
   // export script's __noMorph flag, or the no-anim class set by hand. The class
   // alone already kills every CSS animation, so it has to kill the FLIP too or a
   // capture can still land on an element mid glide.
-  const freeze=reduceMotion||!!window.__noMorph||document.body.classList.contains('no-anim');
-  let pairs=[];
+  const freeze=reduceMotion||!!(motionQuery&&motionQuery.matches)||!!window.__noMorph||document.body.classList.contains('no-anim');
+  let pairs=[],anim=null;
   // FIRST, while the outgoing slide is still laid out: .slide is display:none,
   // so the moment it loses .active every rect inside it reads zero and there is
   // nothing left to measure. These are viewport rects, so they already carry the
@@ -865,11 +1449,23 @@ function show(n,instant){
       const g=targets.get(f.dataset.morph);
       if(g)pairs.push([g,f.getBoundingClientRect()]);
     }
+    // Both halves of the transition are planned in this same window, for the
+    // same reason: the outgoing side of an auto-animate pair is unreadable the
+    // moment it stops being the active slide.
+    anim=animPlan(from,to);
   }
   i=n;s.forEach((el,k)=>el.classList.toggle('active',k===i));
+  // Set in the same task as .active, so the staged entrance never gets a frame:
+  // on an auto-animate slide the morph owns the motion, and two opacity
+  // animations on one element is one of them winning.
+  if(anim)to.classList.add('animating');
   edgeL.classList.toggle('off',i===0);edgeR.classList.toggle('off',i===s.length-1);stage();
   markToc();
   live.textContent=labelOf(s[i],i);
+  // A slide arrives at step zero, never at the end: the whole point of a
+  // fragment is that the presenter walks it, and a jump that skipped the walk
+  // would leave the presenter with nothing left to say about it.
+  setFrags(s[i],-1);
   // SECOND, after the toggle, so the incoming slide is laid out and has real
   // rects to read, and with its own entrance suppressed while they are read: the
   // entrance is a transform on .s-foot, so a rect taken with it running is 18px
@@ -878,11 +1474,36 @@ function show(n,instant){
   // entrance then plays from zero as if it had never been interrupted. Nothing
   // is touched when there is no pair to measure, which is every slide change
   // under reduced motion.
-  let now=new Map();
-  if(pairs.length){
+  let now=new Map(),running=[];
+  if(pairs.length||anim){
     to.classList.add('measuring');
-    now=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el.getBoundingClientRect()]));
+    if(pairs.length)now=new Map([...to.querySelectorAll('[data-morph]')].map(el=>[el.dataset.morph,el.getBoundingClientRect()]));
+    if(anim)running=playAnim(anim);
     to.classList.remove('measuring');
+    // Cancelled, not suppressed: see the .animating note in the stylesheet. The
+    // section's own fade and everything inside .s-body go; the head and the foot
+    // stay, because they are chrome and they should still arrive like chrome.
+    //
+    // It has to happen HERE, after the .measuring round trip above. `measuring`
+    // works by switching animation off and on again, so an earlier cancel would be
+    // undone by the very next line: the tile cascade came back from zero and the
+    // body faded out from the start of every morph, which is why the cards were
+    // invisible for the first 300ms of a card swap. And only CSSAnimation, because
+    // getAnimations() also returns the morph's own animations, which are the thing
+    // this is protecting.
+    if(anim){
+      const body=to.querySelector('.s-body');
+      for(const a of to.getAnimations({subtree:true})){
+        const el=a.effect&&a.effect.target;
+        if(typeof CSSAnimation!=='undefined'&&!(a instanceof CSSAnimation))continue;
+        // Diagrams are exempt: their internals carry no entrance animation to
+        // suppress, and cancelling here would kill ambient effects (edge flow)
+        // that the sweep was never meant to touch — a cancelled CSS animation
+        // does not restart on its own.
+        if(el&&el.closest&&el.closest('.mmdwrap'))continue;
+        if(el&&(el===to||(body&&body.contains(el))))a.cancel();
+      }
+    }
   }
   // Two elements carrying the same data-morph name are the same object in two
   // slides, and the one that moved is the one that glides.
@@ -912,32 +1533,31 @@ function show(n,instant){
       {transformOrigin:'50% 50%',transform:'none',opacity:1}
     ],{duration:450,easing:'cubic-bezier(.22,.8,.24,1)'});
   }
+  if(anim)animDone(to,running);
 }
 function stage(){s[i].style.transform=`scale(${stageScale()})`}
 window.addEventListener('resize',stage);
-edgeL.addEventListener('click',e=>{e.stopPropagation();show(i-1);});
-edgeR.addEventListener('click',e=>{e.stopPropagation();show(i+1);});
+edgeL.addEventListener('click',e=>{e.stopPropagation();if(!stepFrag(-1))show(i-1);});
+edgeR.addEventListener('click',e=>{e.stopPropagation();if(!stepFrag(1))show(i+1);});
 // stopPropagation, not just preventDefault. Space and Enter are handled here AND
 // on the document handler below, and preventDefault does not stop an event
 // travelling, so without it one key press moved two slides.
-edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i-1);}});
-edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();show(i+1);}});
+edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!stepFrag(-1))show(i-1);}});
+edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!stepFrag(1))show(i+1);}});
 /* Edit mode guard: keystrokes that land in editable text, a form field, or the
    icon modal belong to the edit, not to navigation. Without this, typing a
-   space in a headline advances the slide. */
-document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
+   space in a headline advances the slide.
+
+   A key walks the slide's fragments before it walks the slides. That is the
+   whole contract, in one order: the fragments of the slide you are on come
+   first, and the slide changes when they run out. */
+document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();if(!stepFrag(1))show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();if(!stepFrag(-1))show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
 const RAIL_ICONS={
-"phosphor/chart-line":`<path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/>`,
-"phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
 "phosphor/chart-line":`<path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/>`,
 "phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
 "phosphor/check-circle":`<path d="M176.49,95.51a12,12,0,0,1,0,17l-56,56a12,12,0,0,1-17,0l-24-24a12,12,0,1,1,17-17L112,143l47.51-47.52A12,12,0,0,1,176.49,95.51ZM236,128A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128Z"/>`,
 "phosphor/megaphone":`<path d="M252,120a52.06,52.06,0,0,0-52-52H160.32c-3.44-.21-52.6-4-99.46-43.3A20,20,0,0,0,28,40V200a19.8,19.8,0,0,0,11.54,18.12,19.86,19.86,0,0,0,21.32-2.81A192.92,192.92,0,0,1,144,174.47v26.2a20,20,0,0,0,8.9,16.64,11.35,11.35,0,0,0,1.39.8l14.44,7.06A20,20,0,0,0,198.37,213l11.09-41.82A52.07,52.07,0,0,0,252,120ZM52,191.63V48.4c36.17,28.07,72.17,38.1,92,41.66V150C124.17,153.52,88.17,163.55,52,191.63ZM176.39,202.2,168,198.1V172h16.4ZM200,148H168V92h32a28,28,0,1,1,0,56Z"/>`,
 "phosphor/quotes":`<path d="M100,52H40A20,20,0,0,0,20,72v64a20,20,0,0,0,20,20H96v4a28,28,0,0,1-28,28,12,12,0,0,0,0,24,52.06,52.06,0,0,0,52-52V72A20,20,0,0,0,100,52Zm-4,80H44V76H96ZM216,52H156a20,20,0,0,0-20,20v64a20,20,0,0,0,20,20h56v4a28,28,0,0,1-28,28,12,12,0,0,0,0,24,52.06,52.06,0,0,0,52-52V72A20,20,0,0,0,216,52Zm-4,80H160V76h52Z"/>`,
-"phosphor/chart-line":`<path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/>`,
-"phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
-"phosphor/chart-line":`<path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/>`,
-"phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
 "phosphor/chart-bar":`<path d="M224,196h-4V40a12,12,0,0,0-12-12H152a12,12,0,0,0-12,12V76H96A12,12,0,0,0,84,88v36H48a12,12,0,0,0-12,12v60H32a12,12,0,0,0,0,24H224a12,12,0,0,0,0-24ZM164,52h32V196H164Zm-56,48h32v96H108ZM60,148H84v48H60Z"/>`,
 "phosphor/crosshair":`<path d="M232,116h-4.72A100.21,100.21,0,0,0,140,28.72V24a12,12,0,0,0-24,0v4.72A100.21,100.21,0,0,0,28.72,116H24a12,12,0,0,0,0,24h4.72A100.21,100.21,0,0,0,116,227.28V232a12,12,0,0,0,24,0v-4.72A100.21,100.21,0,0,0,227.28,140H232a12,12,0,0,0,0-24Zm-92,87v-3a12,12,0,0,0-24,0v3a76.15,76.15,0,0,1-63-63h3a12,12,0,0,0,0-24H53a76.15,76.15,0,0,1,63-63v3a12,12,0,0,0,24,0V53a76.15,76.15,0,0,1,63,63h-3a12,12,0,0,0,0,24h3A76.15,76.15,0,0,1,140,203ZM128,84a44,44,0,1,0,44,44A44.05,44.05,0,0,0,128,84Zm0,64a20,20,0,1,1,20-20A20,20,0,0,1,128,148Z"/>`,
 "phosphor/database":`<path d="M196,35.52C177.62,25.51,153.48,20,128,20S78.38,25.51,60,35.52C39.37,46.79,28,62.58,28,80v96c0,17.42,11.37,33.21,32,44.48,18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52c20.66-11.27,32-27.06,32-44.48V80C228,62.58,216.63,46.79,196,35.52ZM204,128c0,17-31.21,36-76,36s-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94ZM128,44c44.79,0,76,19,76,36s-31.21,36-76,36S52,97,52,80,83.21,44,128,44Zm0,168c-44.79,0-76-19-76-36v-8.46a88.9,88.9,0,0,0,8,4.94c18.35,10,42.49,15.52,68,15.52s49.62-5.51,68-15.52a88.9,88.9,0,0,0,8-4.94V176C204,193,172.79,212,128,212Z"/>`,
@@ -945,6 +1565,26 @@ const RAIL_ICONS={
 "phosphor/file-text":`<path d="M216.49,79.52l-56-56A12,12,0,0,0,152,20H56A20,20,0,0,0,36,40V216a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V88A12,12,0,0,0,216.49,79.52ZM160,57l23,23H160ZM60,212V44h76V92a12,12,0,0,0,12,12h48V212Zm112-80a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,132Zm0,40a12,12,0,0,1-12,12H96a12,12,0,0,1,0-24h64A12,12,0,0,1,172,172Z"/>`,
 "phosphor/magnifying-glass":`<path d="M232.49,215.51,185,168a92.12,92.12,0,1,0-17,17l47.53,47.54a12,12,0,0,0,17-17ZM44,112a68,68,0,1,1,68,68A68.07,68.07,0,0,1,44,112Z"/>`,
 "phosphor/paper-plane-tilt":`<path d="M230.14,25.86a20,20,0,0,0-19.57-5.11l-.22.07L18.44,79a20,20,0,0,0-3.06,37.25L99,157l40.71,83.65a19.81,19.81,0,0,0,18,11.38c.57,0,1.15,0,1.73-.07A19.82,19.82,0,0,0,177,237.56L235.18,45.65a1.42,1.42,0,0,0,.07-.22A20,20,0,0,0,230.14,25.86ZM156.91,221.07l-34.37-70.64,46-45.95a12,12,0,0,0-17-17l-46,46L34.93,99.09,210,46Z"/>`,
+"phosphor/arrows-clockwise":`<path d="M228,48V96a12,12,0,0,1-12,12H168a12,12,0,0,1,0-24h19l-7.8-7.8a75.55,75.55,0,0,0-53.32-22.26h-.43A75.49,75.49,0,0,0,72.39,75.57,12,12,0,1,1,55.61,58.41a99.38,99.38,0,0,1,69.87-28.47H126A99.42,99.42,0,0,1,196.2,59.23L204,67V48a12,12,0,0,1,24,0ZM183.61,180.43a75.49,75.49,0,0,1-53.09,21.63h-.43A75.55,75.55,0,0,1,76.77,179.8L69,172H88a12,12,0,0,0,0-24H40a12,12,0,0,0-12,12v48a12,12,0,0,0,24,0V189l7.8,7.8A99.42,99.42,0,0,0,130,226.06h.56a99.38,99.38,0,0,0,69.87-28.47,12,12,0,0,0-16.78-17.16Z"/>`,
+"phosphor/calendar":`<path d="M208,28H188V24a12,12,0,0,0-24,0v4H92V24a12,12,0,0,0-24,0v4H48A20,20,0,0,0,28,48V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V48A20,20,0,0,0,208,28ZM68,52a12,12,0,0,0,24,0h72a12,12,0,0,0,24,0h16V76H52V52ZM52,204V100H204V204Zm60-80v56a12,12,0,0,1-24,0V143.32a12,12,0,0,1-9.37-22l16-8A12,12,0,0,1,112,124Zm61.49,33.88L163.9,168H168a12,12,0,0,1,0,24H136a12,12,0,0,1-8.71-20.25L155.45,142a4,4,0,0,0,.55-2,4,4,0,0,0-7.47-2,12,12,0,0,1-20.78-12A28,28,0,0,1,180,140a27.77,27.77,0,0,1-5.64,16.86A10.63,10.63,0,0,1,173.49,157.88Z"/>`,
+"phosphor/chart-donut":`<path d="M128,20a12,12,0,0,0-12,12V88a12,12,0,0,0,12,12,28,28,0,1,1-24.26,14A12,12,0,0,0,99.35,97.6l-48.5-28A12,12,0,0,0,34.46,74,108,108,0,1,0,128,20ZM50,96.81l28.2,16.28A52.08,52.08,0,0,0,76,128c0,.5,0,1,0,1.5l-31.43,8.42A83.21,83.21,0,0,1,44,128,84.35,84.35,0,0,1,50,96.81Zm.83,64.3,31.43-8.43A52.2,52.2,0,0,0,116,178.59v32.54A84.26,84.26,0,0,1,50.81,161.11Zm89.19,50V178.59A52,52,0,0,0,140,77.4V44.85a84,84,0,0,1,0,166.28Z"/>`,
+"phosphor/circle":`<path d="M128,20A108,108,0,1,0,236,128,108.12,108.12,0,0,0,128,20Zm0,192a84,84,0,1,1,84-84A84.09,84.09,0,0,1,128,212Z"/>`,
+"phosphor/code-block":`<path d="M51.51,104.49l-32-32a12,12,0,0,1,0-17l32-32a12,12,0,1,1,17,17L45,64,68.49,87.51a12,12,0,0,1-17,17Zm48,0a12,12,0,0,0,17,0l32-32a12,12,0,0,0,0-17l-32-32a12,12,0,1,0-17,17L123,64,99.51,87.51A12,12,0,0,0,99.51,104.49ZM200,36H180a12,12,0,0,0,0,24h16V196H60V140a12,12,0,0,0-24,0v60a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V56A20,20,0,0,0,200,36Z"/>`,
+"phosphor/copy":`<path d="M216,28H88A12,12,0,0,0,76,40V76H40A12,12,0,0,0,28,88V216a12,12,0,0,0,12,12H168a12,12,0,0,0,12-12V180h36a12,12,0,0,0,12-12V40A12,12,0,0,0,216,28ZM156,204H52V100H156Zm48-48H180V88a12,12,0,0,0-12-12H100V52H204Z"/>`,
+"phosphor/funnel":`<path d="M234.29,47.91A20,20,0,0,0,216,36H40A20,20,0,0,0,25.2,69.45l.12.14L92,140.75V216a20,20,0,0,0,31.1,16.64l32-21.33A20,20,0,0,0,164,194.66V140.75l66.67-71.16.12-.14A20,20,0,0,0,234.29,47.91Zm-91,79.89A12,12,0,0,0,140,136v56.52l-24,16V136a12,12,0,0,0-3.25-8.2L49.23,60H206.77Z"/>`,
+"phosphor/gauge":`<path d="M209.88,69.83A115.19,115.19,0,0,0,128,36h-.41C63.85,36.22,12,88.76,12,153.13V176a20,20,0,0,0,20,20H224a20,20,0,0,0,20-20V152A115.25,115.25,0,0,0,209.88,69.83ZM220,172H127.32l46.44-65A12,12,0,1,0,154.24,93L97.82,172H36V153.13c0-1.72,0-3.43.14-5.13H56a12,12,0,0,0,0-24H40.62c10.91-33.39,40-58.52,75.38-63.21V80a12,12,0,0,0,24,0V60.8A92,92,0,0,1,215.66,124H200a12,12,0,0,0,0,24h19.9c.06,1.33.1,2.66.1,4Z"/>`,
+"phosphor/hash":`<path d="M224,84H180.2l7.61-41.85a12,12,0,0,0-23.62-4.3L155.8,84H116.2l7.61-41.85a12,12,0,1,0-23.62-4.3L91.8,84H48a12,12,0,0,0,0,24H87.44l-7.27,40H32a12,12,0,0,0,0,24H75.8l-7.61,41.85a12,12,0,0,0,9.66,14A11.43,11.43,0,0,0,80,228a12,12,0,0,0,11.8-9.86L100.2,172h39.6l-7.61,41.85a12,12,0,0,0,9.66,14,11.43,11.43,0,0,0,2.16.2,12,12,0,0,0,11.8-9.86L164.2,172H208a12,12,0,0,0,0-24H168.56l7.27-40H224a12,12,0,0,0,0-24Zm-79.83,64H104.56l7.27-40h39.61Z"/>`,
+"phosphor/image":`<path d="M144,96a16,16,0,1,1,16,16A16,16,0,0,1,144,96Zm92-40V200a20,20,0,0,1-20,20H40a20,20,0,0,1-20-20V56A20,20,0,0,1,40,36H216A20,20,0,0,1,236,56ZM44,60v79.72l33.86-33.86a20,20,0,0,1,28.28,0L147.31,147l17.18-17.17a20,20,0,0,1,28.28,0L212,149.09V60Zm0,136H162.34L92,125.66l-48,48Zm168,0V183l-33.37-33.37L164.28,164l32,32Z"/>`,
+"phosphor/ladder":`<path d="M219.27,211.9,168.77,73l7.63-21H184a12,12,0,0,0,0-24H88a12,12,0,0,0-1.11,23.94l-58.16,160a12,12,0,0,0,7.17,15.37A11.83,11.83,0,0,0,40,228a12,12,0,0,0,11.28-7.9L60,196H98.5l-5.78,15.9a12,12,0,0,0,7.18,15.37,11.79,11.79,0,0,0,4.1.73,12,12,0,0,0,11.28-7.9L132.77,172h46.46l17.49,48.1A12,12,0,0,0,208,228a11.83,11.83,0,0,0,4.1-.73A12,12,0,0,0,219.27,211.9ZM124.69,124H86.22L95,100h38.46Zm17.45-48H103.68l8.73-24h38.46ZM68.77,172l8.73-24H116l-8.73,24Zm72.73-24L156,108.11,170.5,148Z"/>`,
+"phosphor/list":`<path d="M228,128a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,128ZM40,76H216a12,12,0,0,0,0-24H40a12,12,0,0,0,0,24ZM216,180H40a12,12,0,0,0,0,24H216a12,12,0,0,0,0-24Z"/>`,
+"phosphor/package":`<path d="M225.6,62.64l-88-48.17a19.91,19.91,0,0,0-19.2,0l-88,48.17A20,20,0,0,0,20,80.19v95.62a20,20,0,0,0,10.4,17.55l88,48.17a19.89,19.89,0,0,0,19.2,0l88-48.17A20,20,0,0,0,236,175.81V80.19A20,20,0,0,0,225.6,62.64ZM128,36.57,200,76,178.57,87.73l-72-39.42Zm0,78.83L56,76,81.56,62l72,39.41ZM44,96.79l72,39.4v76.67L44,173.44Zm96,116.07V136.19l24-13.13V152a12,12,0,0,0,24,0V109.92l24-13.13v76.65Z"/>`,
+"phosphor/plug":`<path d="M240.49,63.51a12,12,0,0,0-17,0L192,95,161,64l31.52-31.51a12,12,0,0,0-17-17L144,47,120.49,23.51a12,12,0,1,0-17,17L107,44,56.89,94.14a44,44,0,0,0,0,62.23l12.88,12.88L23.51,215.51a12,12,0,0,0,17,17l46.26-46.26,12.88,12.88a44,44,0,0,0,62.23,0L212,149l3.51,3.52a12,12,0,0,0,17-17L209,112l31.52-31.51A12,12,0,0,0,240.49,63.51Zm-95.6,118.63a20,20,0,0,1-28.29,0L73.86,139.4a20,20,0,0,1,0-28.29L124,61l71,71Z"/>`,
+"phosphor/question":`<path d="M144,180a16,16,0,1,1-16-16A16,16,0,0,1,144,180Zm92-52A108,108,0,1,1,128,20,108.12,108.12,0,0,1,236,128Zm-24,0a84,84,0,1,0-84,84A84.09,84.09,0,0,0,212,128ZM128,64c-24.26,0-44,17.94-44,40v4a12,12,0,0,0,24,0v-4c0-8.82,9-16,20-16s20,7.18,20,16-9,16-20,16a12,12,0,0,0-12,12v8a12,12,0,0,0,23.73,2.56C158.31,137.88,172,122.37,172,104,172,81.94,152.26,64,128,64Z"/>`,
+"phosphor/shield-check":`<path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/>`,
+"phosphor/signpost":`<path d="M248.92,104,215.3,66.62A20,20,0,0,0,200.44,60H140V32a12,12,0,0,0-24,0V60H40A20,20,0,0,0,20,80v64a20,20,0,0,0,20,20h76v60a12,12,0,0,0,24,0V164h60.44a20,20,0,0,0,14.86-6.62L248.92,120A12,12,0,0,0,248.92,104Zm-50.26,36H44V84H198.66l25.2,28Z"/>`,
+"phosphor/squares-four":`<path d="M100,36H56A20,20,0,0,0,36,56v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,100,36ZM96,96H60V60H96ZM200,36H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V56A20,20,0,0,0,200,36Zm-4,60H160V60h36Zm-96,40H56a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,100,136Zm-4,60H60V160H96Zm104-60H156a20,20,0,0,0-20,20v44a20,20,0,0,0,20,20h44a20,20,0,0,0,20-20V156A20,20,0,0,0,200,136Zm-4,60H160V160h36Z"/>`,
+"phosphor/stack":`<path d="M234.36,170A12,12,0,0,1,230,186.37l-96,56a12,12,0,0,1-12.1,0l-96-56a12,12,0,0,1,12.09-20.74l90,52.48L218,165.63A12,12,0,0,1,234.36,170ZM218,117.63,128,170.11,38.05,117.63A12,12,0,0,0,26,138.37l96,56a12,12,0,0,0,12.1,0l96-56A12,12,0,0,0,218,117.63ZM20,80a12,12,0,0,1,6-10.37l96-56a12.06,12.06,0,0,1,12.1,0l96,56a12,12,0,0,1,0,20.74l-96,56a12,12,0,0,1-12.1,0l-96-56A12,12,0,0,1,20,80Zm35.82,0L128,122.11,200.18,80,128,37.89Z"/>`,
+"phosphor/tag":`<path d="M246.15,133.18,146.83,33.86A19.85,19.85,0,0,0,132.69,28H40A12,12,0,0,0,28,40v92.69a19.85,19.85,0,0,0,5.86,14.14l99.32,99.32a20,20,0,0,0,28.28,0l84.69-84.69A20,20,0,0,0,246.15,133.18Zm-98.83,93.17L52,131V52h79l95.32,95.32ZM104,88A16,16,0,1,1,88,72,16,16,0,0,1,104,88Z"/>`,
 };
 function shortOf(el){return el.getAttribute('data-toc')||el.getAttribute('data-name')||'';}
 function railHTML(){
@@ -987,7 +1627,10 @@ function mountRail(){
   s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();e.stopPropagation();show(+b.dataset.i);}}));});
 }
 function markToc(){/* A bridge belongs to what follows it: on a bridge slide the rail highlights the next slide that carries an entry, so the question visibly leads somewhere instead of leaving the rail dead. Past the last entry there is nothing to highlight. */let k=i;while(s[k]&&s[k].getAttribute('data-group')==='bridge')k++;const apx=s[k]&&s[k].getAttribute('data-group')==='appendix';document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',!!s[k]&&(apx?b.hasAttribute('data-apx'):+b.dataset.i===k)));}
-relabel();mountRail();show(0);
+/* Order matters here: the code is split into per-line boxes before the first
+   show(), because a slide that has never been measured cannot be morphed from,
+   and the first show() is what settles the scale every measurement divides by. */
+splitCode(document);splitWords(document);relabel();mountRail();show(0);
 </script>
 
 <!-- ==========================================================================

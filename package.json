@@ -15,7 +15,9 @@
     "cli.mjs",
     "icons",
     "templates",
-    "scripts"
+    "scripts",
+    "skills",
+    "research"
   ],
   "scripts": {
     "cli": "bun cli.mjs",
@@ -24,9 +26,12 @@
     "new": "bun cli.mjs new",
     "qa": "bun scripts/qa-matrix.mjs",
     "dashes": "bun scripts/check-dashes.mjs",
+    "ste": "bun cli.mjs ste",
     "docs": "bun scripts/check-docs.mjs",
     "density": "bun scripts/check-density.mjs",
     "visuals": "bun scripts/check-visuals.mjs",
+    "motion": "bun scripts/verify-motion.mjs",
+    "frames": "bun scripts/motion-frames.mjs",
     "icons": "bun scripts/find-icon.mjs",
     "pattern": "bun scripts/get-pattern.mjs",
     "doc": "bun scripts/get-doc.mjs",

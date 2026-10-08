@@ -69,6 +69,18 @@ const src = fs.readFileSync(file, "utf8");
  * rather than the inlined bytes, so the geometry is not information the builder
  * needs — it is 102KB of it.
  */
+/* The gallery's own mermaid CSS, verbatim: everything between the MERMAID
+   banner comment and the band-layout block. Read out of the gallery file at
+   call time, so the emitted CSS is what the gallery renders by construction
+   and can never drift from it the way a hand copy in MERMAID.md would. */
+function mermaidCss(gal) {
+  const start = gal.indexOf("MERMAID. Four of the patterns");
+  const end = gal.indexOf("/* ---- the band ---");
+  if (start === -1 || end === -1 || end < start) return "/* gallery mermaid CSS not found: copy MERMAID.md section 4 instead */";
+  const open = gal.lastIndexOf("/*", start);
+  return gal.slice(open === -1 ? start : open, end).trim();
+}
+
 function collapseIcons(markup) {
   return markup.replace(
     /<svg\b[^>]*data-icon="([^"]*)"[^>]*>[\s\S]*?<\/svg>/g,
@@ -150,7 +162,22 @@ if (wantCss) {
     console.log(`/* already in templates/template.html, nothing to copy: ${r.alreadyInTemplate.join(", ")} */`);
   }
   if (r.undefined.length) {
-    console.log(`/* defined nowhere, write them yourself: ${r.undefined.join(", ")} */`);
+    // A diagram pattern's container is the exception: its styling is not a
+    // pattern rule but the gallery's own mermaid CSS, printed verbatim below
+    // from the gallery file itself, so it cannot drift from what the gallery
+    // renders. "Write them yourself" sent authors to invent what the skill
+    // already specifies.
+    const rest = r.undefined.filter((c) => c !== "mermaid");
+    if (r.undefined.includes("mermaid")) {
+      console.log(`/* .mermaid is not pattern CSS: it is the diagram container. The`);
+      console.log(`   gallery's own mermaid CSS follows, verbatim — paste it whole`);
+      console.log(`   (theming, theme-proof, sizing, and the type addendum): */`);
+      console.log(mermaidCss(fs.readFileSync(file, "utf8")));
+      console.log(`/* Rendered by the MERMAID.md section 5 script (defer(), never a`);
+      console.log(`   second copy of it): copy the starter block there, change only`);
+      console.log(`   the diagram source. SKILL.md section 4 lists the four steps. */`);
+    }
+    if (rest.length) console.log(`/* defined nowhere, write them yourself: ${rest.join(", ")} */`);
   }
 }
 

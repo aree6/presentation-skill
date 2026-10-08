@@ -16,6 +16,7 @@
  */
 
 import fs from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,14 +25,23 @@ const ROOT = path.dirname(HERE);
 const ICONS = path.join(ROOT, "icons");
 
 const HELP = [
-  "usage: find-icon <word>... [--limit <n>]",
+  "usage: find-icon <word>... [--limit <n>] [--emit]",
   "",
   "Search the vendored icon library by keyword. Every word must match",
   "somewhere in the icon name, title or tags. Prints the exact file to copy",
   "and the data-icon value, with the ICONS.md variant rule already applied.",
   "",
+  "  --emit         print the finished <svg> markup for each match instead of",
+  "                 the file path, ready to paste. Use it: check-visuals.mjs",
+  "                 compares a deck's inline glyph with the library byte for",
+  "                 byte and fails a redrawn one, so copying a path by eye",
+  "                 fails eventually and with a message that names the file",
+  "                 rather than the mistake. A glyph's RAIL_ICONS entry is the",
+  "                 same bytes without the <svg> wrapper.",
+  "",
   "  <word>...      one or more keywords, e.g. find-icon database chart",
-  "  --limit <n>    max results printed (default 12)",
+  "  --limit <n>    max results printed (default 12; caps --emit too, so",
+   "                   --limit 1 prints only the top match, ready to paste)",
   "  --ui           UI glyphs only (bold Phosphor): for interface chrome,",
   "                 tiles, rails. A UI query otherwise surfaces brand marks",
   "                 first, which is the wrong answer for a glyph.",
@@ -66,10 +76,13 @@ function main() {
   const argv = process.argv.slice(2);
   let limit = 12;
   let only = "";
+  // --emit prints the exact markup instead of the file path; see the block below.
+  let EMIT = false;
   const words = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "-h" || a === "--help") { console.log(HELP); return 0; }
+    if (a === "--emit") { EMIT = true; continue; }
     if (a === "--limit") {
       const n = parseInt(argv[i + 1], 10);
       if (!Number.isInteger(n) || n < 1) { console.error("find-icon: --limit needs a positive integer"); return 2; }
@@ -146,13 +159,33 @@ function main() {
       : results;
   filtered.sort((a, b) => b.score - a.score || (a.key < b.key ? -1 : 1));
   if (!filtered.length) {
-    console.log(`no matches for: ${words.join(" ")}${only ? ` with --${only}` : ""} — try fewer words, drop the filter, or raise --limit`);
+    // Every word must match the same icon (AND, not OR), so a two-word query
+    // fails whenever no single icon carries both — which reads as a broken
+    // search for abstract words like "refresh sync" that live on different
+    // glyphs. Say so, with the concrete retreat, instead of a bare miss.
+    console.log(`no icon carries every word in: ${words.join(" ")}${only ? ` with --${only}` : ""} (all words must match one icon) — try fewer words, drop the filter, or raise --limit`);
     return 0;
   }
   for (const r of filtered.slice(0, limit)) {
     const sub = [r.title, r.tags].filter(Boolean).join(" · ");
     console.log(`${r.key}${sub ? ` — ${sub}` : ""}  [${r.source}${r.why ? `, ${r.why}` : ""}]`);
+    if (EMIT) {
+      // The markup, exactly. `--emit` exists because check-visuals.mjs compares
+      // the inner bytes of every inline <svg> in a deck against the library file
+      // and fails a redrawn one, so copying by eye is guaranteed to fail at some
+      // point. This reads the file. One <svg class="ph"> per match, ready to paste.
+      const raw = String(readFileSync(path.join(ROOT, r.file), "utf8"));
+      const inner = raw.slice(raw.indexOf(">", raw.indexOf("<svg")) + 1, raw.lastIndexOf("</svg>"));
+      console.log(
+        `<svg class="ph" viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" fill="currentColor" aria-hidden="true" data-icon="${r.dataIcon}">${inner}</svg>`,
+      );
+      continue;
+    }
     console.log(`  inline: ${r.file}   data-icon="${r.dataIcon}"`);
+  }
+  if (EMIT && filtered.length > 1) {
+    console.log("");
+    console.log(`${filtered.length} matches printed. Narrow it with --ui (bold Phosphor), --brand (theSVG), --exact <key>, or fewer words.`);
   }
   if (filtered.length > limit) console.log(`...and ${filtered.length - limit} more; --limit raises the cap`);
   return 0;

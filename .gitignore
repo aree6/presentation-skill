@@ -4,15 +4,18 @@ node_modules/
 package-lock.json
 
 # Generated output. `shot` writes these beside whatever deck it is given, which
-# includes the bundled templates — so the gallery screenshots under templates/
-# were captured by an earlier run and had already drifted out of date.
+# includes the bundled templates. `frames` writes *-motion/ the same way.
+# Both are derived and regenerable, so neither is committed.
 presentations/
 *-shots/
+*-motion/
 
 # One folder per deck, inside the skill. The deck, its plan, its PDF and its
-# images are the deliverable and stay tracked; the screenshots are derived,
-# large, and one command regenerates them.
+# images are the deliverable and stay tracked; screenshots and motion frames
+# are derived, large, and regenerable (covered by the globals above, kept
+# here to state the rule for decks explicitly).
 decks/*/*-shots/
+decks/*/*-motion/
 
 # Generated browser-side icon search data. Restore with:
 #   bun cli.mjs icons build

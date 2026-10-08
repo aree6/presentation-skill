@@ -1,7 +1,8 @@
 # Slide Philosophy
 
-Seven rules a slide must obey to be worth the audience's attention. Read at
-plan time, before any HTML exists.
+Seven rules about the argument, and one about the sentences that carry it. A slide
+must obey all eight to be worth the audience's attention. Read at plan time,
+before any HTML exists.
 
 ## Contents
 
@@ -13,6 +14,11 @@ plan time, before any HTML exists.
 - [6. Radical Clarity \& Intellectual Honesty](#6-radical-clarity--intellectual-honesty)
   - [6.1 The deck ships complete](#61-the-deck-ships-complete)
 - [7. The Narrative vs. Appendix Split](#7-the-narrative-vs-appendix-split)
+- [8. Sentence-Level Clarity (ASD-STE100)](#8-sentence-level-clarity-asd-ste100)
+  - [Where it applies, and where it does not](#where-it-applies-and-where-it-does-not)
+  - [What it agrees with, and what it costs](#what-it-agrees-with-and-what-it-costs)
+  - [The three ways a STE rewrite goes wrong](#the-three-ways-a-ste-rewrite-goes-wrong)
+  - [Checking it](#checking-it)
 - [Check](#check)
 
 ## 1. Assertion-Evidence Architecture
@@ -163,6 +169,86 @@ belong in the main flow.
   Q&A material as appendix slides, so the answer is already designed when it is
   needed.
 
+## 8. Sentence-Level Clarity (ASD-STE100)
+
+Rules 1 to 7 are about the argument: what the deck claims, in what order, and
+what it owes the audience. This rule is about the sentences carrying it, and it
+is delegated rather than restated. The standard is
+[`skills/asd-ste100/`](skills/asd-ste100/SKILL.md), vendored here byte for byte
+from [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill).
+That folder's `SKILL.md` holds the rules, `references/writing-rules.md` holds the
+citations, and `scripts/ste-lint.py` lints the structural ones. Read that file for
+the rules themselves. This section only says where they apply to a deck, because
+applied blind they fight rules 1 to 7.
+
+### Where it applies, and where it does not
+
+ASD-STE100 is a controlled-language standard built by aerospace and defence
+manufacturers so a technician cannot misread an instruction. It is deliberately
+flat and literal, which is exactly wrong for an assertion title and exactly right
+for a caption. Scope it by who reads the text:
+
+| The text | Mode | Why |
+|---|---|---|
+| An assertion title | **Neither** | Rule 1 governs it. A title flattened until it passes a controlled language has stopped being a claim. |
+| Card text, captions, axis labels, `.meta` key points, tooltips, footers, `.gapnote` | **STE-flavored** | Structural rules in full: active voice, one idea per sentence, simple tenses, no semicolons, no phrasal verbs, no nominalisation. The one-word-one-meaning lockdown stays advisory, because a caption needs some range. |
+| A takeaway line, a speaker note, or any string a script or a downstream agent parses | **Strict** | A wrong reading here means a misread, not a weak slide. Full rules, length caps included. |
+| `plan.md`, when it is the brief handed to a builder subagent | **Strict** | A subagent parses it with no human to ask. That is the exact reader the standard was built for. |
+
+### What it agrees with, and what it costs
+
+- **Rule 4 and STE landed on the same number.** Rule 4 cuts a prose block at about
+  25 words. STE caps a descriptive sentence at 25 and an instruction at 20. Two
+  standards arriving at one cap is the strongest evidence in this file that the cap
+  is right. Run `density` first, then let STE settle the sentences that survive it.
+- **Rule 5 and the marketing-adjective rule are the same move.** Replace the
+  adjective with the measurement that earns it is the same instruction as lead with
+  the decision the number forces. Apply it twice. `seamless`, `robust`,
+  `blazing-fast`, `effortless` and `world-class` get deleted, not reworded.
+- **Rule 6 already asked for this.** Stripping buzzwords is the standard's premise.
+- **It bans the semicolon, and `check-dashes` reports the em dash.** They are
+  complementary rather than duplicate, and a deck needs both. A sentence that trips
+  both is two sentences.
+- **The cost is voice.** Flattened copy stops sounding like a person wrote it. That
+  is the right trade for a caption and the wrong one for a title, which is what the
+  table above says. When a rewrite has cost a sentence its only human touch, keep
+  the touch and accept the finding.
+
+### The three ways a STE rewrite goes wrong
+
+The sub-skill files these as boundaries. They are worth repeating here because a
+deck is where they bite hardest.
+
+1. **It promotes a hedge into a fact.** "No participant has paid yet" must not
+   become "No participant has paid". Rule 6 makes naming the unknown mandatory, so a
+   rewrite that drops the uncertainty breaks this file as well as the claim.
+2. **It adds a fact the source never stated.** A shorter sentence that supplies a
+   cause, a frequency, or a mechanism has stopped being a rewrite. Rule 5 is
+   exactly where that temptation lives.
+3. **It polishes a hollow sentence.** The standard fixes the form of a text, not its
+   substance. A gap note with nothing in it becomes a clean, short, empty gap note,
+   which rule 6.1 forbids shipping. Fix the content or keep the rough version. Do not
+   let a linter make an empty slide look finished.
+
+### Checking it
+
+```
+bun cli.mjs ste <file.md>
+```
+
+runs the vendored linter over any markdown. Point it at `plan.md` first, then at
+the prose blocks of a deck's copy once they are drafted. It is deliberately **not**
+one of the five steps in `check`, because that command's contract is Bun and
+Playwright only, and a checker needing a language nobody installed is a checker that
+does not run.
+
+The linter reads structure only: semicolons, sentence length, a short list of soft
+phrasal verbs, nominalisation, marketing adjectives, synonym rotation, dangling
+conjunctions in list items, passive voice and compound tenses. It never flags a
+hedge, because a hedge is content. Its exit code is not a gate on the deck. Read
+the findings and decide, which is the same relationship rule 6 has with every other
+judgement in this file.
+
 ---
 
 ## Check
@@ -170,3 +256,8 @@ belong in the main flow.
 Read the titles alone, in order, as a list. They should form an argument someone
 could repeat from memory. If they read as a table of contents, the deck is
 topical rather than assertive: go back to rule 1.
+
+Then read the body copy alone, with the visuals gone. Every sentence should be one
+idea an audience member could not have taken two readings of. If a sentence needs
+a comma to survive or a second look to parse, it is a rule 8 problem, not a layout
+problem.

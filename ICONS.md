@@ -179,11 +179,11 @@ passes, and that is the silent one.
   of the 3244 are `#000000`, where the damage is invisible; 124 are `currentColor`; the
   rest are brand colours that go black.) Only a screenshot catches it.
 
-- **Copy the root `<svg>` open tag byte for byte**, including `xmlns`, `viewBox`, `fill`,
-  `stroke`, `width`, `height`, and any `xml:space`. Then copy the children. Never assemble
-  the root from parts and never "normalise" it. Tag the copied root with its provenance:
-  `data-icon="phosphor/database"` for a UI glyph,
-  `data-icon="coloredIconsMustUse/google/default"` for a nested brand mark.
+- **Copy the glyph's inner markup byte for byte; the root tag needs `viewBox`,
+  `data-icon`, and its fill semantics, nothing else.** The provenance gate
+  compares inner bytes only, so `width`, `height`, `xml:space` and the prolog
+  are free — the deck's own CSS sizes every `.ph`. Never assemble the children
+  from parts and never "normalise" them.
 
 - **Namespace every instance's def ids.** Gradient, clip and mask ids are
   document-global: two inlined brand marks sharing `id="a"` resolve

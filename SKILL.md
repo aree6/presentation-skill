@@ -8,6 +8,8 @@ compatibility: Node 18+; Playwright with Chromium installed (bunx playwright ins
 
 Most presentation skills produce text slides. This one does not: decks built with it are heavy on visuals, icons and diagrams, and light on words.
 
+Four things make a deck built here recognisable, and each one is enforced rather than advised. **Fragment-first:** an argument that arrives in stages is stepped through, never revealed whole — `.fragment` on one slide or a `data-auto-animate` pair across two, named in the plan before any HTML exists, counted by `motion` as `coverage N of M slides step`. **Icon-heavy:** every zone carries a vendored glyph with byte provenance, checked per slide, because an undecorated zone reads as unfinished. **Diagram-led:** content with a shape ships as a drawing, never as cards — the visuals gate fails a deck with zero diagrams that does not say why, and every diagram survives dark mode and projects 14px. **Socratic order:** the audience does not know what is coming, so a slide asks before it tells and bridges carry the question across the seam (`content_philosophy.md` rules 1 and 3). Code is where the four meet: a block that grows across slides morphs line by line, and `motion` fails shared-but-unpaired code outright.
+
 Drop this folder into any agent skills directory — `.opencode/skills/`,
 `.claude/skills/`, or whatever your agent scans. No build step, no framework. One
 self-contained `.html` file per deck, plus scripts behind one interface
@@ -23,10 +25,12 @@ self-contained `.html` file per deck, plus scripts behind one interface
 - [Choose the treatment from the gallery](#choose-the-treatment-from-the-gallery)
 - [Scout visuals with agents, in parallel](#scout-visuals-with-agents-in-parallel)
 - [3. Build one self-contained HTML file](#3-build-one-self-contained-html-file)
+- [Write the copy, sentence by sentence](#write-the-copy-sentence-by-sentence)
 - [4. Diagrams: vendor, patch, then register](#4-diagrams-vendor-patch-then-register)
 - [5. QA, then the screenshot](#5-qa-then-the-screenshot)
 - [Look at each slide before you build the next](#look-at-each-slide-before-you-build-the-next)
 - [The deck pass, before export](#the-deck-pass-before-export)
+- [Two more motions, when a slide is the last slide plus one thing](#two-more-motions-when-a-slide-is-the-last-slide-plus-one-thing)
 - [Landed mechanics (do not reinvent)](#landed-mechanics-do-not-reinvent)
 - [Splitting the work across agents](#splitting-the-work-across-agents)
 - [Editing rules](#editing-rules)
@@ -39,12 +43,16 @@ One row per branch. Take the row whose trigger is true.
 |---|---|
 | **starting a deck** | `bun cli.mjs new <topic>` — it makes `decks/<topic>/` with the deck and `images/`, which is the whole structure |
 | **planning** | read `content_philosophy.md` — the seven rules, before any HTML exists |
-| **choosing a treatment** | `bun cli.mjs pattern --list` for the menu, then `pattern <n>` for the markup |
+| **choosing a treatment** | `bun cli.mjs pattern --list` for the menu, then `pattern <n>` for the markup **and `pattern <n> --css` for the CSS it needs** |
 | **a shape you cannot place** | `DESIGN.md` → "Visual vocabulary" maps content shape to treatment |
 | **writing CSS** | `DESIGN.md`; the tokens and grid are already in `templates/template.html`'s `<style>` |
-| **first icon** | `bun cli.mjs icons <word>`, then copy the file it names byte for byte |
+| **first icon** | `bun cli.mjs icons <word> --emit`, which prints the finished `<svg>`; paste it as printed |
+| **one slide becomes the next** | `DESIGN.md` → "Auto-animate: the change between two slides" → `data-auto-animate` on both sections, `data-anim` on what moves |
+| **a code block that grows** | `DESIGN.md` → "The code frame" → the same thing, line by line; the split into `.cl` is already in the template |
+| **the presenter reveals one step at a time** | `DESIGN.md` → "Fragments: one slide, stepped through" → `.fragment` on the element, and the layout reserved |
 | **first diagram** | `MERMAID.md` — §3 picks the type, §4 theming, §5 the readiness contract |
 | **checking** | `bun cli.mjs check --deck <topic>.html` |
+| **a sentence reads badly** | `skills/asd-ste100/SKILL.md`, the vendored ASD-STE100 sub-skill. `content_philosophy.md` rule 8 says which text it applies to and which it must not touch |
 | **before shipping** | `bun cli.mjs shot all --deck decks/<topic>/<topic>.html`, then read every PNG |
 | **a human wants to tweak** | open the deck in a browser: Edit in the themebar edits text and swaps icons in place, with HTML/PDF export beside it (`DESIGN.md` → "Edit mode") |
 
@@ -115,6 +123,19 @@ Read **`content_philosophy.md`** first — a deck that breaks rule 1 (assertion 
 3. Bridges at the seams, where possible: where the argument moves, name the one question the previous slide earned and the next slide answers. The audience doesn't know what's coming, so ask before you tell — that is the whole move. No question in the seam, no bridge.
 4. Which slides are appendix (per rule 7), and where the narrative ends.
 5. Design deviations, if any (default: `DESIGN.md` as-is).
+6. The copy each body block will carry, in the words rule 8 asks for. Titles are
+   not on this list: rule 1 governs them, and a flattened assertion is not an
+   assertion.
+7. Which slides step, and how. Any slide whose argument arrives in stages — a
+   flow, a diff, a before/after, a list the presenter would point through one
+   item at a time — names its mechanism now: `.fragment` steps on one slide,
+   `data-auto-animate` pairs across two (`DESIGN.md` → "Auto-animate" and
+   "Fragments"). Code that grows across adjacent slides is always a pair
+   (`data-auto-animate` on both sections, `data-anim` on the `<pre>`): the base
+   the next slide builds on morphs line by line, never reprints. A technical
+   slide that builds and steps nothing is an unplanned slide, same as one with
+   no named visual. `bun cli.mjs motion` reports the coverage as `N of M slides step`; read that number, not just
+   the verdict (`coverage 8 of 8`, followed by the pair and fragment lists).
 
 Write the plan down, get it confirmed, then build. Working solo, write it as
 `decks/<topic>/plan.md` beside the deck — the confirmation is the file existing before any
@@ -140,9 +161,11 @@ surface: a single oversized figure, a lone sentence, a full-bleed band
 
 ### Choose the treatment from the gallery
 
-**The gallery is a menu, not a template.** `bun cli.mjs pattern --list` prints all 32 patterns with their captions; `pattern <n>` prints one pattern's markup and caption. `pattern <n> --css` prints the gallery CSS the markup needs, ready to paste — never hand-extract a block by eye. Never ship a pattern unchanged — adapt the columns, labels, numbers, tile count and tints to your content, because a pattern that ships unchanged is a template deck with someone else's company name on it.
+**The gallery is a menu, not a template.** `bun cli.mjs pattern --list` prints all 33 patterns with their captions; `pattern <n>` prints one pattern's markup and caption. `pattern <n> --css` prints the gallery CSS the markup needs, ready to paste — never hand-extract a block by eye.
 
-Read the caption before borrowing: a caption stating a limit (a bar cap, a tile ceiling) is a real limit on the pattern. `templates/template.html` demonstrates ten treatments; the rest exist only as markup in the gallery. `DESIGN.md`'s selection table has a "Reference" column saying which is which.
+**Run `--css` for every treatment you borrow, every time.** `templates/template.html` carries CSS for nine of the thirty-two gallery treatments, so most of what the gallery prints has to be brought across by hand or it does not arrive. A missing rule is not an error: a `.checklist` with no CSS still renders, as a stack of left-aligned divs, and a `.dtable` still renders as a table, just a plain one. `check` asks the deck's own `<style>` whether it knows the class you used and fails when it does not, so this is a gate now rather than a thing to remember. Never ship a pattern unchanged — adapt the columns, labels, numbers, tile count and tints to your content, because a pattern that ships unchanged is a template deck with someone else's company name on it.
+
+Read the caption before borrowing: a caption stating a limit (a bar cap, a tile ceiling) is a real limit on the pattern. `templates/template.html` demonstrates a handful of treatments; the rest exist only as markup in the gallery, CSS included. `DESIGN.md`'s selection table has a "Reference" column saying which is which.
 
 The captions that route to a sibling treatment are the ones worth reading twice. *"Not for: content where one card outweighs the rest, which wants the bento"* tells you what to reach for instead — a caption that only inverts the use-when line is telling you nothing the heading didn't.
 
@@ -159,37 +182,82 @@ The builder then assembles the deck from the plan plus the scout reports, runs `
 Every slide is art-directed on its own render, for the room it will be presented in. The bar is a person at the back, standing, reading it once. This is a template — tokens, grid and motion already decided — and the deck is yours to design past it.
 
 - **Never write a deck from scratch.** Every deck starts as a copy of the base: `bun cli.mjs new <topic>` copies `templates/template.html` into `decks/<topic>/<topic>.html`, which carries the tokens, the grid, the rail, the motion and the readiness contract. Hand-writing the scaffolding reproduces it wrong — that is what the grid, rail and contract sections of this file exist to prevent. Build one slide at a time on top of the copy and look at each before the next — see "Look at each slide before you build the next".
-- All CSS in `<style>`, the deck's JS in the one `<script>` the template ships, images under `./assets/`. A deck with a diagram adds a second `<script src>` for the vendored library, and nothing else moves.
+- **Generating the HTML from a script is allowed.** The gates read the file, not the workflow, so a Python builder that inlines byte-exact glyphs and splices sections is as legitimate as hand-editing — and more reliable past a dozen repeated structures. Keep it as `build_*.py` beside the deck; the `.html` is what `check` reads. Whatever builds it, the div-balance and scaffold-string discipline in "Editing rules" still applies to the output.
+- All CSS in `<style>`, the deck's JS in the one `<script>` the template ships, images under `./images/`. A deck with a diagram adds a second `<script src>` for the vendored library, and nothing else moves.
 - Fixed stage `1920×1080`, scaled to viewport (see "Landed mechanics").
 - **Keep the four-row slide grid.** `nav.rail` spans rows 1/-1 in column 1; `.s-head` row 2, `.s-body` row 3, `.s-foot` row 4, all three in column 2. Centring belongs on `.s-body`, which already carries `justify-content:center`. Setting `display:flex` on `.slide.active` collapses the bands, drops the title from the top of the stage and lifts the footer off the bottom — the mark of an unbuilt deck.
 - Same chrome on every slide, and **no hand-written numbers.** The template writes each slide's `aria-label` from the real slide count at load; a `<section>` supplies only `data-name`. Insert, delete or reorder slides freely.
 - **Keep the `window.show(n)` JS API exactly as scaffolded.** `pdf`, `shot` and `density` drive the deck through it and exit 2 without it. Only `qa` needs no JS API, so a green QA step is not proof the API survived.
 - **A screenshot or image goes in the window frame** from `DESIGN.md` → "Screenshots and images", with `object-fit: contain`.
 - **Icons are vendored, never drawn.** `bun cli.mjs icons <words>` finds the exact file; copy it byte for byte, including its root open tag, and tag it `data-icon` naming its source. Bold Phosphor for UI, theSVG for anything with a real identity. `check-visuals.mjs` fails a hand-drawn approximation and a guessed brand mark. Full rules in `ICONS.md`. The rail icon registry lives in the template's own `<script>` as `RAIL_ICONS`: one entry per `data-icon` key holding that file's inner path bytes verbatim, so a rail glyph verifies exactly like slide art. A new rail glyph means a new registry entry — the gate fails a missing one by name.
-- **A slide body carries a visual**: an icon tile, a data mark, a diagram, or a framed image. Only the pull close and the section divider may be pure words. Two prose blocks is a document, not a slide.
+- **A slide body carries a visual**: an icon tile, a data mark, a diagram, a code frame, or a framed image. Only the pull close and the section divider may be pure words. Two prose blocks is a document, not a slide.
 - **Content with a shape ships as a diagram** — a process, timeline, comparison, composition, hierarchy or system. Trigger table in `DESIGN.md` → "Visual vocabulary"; `MERMAID.md` §3 picks the type. When torn between cards and a diagram, the diagram wins.
 - **Every table marks what it is for** — a tinted hero row, the significant value, a signed delta, a threshold note. `check-visuals.mjs` fails a table whose rows are all identical.
 - **Run the density test, not a word count**: read the body aloud against a 25-second timer, and shrink the browser to 25% to check the one-glance read. `density` is a separate step and the one that fails. Full wording in `DESIGN.md` → "Density budget".
-- **Animate:** keep the staged entrance and tile cascade from `DESIGN.md` → "Motion" verbatim, including the one-line `:is()` list, and keep `body.no-anim` disabling all of it for PDF capture.
+- **Animate:** keep the staged entrance and tile cascade from `DESIGN.md` → "Motion" verbatim, including the one-line `:is()` list, and keep `body.no-anim` disabling all of it for PDF capture. Auto-animate and fragments are attributes on your markup, not code: `DESIGN.md` → "Auto-animate" and "Fragments".
+
+### Write the copy, sentence by sentence
+
+Rules 1 to 7 of `content_philosophy.md` are about the argument. This is about the
+sentences that carry it. The standard is ASD-STE100, a controlled language built
+so an aircraft technician cannot misread an instruction, and it is vendored
+verbatim at `skills/asd-ste100/` with its own `SKILL.md`, its rule references and
+its linter. Read `content_philosophy.md` rule 8 before writing body copy: it says
+which text takes the strict treatment, which takes the light one, and which takes
+neither.
+
+The short version, for copy written straight into a slide:
+
+- **One idea per sentence, and name the actor.** "The queue retries the payment"
+  beats "the payment is retried", because a reader who cannot tell who acts will
+  guess wrong.
+- **No semicolons.** Split the sentence. `check-dashes` reports the em dash and STE
+  bans the semicolon, so one sentence can trip both and still need splitting.
+- **No phrasal verb.** "Spin up the worker", "reach out to the vendor", "circle
+  back on the number". Use the single plain verb each of those hides.
+- **No adjective where a number belongs.** seamless, robust, blazing-fast,
+  effortless: delete, or replace with the measurement that earns the claim. That is
+  rule 5 again, one level down.
+- **One word per idea, reused.** Rotating "user", "customer" and "client" for the
+  same person across five slides leaves the reader wondering whether they are three.
+- **Never let a rewrite add a fact or promote a hedge.** "No participant has paid
+  yet" keeps the "yet". Rule 6 makes naming what is unknown mandatory, so a tidy
+  sentence that quietly drops the uncertainty costs the slide its honesty.
+
+```
+bun cli.mjs ste <file.md>
+```
+
+runs the vendored linter over any markdown, `plan.md` first. It is deliberately not
+one of the six steps in `check`, because that command's contract is Bun and
+Playwright only. It reads structure and never a hedge, and its exit code is not a
+gate on the deck. Read the findings and decide.
 
 ### 4. Diagrams: vendor, patch, then register
 
-If a slide needs a system, a flow, a lifecycle, a schedule or a topology, reach for a diagram instead of cards or a list. `MERMAID.md` has the syntax for fifteen types and the light-canvas theming.
+If a slide needs a system, a flow, a lifecycle, a schedule or a topology, reach for a diagram instead of cards or a list. `MERMAID.md` has the syntax for fifteen types and the light-canvas theming, including the theme-proof half that keeps every type legible when the presenter switches to dark on the cover.
 
-**Vendor the UMD build.** Mermaid is an npm package, not a browser feature, and the ESM entry is CORS-blocked on `file://`, which is how a deck is opened. `mermaid@12.0.0` is a pinned `devDependency` here, so after `bun install` the file is already on disk. It goes in the deck's own `images/` folder, never in this skill's `assets/`, which holds generated icon search data:
+**Vendor the UMD build.** Mermaid is an npm package, not a browser feature, and the ESM entry is CORS-blocked on `file://`, which is how a deck is opened. `mermaid@12.0.0` is a pinned `devDependency` here. On a fresh clone the file does not exist until you install, and the skill's build flow never said so — the `cp` below 404s without it:
 
 ```bash
+# once per clone, from this skill's folder
+bun install
 # once per deck, into that deck's own images folder
 cp <this-skill>/node_modules/mermaid/dist/mermaid.min.js decks/<topic>/images/mermaid.min.js
 ```
 
+It goes in the deck's own `images/` folder, never in this skill's `assets/`, which holds generated icon search data.
+
 Then `<script src="./images/mermaid.min.js"></script>` in the deck. Never a CDN at render time, for the same reason icons are never a CDN.
 
-Then the four non-negotiables:
+Then the four non-negotiables — or take all four at once: MERMAID.md section 5
+ends in a starter block (markup, CSS source, script, render) that assembles them
+correctly. Copy the starter and change only the diagram source; the list below
+is what the starter already does, for the day it needs adapting.
 
-- **Apply the §4 CSS patch**, including the one line that is not a colour: `.mmdwrap foreignObject{overflow:visible !important}`. Without it a label can be sliced mid-word with no page error and a clean PDF, because Chromium clips a `<foreignObject>` by default and Mermaid sizes that box from its own measurement. Anchor on `.mmdwrap`, never `.mermaid`: the render step removes `class="mermaid"` once a node is processed, so a `.mermaid` rule stops matching the moment the diagram is on screen.
+- **Apply the §4 CSS patch whole, including the theme-proof half**, and the one line that is not a colour: `.mmdwrap foreignObject{overflow:visible !important}`. Without it a label can be sliced mid-word with no page error and a clean PDF, because Chromium clips a `<foreignObject>` by default and Mermaid sizes that box from its own measurement. Without the theme-proof half (`.labelBkg`, SVG text ink, the sequence/state classes) the diagram is correct in light mode and illegible in dark: the presenter switches themes on the cover, nothing re-renders, and no gate runs in dark mode except the one in `check-visuals.mjs` that asks whether the rules are there. Anchor on `.mmdwrap`, never `.mermaid`: the render step removes `class="mermaid"` once a node is processed, so a `.mermaid` rule stops matching the moment the diagram is on screen.
 - **Call `mermaid.initialize()` synchronously, before any `await`.** Mermaid's own auto-start gets to your containers first otherwise, and the failure names the wrong thing.
-- **Register the render with `defer()`, never assign `window.__deckReady`.** The template owns that promise. `defer()` works from any script after the template's own, so there is no positioning to remember inside the deck script, and assigning over the promise is the bug this contract exists to prevent. Both scripts await it; without a registration a screenshot captures an empty container and the PDF looks like it exported fine.
+- **Register the render with `defer()`, never assign `window.__deckReady`.** The template owns that promise. The deck script goes after the template's own script, at the end of the body — that single ordering is the whole positioning contract, and `defer()` handles the rest from there. Assigning over the promise is the bug this contract exists to prevent. Both scripts await it; without a registration a screenshot captures an empty container and the PDF looks like it exported fine.
 - **A parse error does not throw.** `render()` and `run()` resolve on invalid source and draw an error card. Parse first with `mermaid.parse()` and never swallow the failure.
 
 Also: ten diagram types ship with the wrong look unless per-diagram frontmatter says otherwise, and a diagram's projected type size is set by a letterbox factor. `qa-matrix.mjs` prints that number for every diagram and fails below 14px. Details in `MERMAID.md`.
@@ -200,7 +268,17 @@ Also: ten diagram types ship with the wrong look unless per-diagram frontmatter 
 bun cli.mjs check --deck decks/<topic>/<topic>.html
 ```
 
-**`bun cli.mjs test` is the command: one run, one verdict.** (`test` and `check` are the same command; `bun run test` from this folder works too.) It runs all five checks, blockers first — QA, visuals, docs, density, dashes — and exits non-zero when any of them fails. `check` forwards `--deck` to all five, `--en` to dashes and `--words` to density, and expands `--md` into the file list docs reads. Each step also runs on its own through the same front door (`bun cli.mjs qa --deck <topic>.html`, `bun cli.mjs visuals --deck <topic>.html`), and every one has `--help`.
+**`bun cli.mjs test` is the command: one run, one verdict.** (`test` and `check` are the same command; `bun run test` from this folder works too.) It runs all six checks, blockers first — QA, visuals, motion, docs, density, dashes — and exits non-zero when any of them fails. `check` forwards `--deck` to all six, `--en` to dashes and `--words` to density, and expands `--md` into the file list the docs step reads.
+
+**`docs` means two different things, so read the scope before you trust the output.** Bare `bun cli.mjs docs` checks **this skill's own markdown** and walks the whole folder. The docs step **inside `check`** checks **the deck's** markdown and reads nothing until you name a scope, printing `not applicable` otherwise: a deck's folder is the caller's, and a gate that fails on a stranger's `speaker-notes.md` is a gate people switch off. To read the notes beside your deck:
+
+```
+bun cli.mjs check --deck decks/<topic>/<topic>.html --md "$(dirname decks/<topic>/<topic>.html)"
+```
+
+So `not applicable` on that step is the step telling you it had nothing to read. It is not a pass you earned, and it is not a failure either. Each step also runs on its own through the same front door (`bun cli.mjs qa --deck <topic>.html`, `bun cli.mjs motion --deck <topic>.html`), and every one has `--help`.
+
+**Motion is the third of the six steps (it prints `[3/6]`; the order is blockers first, so it is neither last nor the only one that renders), and it is the only one that drives the deck.** QA, visuals, density and dashes all read the deck as it sits; motion presses the arrow keys and calls `show(n)`, because the failures it looks for are silent: a pair that never ran, a code block that was never split into per-line boxes, a line that stayed put being reprinted instead of held, a step-through that costs the wrong number of presses, a fragment that is invisible to the capture reading it right now. A deck with no `data-auto-animate` and no `.fragment` prints `note: no ... to check` and passes. Each step also runs on its own through the same front door (`bun cli.mjs qa --deck <topic>.html`, `bun cli.mjs visuals --deck <topic>.html`), and every one has `--help`.
 
 **What the QA step actually checks**, per slide, at 1920×950, 1600×900, 1440×900 and 1280×720:
 
@@ -267,6 +345,52 @@ bun cli.mjs pdf --deck decks/<topic>/<topic>.html --here
 
 **Done means:** exit 0, `wrote <stem>-vNNN.pdf ... N pages` where N equals the slide count, and **no** `PAGEERROR` line — plus a `verdicts.md` with a closed block for every slide and no open defect anywhere in the deck pass. A non-zero exit with page errors means the deck threw JavaScript and the PDF may be missing content: fix the deck and re-export rather than shipping it.
 
+## Two more motions, when a slide is the last slide plus one thing
+
+The entrance is one motion. Two more are opt-in, and both are the template's to
+run: you write attributes, never code.
+
+**Auto-animate, for a slide that is the previous one plus a thing.** A code block
+that grew, three cards that changed order, a chart that lost a bar. Put
+`data-auto-animate` on **both** sections and `data-anim="<name>"` on the elements
+that should travel; matching is by name first, then by exact text, so anything
+untagged still matches while its text is unchanged. Two adjacent sections that
+share nothing have no pairs, and nothing travels.
+
+```
+<section class="slide" data-name="Second pass" data-auto-animate data-auto-animate-id="diff">
+...
+<pre class="code" data-anim="src" data-lineno><code>...the grown block...</code></pre>
+```
+
+**Fragments, for a step the presenter takes rather than a slide they advance
+to.** Add `.fragment` to the element and the arrow key walks the steps before it
+walks the slides. `.fragment.fade-up` is the default look, `data-fragment-index`
+sets the order, and `data-frag-label` is what the live region reads out.
+
+```
+<div class="step fragment fade-up" data-frag-label="Step 1: the smallest retry loop">
+```
+
+Four rules, all of them load-bearing:
+
+- **Reserve the layout.** A hidden fragment still holds its box, so put the steps
+  in a row. A vertical list re-centres on every reveal and everything already on
+  screen jumps each time a step lands.
+- **Never fragment the claim.** The title, the takeaway and the number the slide
+  is about are not steps.
+- **Never tag one element with both mechanisms.** `data-morph` is chrome and
+  travels vertically; `data-anim` is content and travels on both axes. Together
+  they double-move it.
+- **A capture must not see a half-revealed slide**, and it does not:
+  `body.no-anim` and `@media print` reveal every fragment, and
+  `bun cli.mjs motion` checks that they do.
+
+`bun cli.mjs motion --deck <deck>` is the third of `check`'s six steps, and it is the one
+that reads the numbers: how many pairs ran, how many lines travelled, whether an
+unchanged line was reprinted instead of held, how many presses a slide's steps
+took, and what a capture sees.
+
 ## Landed mechanics (do not reinvent)
 
 Baked into the template. Keep them unless the user explicitly overrides:
@@ -278,6 +402,9 @@ Baked into the template. Keep them unless the user explicitly overrides:
 - **Position display:** the in-slide `.toc` sidebar, main narrative only, current highlighted — it ships in the template.
 - **Motion:** 0.2s fade on slide change, a staged band entrance at 40ms, 100ms and 200ms, an 80ms tile cascade, 0.25s on edge-button hover, a 450ms FLIP morph. `DESIGN.md` → "Motion".
 - **Morph:** any element tagged `data-morph="<name>"` glides to the same-named element on the incoming slide, **vertically only**, because the deck navigates vertically (`DESIGN.md` → "Motion" for why, and for the pre-tagged pairs).
+- **Auto-animate:** `data-auto-animate` on two adjacent sections glides their matching content on **both** axes (`DESIGN.md` → "Auto-animate"). Two mechanisms, two rules: `data-morph` is chrome and vertical, this is content and horizontal.
+- **Fragments:** `.fragment` on any element, arrow key first (`DESIGN.md` → "Fragments"). Arriving resets the steps; `no-anim` and print reveal them all.
+- **Code lines:** every `<pre><code>` is split into one `.cl` box per line at boot, which is what makes a code slide animate a line at a time (`DESIGN.md` → "The code frame"). A deck that injects code later calls `window.__deckSplitCode(el)`.
 - **Text:** header copy is static; volatile detail lives in tooltips and footers.
 - **Icons:** inline SVG copied byte for byte from `icons/`, tagged `data-icon` — bold Phosphor for UI, theSVG for anything with a real identity. `ICONS.md`.
 - **Images:** `object-fit: contain` inside the `.shot` window frame. A cropped screenshot hides the part of the UI that proves the claim.

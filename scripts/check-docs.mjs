@@ -98,8 +98,25 @@ function parseArgv(argv) {
 /** Extensions this checker will read. Anything else is a usage error. */
 const MARKDOWN = new Set([".md", ".markdown"]);
 
-/** Directories that never hold a file anyone maintains by hand. */
-const SKIP_DIRS = new Set(["node_modules", "dist", "build", "out", "coverage"]);
+/**
+ * Directories that never hold a file anyone maintains by hand.
+ *
+ * `skills` is here because it holds vendored third-party skills, copied byte for
+ * byte from their own repositories so they stay updatable. Their markdown is
+ * written by their authors, not by this skill: asd-ste100 has no `## Contents`
+ * anywhere, and adding one would both fork it from upstream and be overwritten
+ * by the next update. The rule this checker enforces is therefore scoped to the
+ * prose this skill owns. A checker that fails on vendored input teaches people
+ * to skip it, which costs more than the drift it catches.
+ *
+ * `decks` is here for the same reason and a second one. A deck folder belongs to
+ * one deck and travels with it: its `plan.md` is written once before the HTML
+ * exists and never revised, and its `verdicts.md` is a fixed block per slide in a
+ * format SKILL.md prescribes, with no headings to index. Demanding a Contents
+ * list of either would be inventing a requirement the deck format does not have,
+ * on files whose contents this skill does not own.
+ */
+const SKIP_DIRS = new Set(["node_modules", "dist", "build", "out", "coverage", "skills", "decks"]);
 
 /**
  * How far down a file the `## Contents` heading may sit and still count as

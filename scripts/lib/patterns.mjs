@@ -69,6 +69,12 @@ export function galleryPatterns(src = fs.readFileSync(GALLERY, "utf8")) {
     if (!dataName) continue;
     const caption = (markup.match(/<span class="ct">([\s\S]*?)<\/span>/) || [])[1] || "";
     const avoid = (markup.match(/<span class="avoid">([\s\S]*?)<\/span>/) || [])[1] || "";
+    /* Gallery furniture never ships. The caption band (.galcap in the footer)
+       is gallery documentation — the use-when/not-for above, which print as
+       comments — so the markup carries the slide without it. An author pasting
+       pattern output verbatim otherwise ships the gallery's own footer, and
+       nothing says not to. */
+    const ship = markup.replace(/<footer\b[\s\S]*?<\/footer>/g, "").trim();
     out.push({
       n: num,
       name: dataName,
@@ -76,7 +82,7 @@ export function galleryPatterns(src = fs.readFileSync(GALLERY, "utf8")) {
       notFor: strip(avoid),
       bodyClass: bodyClassOf(markup),
       line: clean.slice(0, m.index).split("\n").length,
-      markup,
+      markup: ship,
     });
   }
   return out;
@@ -95,8 +101,9 @@ export function bodyClassOf(markup) {
   if (classes.has("minicloud")) return "minicloud";
   if (classes.has("mxwrap")) return "matrix";
   if (classes.has("ghost")) return "divider";
+  if (classes.has("codeframe")) return "codeframe";
   const ORDER = [
-    "cover-flow", "toc", "grid3", "tvo", "chartcol", "waterfall", "ladder",
+    "cover-flow", "toc", "grid3", "tvo", "chartcol", "waterfall", "ladder", "codeframe",
     "timeline", "numbered", "compare", "ba", "dtable", "checklist", "bigstat",
     "stat-rail", "pull", "bento", "dotfield", "stack", "donutrow", "funnel",
     "divider", "icongrid", "steps3", "mmdbox", "cascade", "zigzag", "blobstage",

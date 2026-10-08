@@ -239,7 +239,7 @@ const MAX_OFFENDERS = 6;
  * So the first viewport reports and asserts on it, and the remaining three would
  * print the same number four times and count one defect as four.
  */
-const report = { diagrams: [], words: [], viewport: null };
+const report = { diagrams: [], words: [], viewport: null, fill: [], structure: [] };
 
 const browser = await launchChromium("qa-matrix");
 let failed = 0;
@@ -301,6 +301,42 @@ for (const [w, h] of VIEWPORTS_RUN) {
       const s = document.querySelector(".slide.active");
       if (!s) return { ok: false, why: "no active slide", clipped: [], stage: null };
 
+      /* A Mermaid error card is a visible render failure that every other
+         measurement sails past: the container exists, nothing is clipped, the
+         fonts are fine, and the card even has text in it. The deck marks the
+         failure itself (data-mermaid-error on the catch path, an error
+         aria-roledescription on a render() error card), so QA reads the mark
+         rather than re-diagnosing Mermaid. Without this, a diagram that drew
+         its own error message passes every gate in check — pdf would catch it,
+         but pdf is not one of the six steps. */
+      const merr = s.querySelector(".mermaid-fail,[data-mermaid-error],svg[aria-roledescription=\"error\"]");
+      if (merr) {
+        return {
+          ok: false,
+          why: `mermaid-error:${(merr.textContent || "").replace(/\s+/g, " ").trim().slice(0, 90)}`,
+          // The full safe shape: the print path below reads centre, diagrams,
+          // clipped and structure unconditionally, and the words report divides
+          // by what is here. The slide failed, so its measurements are moot,
+          // but a shape that crashes the reporter turns one finding into two.
+          clipped: [], centre: [], structure: [], fill: null, diagrams: [], words: 0, stage: null,
+        };
+      }
+
+      /* Every fragment on, because QA judges the settled slide. A fragment that
+         has not been stepped to is INVISIBLE, not absent, so measuring the slide
+         as it lands reads a slide with its own argument missing: the word count
+         comes up short, a centreline reports an empty column, and the density
+         readout blames the author for copy that is really there. Same reason
+         .measuring suppresses the entrance a paragraph below, and the same
+         reason shot and pdf set __noMorph, which reveals fragments through CSS.
+         It is done here rather than through no-anim because this step walks the
+         deck with the keyboard on purpose, and __noMorph would also switch off
+         the navigation the walk exists to exercise. */
+      document.querySelectorAll(".slide.active .fragment").forEach((f) => {
+        f.classList.add("visible");
+        f.classList.remove("current-fragment");
+      });
+
       /* Measure the settled slide, not the entrance. The tile cascade runs
          `rise`, whose from-state is translateY(18px), and QA advances with
          ArrowRight then reads within 120ms — so every tile is measured 18px
@@ -314,6 +350,65 @@ for (const [w, h] of VIEWPORTS_RUN) {
       try {
       // eslint-disable-next-line no-lone-blocks
       {
+
+      /* Stray direct children of .slide. It is a grid with named rows: rail in
+         column 1 across every row, .s-head in row 2, .s-body row 3, .s-foot row
+         4. Anything else lands in the FIRST free cell, which is row 1 — the empty
+         band above the title. So a .panel appended straight to the section
+         renders ABOVE the header, and nothing in this file could see it: it is not
+         clipped, not unscaled and not a font. It takes a screenshot to notice,
+         which is the worst way to find a structural mistake. The four allowed
+         children are the whole vocabulary of a section. */
+      const nameOf = (el) =>
+        `${el.tagName.toLowerCase()}${el.className ? "." + String(el.className).split(/\s+/).join(".") : ""}`;
+      const sHead = s.querySelector("header.s-head") || s.querySelector(".s-head");
+      const structure = [];
+      if (sHead) {
+        /* Anything painted above the header. The rule is geometry, not tag names
+           or declared grid rows: an auto-placed child reports
+           `grid-row-start: auto`, so no amount of reading the stylesheet tells
+           you where the grid actually put it. Comparing the two boxes tells you
+           exactly what the audience sees.
+
+           The rail is excluded because it legitimately spans every row, and
+           `position:absolute` chrome like .badge is excluded because it is
+           supposed to float over the top corner. */
+        const h = sHead.getBoundingClientRect();
+        for (const el of s.children) {
+          if (el === sHead || el.contains(sHead)) continue;
+          if (el.classList.contains("rail") || el.classList.contains("themebar")) continue;
+          if (getComputedStyle(el).position === "absolute") continue;
+          const r = el.getBoundingClientRect();
+          if (r.height > 0 && r.top < h.top - 4) {
+            structure.push(
+              `${nameOf(el)} sits ${Math.round(h.top - r.top)}px above .s-head: a direct child of .slide that is not the rail, the head, the body or the foot is auto-placed into row 1, which is the empty band above the title`,
+            );
+          }
+        }
+      }
+
+      /* Band fill for a slide that is not a diagram. The diagram case is gated
+         below 25%; nothing measured the same thing for a treatment, so a
+         six-node flowchart floating in a 1430px band passed every gate and was
+         found by looking. Reported, never failed: a cover and a divider are
+         SUPPOSED to be airy, and a threshold that punished them would be a gate
+         people disable. The number is the context for the judgement. */
+      const contentBand = s.querySelector(".s-body");
+      let fill = null;
+      if (contentBand) {
+        const band = contentBand.getBoundingClientRect();
+        if (band.height > 40) {
+          let lo = Infinity;
+          let hi = -Infinity;
+          for (const el of contentBand.querySelectorAll("*")) {
+            const r = el.getBoundingClientRect();
+            if (!r.height || !r.width) continue;
+            if (r.top < lo) lo = r.top;
+            if (r.bottom > hi) hi = r.bottom;
+          }
+          if (Number.isFinite(lo) && hi > lo) fill = Math.max(0, Math.min(1, (hi - lo) / band.height));
+        }
+      }
 
       // Read the computed matrix, not the inline string: a deck may scale via
       // a class, a stylesheet rule, or scale3d(). m11 is matrix[0] and
@@ -529,6 +624,64 @@ for (const [w, h] of VIEWPORTS_RUN) {
           why = `a label paints ${cut}px outside its foreignObject and is clipped by it; add .mmdwrap foreignObject{overflow:visible !important}`;
         }
 
+        /* ---- cut by its own box -------------------------------------------
+         * The stage-clip check compares every element against the STAGE, so a
+         * drawing sliced by its own band passes it clean: the nodes are cut
+         * and still inside the stage. The failure the skill calls load-bearing
+         * was blind to the most common diagram failure for exactly this
+         * reason. So the drawing is measured against its own box twice: the
+         * SVG element against its band (a taller-than-band SVG is paint the
+         * band cannot hold, clipped or merely overflowing), and the drawing's
+         * own ink against the SVG viewport (an SVG clips to its viewport, so
+         * ink past it is sliced mid-shape). Either past tolerance is a FAIL:
+         * a healthy deck holds both at zero by construction — the sizing
+         * recipe fills the band exactly — so there is nothing here a good
+         * diagram can trip on.
+         *
+         * Ancestors at or above the slide are not consulted: past the stage is
+         * the stage-clip check's finding, and reporting it twice would
+         * double-count one defect. Zero-area elements (markers, defs) carry no
+         * paint and are skipped, same as the band-fill probe below. */
+        let boxcut = 0;
+        let boxcutNote = "";
+        {
+          const band = svg.closest(".mmdbox") || svg.parentElement;
+          if (band && band !== svg) {
+            const bb = band.getBoundingClientRect();
+            const rb = svg.getBoundingClientRect();
+            const over =
+              Math.max(0, bb.top - rb.top, rb.bottom - bb.bottom, bb.left - rb.left, rb.right - bb.right) /
+              stageScale;
+            if (over > boxcut) boxcut = over;
+          }
+          /* Viewport slop is reported, never failed. Mermaid computes the
+             viewBox itself, and a shipping diagram measures 2px of actor
+             figure past it: unactionable rounding noise the author cannot fix
+             and the eye cannot see, so failing on it would punish a correct
+             deck. The band half above is the author's own shape decision, and
+             that one fails. */
+          let lo = Infinity, hi = -Infinity, loX = Infinity, hiX = -Infinity;
+          for (const el of svg.querySelectorAll("*")) {
+            if (el.closest("defs")) continue;
+            const r = el.getBoundingClientRect();
+            if (!r.width || !r.height) continue;
+            if (r.top < lo) lo = r.top;
+            if (r.bottom > hi) hi = r.bottom;
+            if (r.left < loX) loX = r.left;
+            if (r.right > hiX) hiX = r.right;
+          }
+          if (Number.isFinite(lo)) {
+            const rb = svg.getBoundingClientRect();
+            const over =
+              Math.max(0, rb.top - lo, hi - rb.bottom, rb.left - loX, hiX - rb.right) / stageScale;
+            if (over > clipTol) boxcutNote = `viewport slop ${Math.round(over * 100) / 100}px (mermaid viewBox rounding, not a finding)`;
+          }
+          boxcut = Math.round(boxcut * 100) / 100;
+        }
+        if (boxcut > clipTol && !why) {
+          why = `drawing paints ${boxcut}px past its band, so nodes are sliced mid-shape with a clean stage-clip check; give the drawing a band that fits it (§3a) or a drawing that fits the band`;
+        }
+
         diagrams.push({
           boxW: Math.round(boxW),
           boxH: Math.round(boxH),
@@ -542,6 +695,7 @@ for (const [w, h] of VIEWPORTS_RUN) {
           inkText: cut > clipTol ? worstText : "",
           sample,
           why,
+          boxnote: boxcutNote || "",
         });
       }
 
@@ -673,6 +827,7 @@ for (const [w, h] of VIEWPORTS_RUN) {
           !docScroll &&
           clippedCount === 0 &&
           off.length === 0 &&
+          structure.length === 0 &&
           !diagrams.some((d) => d.why && !d.why.startsWith("note:")),
         why: !scaled
           ? "unscaled"
@@ -682,9 +837,13 @@ for (const [w, h] of VIEWPORTS_RUN) {
               ? `clipped:${clippedCount}`
               : off.length
                 ? `centrelines:${off.length}`
-                : diagrams.find((d) => d.why && !d.why.startsWith("note:"))?.why,
+                : structure.length
+                  ? `structure:${structure.length}`
+                  : diagrams.find((d) => d.why && !d.why.startsWith("note:"))?.why,
         clipped: [...seen.values()],
         centre: off,
+        structure,
+        fill,
         diagrams,
         words,
         stage: {
@@ -703,6 +862,8 @@ for (const [w, h] of VIEWPORTS_RUN) {
       for (const d of r.diagrams) report.diagrams.push({ slide: n + 1, ...d });
       report.words.push({ slide: n + 1, words: r.words });
       report.viewport = `${w}x${h}`;
+      if (typeof r.fill === "number") report.fill.push({ slide: n + 1, fill: r.fill });
+      if (r.structure && r.structure.length) report.structure.push({ slide: n + 1, lines: r.structure });
     }
     // --explain prints the same block for a passing slide. The gate (`failed++`,
     // the FAIL label, the exit code) still only fires on failure — explaining a
@@ -728,7 +889,7 @@ for (const [w, h] of VIEWPORTS_RUN) {
           d.projected !== null ? `-> ${d.projected}px projected` : null,
           `label ink outside its box ${d.ink}px${d.cut > 0.5 ? `, of which ${d.cut}px is clipped` : ""}`,
         ].filter(Boolean);
-        console.log(`    diagram: ${bits.join(", ")} | ${d.why}${d.sample ? ` | smallest "${d.sample}"` : ""}`);
+        console.log(`    diagram: ${bits.join(", ")} | ${d.why}${d.boxnote ? ` [${d.boxnote}]` : ""}${d.sample ? ` | smallest "${d.sample}"` : ""}`);
       }
       for (const c of r.clipped.slice(0, MAX_OFFENDERS)) {
         const extra = c.count > 1 ? ` x${c.count}` : "";
@@ -739,9 +900,32 @@ for (const [w, h] of VIEWPORTS_RUN) {
       if (r.clipped.length > MAX_OFFENDERS) {
         console.log(`    ... and ${r.clipped.length - MAX_OFFENDERS} more distinct element(s)`);
       }
+      for (const line of r.structure || []) console.log(`    ${line}`);
     }
-    await page.keyboard.press("ArrowRight");
-    await page.waitForTimeout(120);
+    /* One press is one slide only where no slide carries fragments, and a slide
+       with seven of them costs eight presses. A loop that assumed one press per
+       slide would measure the same slide eight times, run out its slide count
+       three quarters of the way through the deck, and finish with no error
+       anywhere. So: press until the active slide actually changes, with a cap,
+       and a deck that stops answering the key fails loudly instead of hanging. */
+    const activeIndex = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll(".slide")].findIndex((el) => el.classList.contains("active")),
+      );
+    let moved = false;
+    for (let g = 0; g < 60 && !moved; g++) {
+      const from = await activeIndex();
+      await page.keyboard.press("ArrowRight");
+      await page.waitForTimeout(120);
+      moved = (await activeIndex()) !== from;
+    }
+    // The last slide has nowhere to go, and a deck clamped at its end is
+    // behaving correctly, so only a slide that still had somewhere to go can fail
+    // this. Checking it anyway would fail every deck in the skill.
+    if (!moved && n < total - 1) {
+      failed++;
+      console.log(`${w}x${h}: FAIL (ArrowRight did not leave slide ${n + 1} in 60 presses)`);
+    }
   }
   if (errs.length) {
     failed += errs.length;
@@ -766,10 +950,25 @@ if (report.diagrams.length) {
       d.projected !== null ? `-> ${d.projected}px projected` : "",
       `ink outside box ${d.ink}px, clipped ${d.cut}px`,
     ].filter(Boolean);
-    console.log(`  s${d.slide}  ${bits.join("  ")}${d.why ? `  [${d.why}]` : ""}`);
+    console.log(`  s${d.slide}  ${bits.join("  ")}${d.why ? `  [${d.why}]` : ""}${d.boxnote ? `  [${d.boxnote}]` : ""}`);
   }
 } else {
   console.log("\ndiagram legibility: no rendered diagram in this deck");
+}
+if (report.fill.length) {
+  const counts = report.fill.map((f) => f.fill);
+  const thin = report.fill.filter((f) => f.fill < 0.35);
+  console.log("\nband fill (content height / .s-body height; reported, not failed):");
+  for (const f of report.fill) {
+    const pct = Math.round(f.fill * 100);
+    console.log(`  s${f.slide}  ${pct}%${pct < 35 ? "   <- thin; a cover or a divider is meant to be, anything else is stranded" : ""}`);
+  }
+  const med = counts.slice().sort((a, b) => a - b)[Math.floor(counts.length / 2)];
+  console.log(`  median ${Math.round(med * 100)}%, widest ${Math.round(Math.max(...counts) * 100)}%, ${thin.length} of ${report.fill.length} under 35%`);
+}
+if (report.structure.length) {
+  console.log("\nslide structure:");
+  for (const row of report.structure) for (const line of row.lines) console.log(`  s${row.slide}  ${line}`);
 }
 if (report.words.length) {
   const counts = report.words.map((r) => r.words);
