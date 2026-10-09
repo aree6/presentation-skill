@@ -229,8 +229,11 @@ body.no-anim .slide.active,body.no-anim .slide.active *,body.no-anim .edge,body.
    Any element carrying .fragment is a step. The arrow key reveals it, and a
    fragment starts hidden and ends visible, which is the same direction of
    travel as the staged entrance, so both use the same easing and the same
-   18px rise. show() resets a slide's fragments when it arrives at it, so
-   stepping always starts from the same place, and rail jumps replay the steps.
+   18px rise. show() places a slide inside its own stack when the deck arrives
+   there: walking into a slide starts at step zero, and a jump — a rail entry,
+   Home/End, window.show(n), or stepping back up onto it — lands settled with
+   every fragment on, so no arrival shows an audience a slide with its own
+   argument missing.
 
    `custom` is the escape hatch: it drops the default hidden state so the deck
    can write its own .fragment.custom and .fragment.custom.visible pair.
@@ -573,6 +576,10 @@ nav.rail.compact .rail-ic svg{width:13px;height:13px}
      fragment prints too. Without this a stepped slide prints with its own
      argument missing. Same rule as body.no-anim above, same reason. */
   .fragment{opacity:1 !important;visibility:inherit !important;transform:none !important}
+  /* Decorative pixel layers do not survive the trip to paper: the dot texture
+     and the edge bubbles are sized in screen px, and a print renderer blows
+     them up into giant blurred marks. Print gets the clean canvas. */
+  .slide::before,.slide::after{display:none !important}
 }
 /* ==========================================================================
    THEMEBAR: a presenter's switcher, not deck content.
@@ -969,9 +976,21 @@ function relabel(){
 }
 /* ---- fragments: the step inside one slide ---------------------------------
    Any element carrying .fragment is one step, and the arrow key walks the
-   steps before it walks the slides. Arriving at a slide resets its steps to
-   hidden, which is the rule that makes the sequence repeatable: a rail jump
-   lands on step zero, and a walk that comes back replays from the same place.
+   steps before it walks the slides, in both directions.
+
+   Where a slide arrives inside its own stack is show()'s job, and there are
+   exactly two answers (see the arrival note in show()):
+
+     JUMP — a rail entry, Home/End, window.show(n), or an arrow stepping back
+     UP onto a slide — arrives SETTLED, every fragment on at once. The
+     presenter did not walk here, so there is nothing left to present, and an
+     audience is never handed a slide with its own argument missing. Settled
+     also leaves fragAt at the end of the stack, so the next press of DOWN
+     moves the deck on instead of replaying steps the audience has been shown.
+
+     WALK IN from the slide before — navStep(1) — arrives at step zero. It is
+     the only arrival with presenting left to do, and starting from zero every
+     time is what makes the sequence repeatable.
 
    Order is data-fragment-index where it is written and document order where it
    is not, and every fragment gets an index written back at boot. The index is
@@ -1001,11 +1020,18 @@ function setFrags(slide,at){
     if(k===at)f.classList.add('current-fragment');
   }
   // The step index lands on the section, so one attribute answers "how far into
-  // this slide is the presenter" for CSS, for a capture and for a test.
+  // this slide is the presenter" for CSS, for a capture and for a test. -1 is
+  // the honest answer for "not one step yet", and it is also the answer for a
+  // slide with no steps at all, so a reader never has to ask which case it is.
   slide.setAttribute('data-fragment',list.length?at:-1);
   fragAt.set(slide,list.length?at:-1);
   return list.length>0;
 }
+// One step of the stack, in either direction, and false at BOTH ends: past the
+  // last step the caller moves to the next slide, and past step zero it moves to
+  // the previous one. So an arrow is symmetric — the same two calls serve down and
+  // up, and a slide whose fragments are settled (a jump landed here) steps
+  // straight off the end on DOWN rather than replaying what was already shown.
 function stepFrag(d){
   const sl=s[i];
   if(!sl)return false;
@@ -1416,7 +1442,34 @@ function animDone(to,running){
   Promise.allSettled(running.map(a=>a.finished)).then(done,done);
   setTimeout(done,ANIM_DURATION*1000+800);
 }
-function show(n,instant){
+/* show(n, instant, jump)
+
+   n       the slide to arrive on, clamped. This is also window.show(n), which is
+           the hook shot, export-pdf, qa-matrix, check-density and verify-motion
+           all drive the deck with, so its default below is the one they get.
+   instant skip the morph plan; a capture that wants no motion passes it.
+   jump    how the arrival reads, defaulting to TRUE (settled, see below). Only
+           navStep's forward call passes false.
+
+   Arrival: two answers, and which one is right depends on whether the presenter
+   walked here.
+
+     jump (the default) — a rail entry, Home/End, window.show(n), and an arrow
+     stepping back UP onto a slide. The slide arrives SETTLED, every fragment
+     visible at once. A jump is not a walk, so there is nothing left to present
+     on a slide you jumped to, and an audience must never be handed one with its
+     own argument missing. Walking back up settles for the same reason and that
+     is what turns stepping back into a POP: the slide under the arrow is the
+     one the audience was just shown in full, and each press takes one step back
+     off it, until the stack is empty and the deck moves on.
+
+     !jump — navStep(1) only, walking FORWARD into a slide. This arrives at step
+     zero, because it is the one arrival with presenting left to do, and zero
+     every time is what makes the walk repeatable.
+
+   That is the whole rule, and it is why `jump` is truthy by default: every
+   caller that is not walking forward is jumping. */
+function show(n,instant,jump){
   n=Math.max(0,Math.min(s.length-1,n));
   /* no-anim first, before the same-slide early return: shot and pdf capture
      the cover by re-showing slide 0, which early-returns, so a flag applied
@@ -1454,6 +1507,24 @@ function show(n,instant){
     // moment it stops being the active slide.
     anim=animPlan(from,to);
   }
+  /* THIRD, and while `to` is still display:none — which is a correctness point,
+     not a tidiness one. .fragment carries a .4s transition, so a settle written
+     AFTER .active would fade the destination in over most of a second: the
+     audience would read the slide as empty, then watch the whole argument fill
+     itself, which is the symptom this replaces. A display:none subtree starts
+     no transitions at all, so the classes land as a STATE and the slide is
+     painted settled on its first frame. It is the mirror image of the rule above
+     — the outgoing slide's rects are only readable until .active moves.
+
+     It sits after animPlan for the same reason that plan sits where it does:
+     nothing above this line measures `to`. The one thing the settle does change
+     is the incoming fragments' transform (a .fade-up step sits 18px low while
+     unstepped and none once stepped), and `to` is only measured for the morph
+     after .active, in the .measuring round trip below, so an auto-animate pair
+     is read in the state the audience is actually going to see it in.
+
+     settled = the end of the slide's own stack, or -1 where there are none. */
+  setFrags(to,jump===false?-1:fragList(to).length-1);
   i=n;s.forEach((el,k)=>el.classList.toggle('active',k===i));
   // Set in the same task as .active, so the staged entrance never gets a frame:
   // on an auto-animate slide the morph owns the motion, and two opacity
@@ -1462,10 +1533,6 @@ function show(n,instant){
   edgeL.classList.toggle('off',i===0);edgeR.classList.toggle('off',i===s.length-1);stage();
   markToc();
   live.textContent=labelOf(s[i],i);
-  // A slide arrives at step zero, never at the end: the whole point of a
-  // fragment is that the presenter walks it, and a jump that skipped the walk
-  // would leave the presenter with nothing left to say about it.
-  setFrags(s[i],-1);
   // SECOND, after the toggle, so the incoming slide is laid out and has real
   // rects to read, and with its own entrance suppressed while they are read: the
   // entrance is a transform on .s-foot, so a rect taken with it running is 18px
@@ -1537,21 +1604,35 @@ function show(n,instant){
 }
 function stage(){s[i].style.transform=`scale(${stageScale()})`}
 window.addEventListener('resize',stage);
-edgeL.addEventListener('click',e=>{e.stopPropagation();if(!stepFrag(-1))show(i-1);});
-edgeR.addEventListener('click',e=>{e.stopPropagation();if(!stepFrag(1))show(i+1);});
+/* One press of a direction, and the only place that decides what a step means.
+   An ARROW walks the current slide's fragments first and only moves the slide
+   once they run out; a rail entry, Home and End are jumps and call show()
+   directly. The forward branch is the one call in the file that arrives at step
+   zero, because walking into a slide is the only arrival with presenting left to
+   do — see the arrival note in show(). Doing it here rather than in each handler
+   is what keeps that distinction from having to be re-argued at four call sites. */
+function navStep(d){
+  if(stepFrag(d))return;
+  show(i+d,null,d<0);
+}
+edgeL.addEventListener('click',e=>{e.stopPropagation();navStep(-1);});
+edgeR.addEventListener('click',e=>{e.stopPropagation();navStep(1);});
 // stopPropagation, not just preventDefault. Space and Enter are handled here AND
 // on the document handler below, and preventDefault does not stop an event
 // travelling, so without it one key press moved two slides.
-edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!stepFrag(-1))show(i-1);}});
-edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!stepFrag(1))show(i+1);}});
+edgeL.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();navStep(-1);}});
+edgeR.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();navStep(1);}});
 /* Edit mode guard: keystrokes that land in editable text, a form field, or the
    icon modal belong to the edit, not to navigation. Without this, typing a
    space in a headline advances the slide.
 
    A key walks the slide's fragments before it walks the slides. That is the
    whole contract, in one order: the fragments of the slide you are on come
-   first, and the slide changes when they run out. */
-document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();if(!stepFrag(1))show(i+1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();if(!stepFrag(-1))show(i-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
+   first, and the slide changes when they run out — downwards AND upwards, which
+   is why navStep is one function taking a direction. Home and End are jumps,
+   not steps: they go to a slide, they do not walk to it, so they arrive settled
+   like a rail entry does. */
+document.addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('[contenteditable],input,textarea,button,.editmodal'))return;const k=e.key;if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();navStep(1);}else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();navStep(-1);}else if(k==='Home')show(0);else if(k==='End')show(s.length-1);});
 const RAIL_ICONS={
 "phosphor/chart-line":`<path d="M236,208a12,12,0,0,1-12,12H32a12,12,0,0,1-12-12V48a12,12,0,0,1,24,0v85.55L88.1,95a12,12,0,0,1,15.1-.57l56.22,42.16L216.1,87A12,12,0,1,1,231.9,105l-64,56a12,12,0,0,1-15.1.57L96.58,119.44,44,165.45V196H224A12,12,0,0,1,236,208Z"/>`,
 "phosphor/table":`<path d="M224,44H32A12,12,0,0,0,20,56V192a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A12,12,0,0,0,224,44ZM44,116H76v24H44Zm56,0H212v24H100ZM212,68V92H44V68ZM44,164H76v24H44Zm56,24V164H212v24Z"/>`,
@@ -1588,13 +1669,25 @@ const RAIL_ICONS={
 };
 function shortOf(el){return el.getAttribute('data-toc')||el.getAttribute('data-name')||'';}
 function railHTML(){
-  let h='';
+  let h='';let reqDone=false;
   s.forEach((el,k)=>{
     // Appendix and bridges are not the narrative: the rail is the table of
     // contents, and a filler slide in it is noise. Bridges still show the rail
     // (position matters there too) with nothing highlighted, like appendix.
     const g=el.getAttribute('data-group');
     if(g==='appendix'||g==='bridge')return;
+    // A requirements run reads as one chapter: the single entry sits where the
+    // run starts, not at the end of the rail, so position still matches the
+    // narrative order. The click lands on the overview while arrows still walk
+    // the run one slide at a time.
+    if(g==='reqrun'){
+      if(reqDone)return;
+      reqDone=true;
+      const k2=el.getAttribute('data-rail')||'';
+      const ic=`<span class="rail-ic">${(k2&&RAIL_ICONS[k2])?`<svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg>`:''}</span>`;
+      h+=`<button class="rail-item" data-i="${k}" data-req="1">${ic}<span class="rail-t">${shortOf(el)}</span></button>`;
+      return;
+    }
     const k2=el.getAttribute('data-rail')||'';
     const ic=`<span class="rail-ic">${(k2&&RAIL_ICONS[k2])?`<svg class="ph" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" data-icon="${k2}">${RAIL_ICONS[k2]}</svg>`:''}</span>`;
     h+=`<button class="rail-item" data-i="${k}">${ic}<span class="rail-t">${shortOf(el)}</span></button>`;
@@ -1617,19 +1710,26 @@ function mountRail(){
   // appendix slide would defeat its own purpose, but the single entry still
   // takes vertical room.
   const apxN=s.filter(el=>el.getAttribute('data-group')==='appendix').length;
-  const main=s.filter(el=>{const g=el.getAttribute('data-group');return g!=='appendix'&&g!=='bridge';}).length+(apxN?1:0);
+  const reqN=s.filter(el=>el.getAttribute('data-group')==='reqrun').length;
+  const main=s.filter(el=>{const g=el.getAttribute('data-group');return g!=='appendix'&&g!=='bridge'&&g!=='reqrun';}).length+(apxN?1:0)+(reqN?1:0);
   /* Three tiers, not two: past 28 entries even the compact rows push the last
      one onto the footer band, and the rail has to stay complete or the overview
      it exists to give is gone. See DESIGN.md -> 'Sidebar table of contents'. */
   const cls=main>28?'rail micro':main>16?'rail compact':'rail';
   s.forEach((el)=>{const n=document.createElement('nav');n.className=cls;n.setAttribute('aria-label','Deck contents');n.innerHTML=railHTML();el.prepend(n);});
+  // A rail entry is a JUMP — it goes to a slide, it does not walk to it — so it
+  // takes show()'s default arrival and lands settled rather than as a bare
+  // frame the presenter then has to walk down again to fill.
   s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();show(+b.dataset.i);}));});
   s.forEach((el)=>{el.querySelectorAll('.rail-item').forEach(b=>b.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();e.stopPropagation();show(+b.dataset.i);}}));});
 }
-function markToc(){/* A bridge belongs to what follows it: on a bridge slide the rail highlights the next slide that carries an entry, so the question visibly leads somewhere instead of leaving the rail dead. Past the last entry there is nothing to highlight. */let k=i;while(s[k]&&s[k].getAttribute('data-group')==='bridge')k++;const apx=s[k]&&s[k].getAttribute('data-group')==='appendix';document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',!!s[k]&&(apx?b.hasAttribute('data-apx'):+b.dataset.i===k)));}
+function markToc(){/* A bridge belongs to what follows it: on a bridge slide the rail highlights the next slide that carries an entry, so the question visibly leads somewhere instead of leaving the rail dead. Past the last entry there is nothing to highlight. */let k=i;while(s[k]&&s[k].getAttribute('data-group')==='bridge')k++;const apx=s[k]&&s[k].getAttribute('data-group')==='appendix';const req=s[k]&&s[k].getAttribute('data-group')==='reqrun';document.querySelectorAll('.slide .rail-item').forEach(b=>b.classList.toggle('on',!!s[k]&&(apx?b.hasAttribute('data-apx'):(req?b.hasAttribute('data-req'):+b.dataset.i===k))));}
 /* Order matters here: the code is split into per-line boxes before the first
    show(), because a slide that has never been measured cannot be morphed from,
-   and the first show() is what settles the scale every measurement divides by. */
+   and the first show() is what settles the scale every measurement divides by.
+   The cover takes show()'s default arrival, which is the right one for it: the
+   deck is being opened, not walked onto, and a cover whose argument is still
+   hidden is a blank first frame. */
 splitCode(document);splitWords(document);relabel();mountRail();show(0);
 </script>
 
@@ -1769,10 +1869,14 @@ window.__SKILL_ASSETS__="../assets";
   else bar.hidden=false;
 
   /* The switcher lives on the first slide only. Wrapping show() rather than
-     polling keeps one source of truth for which slide is showing. */
+     polling keeps one source of truth for which slide is showing.
+     apply(null,arguments), not show(n): show() takes `instant` and `jump` as
+     well, and every capture drives the deck through this same window.show, so
+     dropping the tail here would silently hand a capture a step-zero arrival
+     and a fragment-less PDF. */
   if(typeof window.show==='function'){
     const _show=window.show;
-    window.show=function(n){_show(n);document.body.classList.toggle('on-cover',n===0);};
+    window.show=function(n){_show.apply(null,arguments);document.body.classList.toggle('on-cover',n===0)};
     document.body.classList.add('on-cover');
   }
 })();

@@ -388,7 +388,11 @@ if (!shape.frags.length) {
   notes.push("no .fragment in this deck, so the step-through has nothing to check");
 } else {
   const f = shape.frags[0];
-  await page.evaluate((k) => window.show(k), f.k);
+  // A jump arrives settled (all fragments visible), so the probe walks onto the
+  // slide at step zero explicitly: show(k, instant=null, jump=false). Probing
+  // with a bare show(k) would start at the settled end and the walk below
+  // would step off the slide instead of through it.
+  await page.evaluate((k) => window.show(k, null, false), f.k);
   await wait(400);
   const seen = [];
   for (let n = 0; n <= f.n + 1; n++) {

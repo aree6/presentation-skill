@@ -21,3 +21,7 @@ decks/*/*-motion/
 #   bun cli.mjs icons build
 assets/icon-index.js
 assets/icon-files/
+
+# Confidential client decks stay local: slides, captures, board data and PDFs
+# are never committed. Skill machinery (templates, scripts, tests) is tracked.
+decks/sprint-4-review/

@@ -260,7 +260,13 @@ await page.emulateMedia({ media: "screen" });
 // because `body[data-themebar]` is how a presenter asks for the switcher, and a
 // PDF must never inherit that request.
 await page.addStyleTag({
-  content: ".edge,.nav,.themebar,.themehit,.editmodal{display:none !important;}",
+  content:
+    ".edge,.nav,.themebar,.themehit,.editmodal{display:none !important;}" +
+    // Decorative pixel layers are sized in screen px; the print renderer blows
+    // them up into giant blurred marks. @media print never fires here (screen
+    // media is emulated), so this injected rule is the only thing that hides
+    // them from the PDF.
+    ".slide::before,.slide::after{display:none !important;}",
 });
 
 /**
@@ -336,7 +342,16 @@ await page.waitForTimeout(600);
 // Freeze morph transitions so every capture is the settled slide.
 await page.evaluate(() => { window.__noMorph = true; });
 
-const total = await page.evaluate(() => document.querySelectorAll(".slide").length);
+// Slides carrying data-pdf="skip" (e.g. stepped detail views whose parent
+// already tells the story) are left out of the PDF. Jumps land settled, so
+// nothing skipped ever strands a fragment hidden.
+const pages = await page.evaluate(() =>
+  [...document.querySelectorAll(".slide")]
+    .map((_, k) => k)
+    .filter((k) => document.querySelectorAll(".slide")[k].getAttribute("data-pdf") !== "skip"),
+);
+const skipped = (await page.evaluate(() => document.querySelectorAll(".slide").length)) - pages.length;
+const total = pages.length;
 if (!total) {
   console.error(`export-pdf: no .slide elements found in ${DECK}`);
   await browser.close();
@@ -350,7 +365,9 @@ if ((await page.evaluate(() => typeof window.show)) !== "function") {
 console.log(`deck: ${path.basename(DECK)} · ${total} slides · ${W}x${H}`);
 
 const merged = await PDFDocument.create();
-for (let k = 0; k < total; k++) {
+if (skipped) console.log(`  skipping ${skipped} slide(s) marked data-pdf="skip"`);
+let done = 0;
+for (const k of pages) {
   await page.evaluate((n) => window.show(n), k);
   await settle("slide");
   await page.waitForTimeout(WAIT);
@@ -369,7 +386,8 @@ for (let k = 0; k < total; k++) {
   const single = await PDFDocument.load(buf);
   const [copied] = await merged.copyPages(single, [0]);
   merged.addPage(copied);
-  console.log(`  page ${k + 1}/${total} captured`);
+  done += 1;
+  console.log(`  page ${done}/${total} captured (slide ${k + 1})`);
 }
 
 const stamp = new Date();
@@ -399,7 +417,7 @@ await browser.close();
 
 const check = await PDFDocument.load(bytes);
 if (check.getPageCount() !== total) {
-  throw new Error(`Page mismatch: PDF has ${check.getPageCount()}, deck has ${total}.`);
+  throw new Error(`Page mismatch: PDF has ${check.getPageCount()}, expected ${total}.`);
 }
 console.log(`wrote ${versioned} (${(bytes.length / 1024).toFixed(0)} KB, ${check.getPageCount()} pages)`);
 console.log(`latest -> ${latest}`);
